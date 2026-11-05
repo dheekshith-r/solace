@@ -39,17 +39,19 @@ export const moodLabels = ['Heavy', 'Low', 'Okay', 'Good', 'Bright'] as const;
 export const skyColor = {
   star: '#FFFFFF',
   // A full white disc with a soft white glow.
-  sun: ['#FFFFFF', '#FFFFFF', 'rgba(255,255,255,0.32)', 'rgba(255,255,255,0)'],
-  sunStops: [0, 0.3, 0.36, 1],
-  sunRadius: 54,
+  sun: ['#FFFFFF', '#FFFFFF', 'rgba(255,255,255,0.5)', 'rgba(255,255,255,0.14)', 'rgba(255,255,255,0)'],
+  sunStops: [0, 0.2, 0.26, 0.55, 1],
+  sunRadius: 84,
   moon: '#F2F2F7', // Gray 6.
-  // One big circle: the sun and moon enter at the left edge, cross above Sola and leave at the right.
-  arcEdgeOverscan: 0.05, // Fraction of the width past each edge, so they start and end off-screen.
+  // The sun rises from the right edge, curves in and sinks back to it; the moon does the same on the
+  // left. Neither ever reaches Sola. Fractions of the width.
+  sunEdgeX: 1.08,
+  sunReachX: 0.77,
+  moonEdgeX: -0.08,
+  moonReachX: 0.23,
   arcApexBelowDate: 30, // Points below the date row at the top of the arc.
   arcEndBelowSola: 0.75, // Sola sizes below Sola's center where the arc meets the screen edges.
   cloud: '#FFFFFF',
-  cloudDayOpacity: 0.72,
-  cloudNightOpacity: 0.06,
   shootingStar: '#FFFFFF',
 } as const;
 
@@ -60,49 +62,19 @@ export const skyMotion = {
   shootingLength: 90,
 } as const;
 
-// Drift in points per second. Slower layers read as further away.
+// Drift in points per second. Each cloud is its own painted image: further is smaller, slower, fainter.
 export const cloudLayers = [
-  { at: 0.05, shape: 0, scale: 0.72, speed: 1.6, opacity: 0.7, offset: 0.62 },
-  { at: 0.16, shape: 1, scale: 0.92, speed: 2.6, opacity: 0.85, offset: 0.12 },
-  { at: 0.3, shape: 2, scale: 1.1, speed: 3.8, opacity: 1, offset: 0.42 },
+  { at: 0.02, width: 170, height: 46, seed: 3.7, speed: 1.4, opacity: 0.62, offset: 0.62 },
+  { at: 0.1, width: 240, height: 66, seed: 11.3, speed: 2.3, opacity: 0.8, offset: 0.12 },
+  { at: 0.24, width: 300, height: 84, seed: 23.9, speed: 3.4, opacity: 0.95, offset: 0.42 },
 ] as const;
-
-// Each cloud has its own shape: long, flat and uneven, as [x, y, radius].
-export const cloudShapes = [
-  [[-58, 7, 11], [-38, 2, 16], [-14, -5, 20], [14, -2, 17], [38, 4, 13], [60, 8, 8]],
-  [[-74, 9, 9], [-52, 5, 14], [-26, -3, 21], [4, -9, 25], [32, -2, 19], [58, 5, 14], [80, 9, 8]],
-  [[-44, 7, 13], [-22, -6, 18], [2, 2, 15], [24, -10, 21], [46, 0, 15], [70, 7, 10]],
-] as const;
-
-export const cloudNight = {
-  body: '#001D33', // The night sky's own color, so clouds hide the stars behind them.
-  bodyOpacity: 0.82,
-  rimOpacity: 0.5,
-  rimOffsetX: 1.6, // Toward the moon, which sits up and to the right.
-  rimOffsetY: -2.4,
-  blur: 5,
-} as const;
 
 // A full moon's near side, as [x, y, xRadius, yRadius] in moon radii.
 export const moon = {
   radius: 22,
-  maria: [
-    [-0.34, -0.36, 0.32, 0.3], // Imbrium.
-    [0.12, -0.38, 0.2, 0.18], // Serenitatis.
-    [0.32, -0.1, 0.25, 0.2], // Tranquillitatis.
-    [0.68, -0.32, 0.13, 0.12], // Crisium.
-    [0.62, 0.12, 0.16, 0.22], // Fecunditatis.
-    [-0.62, -0.02, 0.26, 0.42], // Procellarum.
-    [-0.42, 0.42, 0.14, 0.13], // Humorum.
-    [-0.12, 0.36, 0.24, 0.17], // Nubium.
-  ],
-  mariaColor: '#8E8E93', // Gray.
-  mariaOpacity: 0.5,
-  mariaBlur: 1.1,
-  tycho: { x: -0.06, y: 0.7, radius: 0.09 },
-  haloRadius: 3.6,
-  halo: ['rgba(242,242,247,0.34)', 'rgba(242,242,247,0.08)', 'rgba(242,242,247,0)'],
-  haloStops: [0.28, 0.5, 1],
+  haloRadius: 4,
+  halo: ['rgba(242,242,247,0.3)', 'rgba(242,242,247,0.09)', 'rgba(242,242,247,0)'],
+  haloStops: [0.25, 0.5, 1],
 } as const;
 
 // The whole star field is one GPU shader. Fractions are of the screen height down to the horizon.
@@ -148,6 +120,7 @@ export const sceneColor = {
     brown: '#AC7F5E',
     brownDeep: '#956D51', // Brown, increased contrast.
     pink: '#FF2D55',
+    orange: '#FF8D28',
     skyDay: '#A6D3FF', // The day sky's own color.
     nightSky: '#001D33', // The night sky's own color.
   },
@@ -163,11 +136,11 @@ export const sceneColor = {
 
 // Fractions of the scene, the visible strip between Sola and the sheet.
 export const sceneShapes = {
-  fuji: { summitY: 0.2, footY: 0.6 },
-  pool: { topY: 0.6, bottomY: 0.725 },
+  fuji: { summitY: 0.17, footY: 0.54 },
+  pool: { topY: 0.54, bottomY: 0.742 },
   // The stream: one S-curve from the lake, widening as it comes toward the viewer.
   stream: {
-    topY: 0.712,
+    topY: 0.732,
     bottomY: 0.93,
     centerX: 0.5,
     bendStart: 0.008,
@@ -227,15 +200,18 @@ export const trees: { left: readonly Limb[]; right: readonly Limb[] } = {
 export const treeDrop = 0.21;
 
 export const blossom = {
-  radius: 2.9,
-  petalOffset: 0.42,
-  petalRadius: 0.66,
-  centerRadius: 0.16,
-  massRadius: 2,
-  massBlur: 5,
-  scatter: 9,
-  density: 3.4,
-  limbSamples: 14,
+  radius: 3.1,
+  radiusVariation: 0.32,
+  clustersPerFlowerUnit: 0.42,
+  flowersPerCluster: 11,
+  clusterRadius: 8.5,
+  twigsPerLimb: 3,
+  twigMinLength: 0.045,
+  twigMaxLength: 0.095,
+  limbSamples: 22,
+  widthWobble: 0.15,
+  knotMinLimbWidth: 3.4,
+  knotsPerLimb: 3,
 } as const;
 
 // Mostly still. Each gust sways the branches slightly and releases a few petals.
@@ -267,3 +243,9 @@ export const fallingPetal = {
 
 // The stream's water shader. Tint is HIG Teal.
 export const water = { tint: '#00C3D0', moonMinX: 0.42, moonMaxX: 0.74, flow: 0.42 } as const;
+
+// Where the stream meets the lake: ripples spreading out with a little foam. Fractions of the width.
+export const splash = { width: 0.34, height: 30, speed: 2.1, opacity: 0.6 } as const;
+
+// Golden hour light on the landscape, in minutes around sunrise and sunset.
+export const goldenHour = { sunriseCenter: 375, sunsetCenter: 1045, reach: 75 } as const;

@@ -1,16 +1,12 @@
 import {
-  BlurMask,
-  BlurStyle,
   Canvas,
   Circle,
-  createPicture,
   Group,
   Image as SkiaImage,
   Line,
   LinearGradient,
   Oval,
   Path,
-  Picture,
   RadialGradient,
   Rect,
   Shader,
@@ -22,8 +18,6 @@ import { StyleSheet } from 'react-native';
 import { useDerivedValue, type SharedValue } from 'react-native-reanimated';
 import {
   cloudLayers,
-  cloudNight,
-  cloudShapes,
   fallingPetal,
   meadow,
   moon,
@@ -34,6 +28,7 @@ import {
   skyMotion,
   skyStopPositions,
   sola,
+  splash,
   treeDrop,
   trees,
   water,
@@ -41,12 +36,12 @@ import {
   type Limb,
 } from '../../theme/sky';
 import { today } from '../../theme/tokens';
-import { moonProgress, skyArc, sleepyAmount, sunProgress } from './astro';
-import { bakeLandscape, bakeTree } from './bake';
+import { moonProgress, sideArc, sleepyAmount, sunProgress } from './astro';
+import { bakeCloud, bakeLandscape, bakeMoon, bakeTree } from './bake';
 import { gustSway, petalPose, treeShape, tuftBatch, type SceneRect } from './landscape';
-import { hexToRgb, mixRgb, moonAmount, nightAmount, rgbToCss, sunAmount, timeStops, type Rgb } from './skyColors';
+import { goldenAmount, hexToRgb, moonAmount, nightAmount, rgbToCss, sunAmount, timeStops, type Rgb } from './skyColors';
 import { starEffect } from './starShader';
-import { waterEffect } from './waterShader';
+import { splashEffect, waterEffect } from './waterShader';
 
 const TWO_PI = Math.PI * 2;
 const CLOUD_MARGIN = 100;
@@ -65,46 +60,24 @@ export type SkyBands = {
   scene: SceneRect;
 };
 
-function CloudLayer({ layer, y, width, clock, minute }: {
+function CloudLayer({ layer, y, width, clock, night }: {
   layer: (typeof cloudLayers)[number];
   y: number;
   width: number;
   clock: SharedValue<number>;
-  minute: SharedValue<number>;
+  night: SharedValue<number>;
 }) {
-  const span = width + CLOUD_MARGIN * 2;
-  const path = useMemo(() => {
-    const builder = Skia.PathBuilder.Make();
-    cloudShapes[layer.shape]?.forEach(([x, py, r]) => {
-      builder.addCircle(x * layer.scale, py * layer.scale, r * layer.scale);
-    });
-    return builder.build();
-  }, [layer.scale, layer.shape]);
-
+  const span = width + layer.width + CLOUD_MARGIN;
+  const images = useMemo(() => ({ day: bakeCloud(layer, 'day'), night: bakeCloud(layer, 'night') }), [layer]);
+  const dayOpacity = useDerivedValue(() => 1 - night.get());
   const transform = useDerivedValue(() => {
-    const x = ((clock.get() * layer.speed + span * layer.offset) % span) - CLOUD_MARGIN;
+    const x = ((clock.get() * layer.speed + span * layer.offset) % span) - layer.width - CLOUD_MARGIN / 2;
     return [{ translateX: x }, { translateY: y }];
   });
-  // White by day. At night the body takes the sky's color and the moon lights one edge.
-  const bodyColor = useDerivedValue(() =>
-    rgbToCss(mixRgb(hexToRgb(skyColor.cloud), hexToRgb(cloudNight.body), nightAmount(minute.get()))),
-  );
-  const bodyOpacity = useDerivedValue(() => {
-    const n = nightAmount(minute.get());
-    return layer.opacity * (skyColor.cloudDayOpacity + (cloudNight.bodyOpacity - skyColor.cloudDayOpacity) * n);
-  });
-  const rimOpacity = useDerivedValue(() => moonAmount(minute.get()) * cloudNight.rimOpacity * layer.opacity);
-
   return (
     <Group transform={transform}>
-      <Group transform={[{ translateX: cloudNight.rimOffsetX }, { translateY: cloudNight.rimOffsetY }]}>
-        <Path path={path} color={skyColor.moon} opacity={rimOpacity}>
-          <BlurMask blur={cloudNight.blur * 0.7} style="normal" />
-        </Path>
-      </Group>
-      <Path path={path} color={bodyColor} opacity={bodyOpacity}>
-        <BlurMask blur={cloudNight.blur} style="normal" />
-      </Path>
+      {images.day ? <SkiaImage image={images.day} x={0} y={0} width={layer.width} height={layer.height} fit="fill" opacity={dayOpacity} /> : null}
+      {images.night ? <SkiaImage image={images.night} x={0} y={0} width={layer.width} height={layer.height} fit="fill" opacity={night} /> : null}
     </Group>
   );
 }
@@ -135,7 +108,7 @@ function StarField({ size, horizon, clock, night, lite }: {
 function Sun({ width, apexY, endY, minute }: { width: number; apexY: number; endY: number; minute: SharedValue<number> }) {
   const opacity = useDerivedValue(() => sunAmount(minute.get()));
   const transform = useDerivedValue(() => {
-    const p = skyArc(sunProgress(minute.get()), width, apexY, endY, skyColor.arcEdgeOverscan);
+    const p = sideArc(sunProgress(minute.get()), width, apexY, endY, skyColor.sunEdgeX, skyColor.sunReachX);
     return [{ translateX: p.x }, { translateY: p.y }];
   });
   return (
@@ -149,34 +122,10 @@ function Sun({ width, apexY, endY, minute }: { width: number; apexY: number; end
 
 function Moon({ width, apexY, endY, minute }: { width: number; apexY: number; endY: number; minute: SharedValue<number> }) {
   const r = moon.radius;
-  const picture = useMemo(() => {
-    const clip = Skia.PathBuilder.Make().addCircle(0, 0, r).build();
-    const maria = Skia.PathBuilder.Make();
-    moon.maria.forEach(([mx, my, rx, ry]) => {
-      maria.addOval(Skia.XYWHRect((mx - rx) * r, (my - ry) * r, rx * 2 * r, ry * 2 * r));
-    });
-    const mariaPath = maria.build();
-    return createPicture((canvas) => {
-      const paint = Skia.Paint();
-      paint.setAntiAlias(true);
-      paint.setColor(Skia.Color(skyColor.moon));
-      canvas.drawPath(clip, paint);
-      canvas.save();
-      canvas.clipPath(clip, 1, true);
-      paint.setColor(Skia.Color(moon.mariaColor));
-      paint.setAlphaf(moon.mariaOpacity);
-      paint.setMaskFilter(Skia.MaskFilter.MakeBlur(BlurStyle.Normal, moon.mariaBlur, true));
-      canvas.drawPath(mariaPath, paint);
-      paint.setMaskFilter(null);
-      paint.setColor(Skia.Color(skyColor.cloud));
-      paint.setAlphaf(0.9);
-      canvas.drawCircle(moon.tycho.x * r, moon.tycho.y * r, moon.tycho.radius * r, paint);
-      canvas.restore();
-    });
-  }, [r]);
+  const image = useMemo(() => bakeMoon(), []);
   const opacity = useDerivedValue(() => moonAmount(minute.get()));
   const transform = useDerivedValue(() => {
-    const p = skyArc(moonProgress(minute.get()), width, apexY, endY, skyColor.arcEdgeOverscan);
+    const p = sideArc(moonProgress(minute.get()), width, apexY, endY, skyColor.moonEdgeX, skyColor.moonReachX);
     return [{ translateX: p.x }, { translateY: p.y }];
   });
   return (
@@ -184,7 +133,7 @@ function Moon({ width, apexY, endY, minute }: { width: number; apexY: number; en
       <Circle cx={0} cy={0} r={r * moon.haloRadius}>
         <RadialGradient c={vec(0, 0)} r={r * moon.haloRadius} colors={[...moon.halo]} positions={[...moon.haloStops]} />
       </Circle>
-      <Picture picture={picture} />
+      {image ? <SkiaImage image={image} x={-(r + 2)} y={-(r + 2)} width={(r + 2) * 2} height={(r + 2) * 2} fit="fill" /> : null}
     </Group>
   );
 }
@@ -215,14 +164,39 @@ function ShootingStar({ clock, startedAt, startX, startY, night }: {
   return <Line p1={tail} p2={head} color={skyColor.shootingStar} strokeWidth={1.4} strokeCap="round" opacity={opacity} />;
 }
 
-/** The landscape: painted once into a day and a night image, cross-faded with the time of day. */
-function StaticScene({ rect, night }: { rect: SceneRect; night: SharedValue<number> }) {
-  const images = useMemo(() => ({ day: bakeLandscape(rect, 'day'), night: bakeLandscape(rect, 'night') }), [rect]);
+/** The landscape: painted once for day, golden hour and night, cross-faded with the time of day. */
+function StaticScene({ rect, night, minute }: { rect: SceneRect; night: SharedValue<number>; minute: SharedValue<number> }) {
+  const images = useMemo(
+    () => ({ day: bakeLandscape(rect, 'day'), golden: bakeLandscape(rect, 'golden'), night: bakeLandscape(rect, 'night') }),
+    [rect],
+  );
+  const golden = useDerivedValue(() => goldenAmount(minute.get()));
+  const place = { x: 0, y: rect.top, width: rect.width, height: rect.height, fit: 'fill' as const };
   return (
     <>
-      {images.day ? <SkiaImage image={images.day} x={0} y={rect.top} width={rect.width} height={rect.height} fit="fill" /> : null}
-      {images.night ? <SkiaImage image={images.night} x={0} y={rect.top} width={rect.width} height={rect.height} fit="fill" opacity={night} /> : null}
+      {images.day ? <SkiaImage image={images.day} {...place} /> : null}
+      {images.golden ? <SkiaImage image={images.golden} {...place} opacity={golden} /> : null}
+      {images.night ? <SkiaImage image={images.night} {...place} opacity={night} /> : null}
     </>
+  );
+}
+
+/** Ripples and a little foam where the stream runs into the lake. */
+function StreamMouth({ rect, clock, night }: { rect: SceneRect; clock: SharedValue<number>; night: SharedValue<number> }) {
+  const s = sceneShapes.stream;
+  const centerX = rect.width * s.centerX;
+  const centerY = rect.top + rect.height * s.topY;
+  const halfW = (rect.width * splash.width) / 2;
+  const halfH = splash.height / 2;
+  const uniforms = useDerivedValue(() => {
+    const n = night.get();
+    return { time: clock.get(), center: [centerX, centerY], extent: [halfW, halfH], light: [1, 1, 1], opacity: splash.opacity * (1 - n * 0.55) };
+  });
+  if (!splashEffect) return null;
+  return (
+    <Rect x={centerX - halfW} y={centerY - halfH} width={halfW * 2} height={halfH * 2}>
+      <Shader source={splashEffect} uniforms={uniforms} />
+    </Rect>
   );
 }
 
@@ -273,7 +247,7 @@ function StreamWater({ rect, minute, clock }: { rect: SceneRect; minute: SharedV
       mountain: unit(hexToRgb(sceneColor.mountain)).map((v) => v * (1 - n * sceneColor.nightOverlayOpacity)),
       moon: moonAmount(minute.get()),
       // The column of light follows the moon, within the part of the stream that can show it.
-      moonX: Math.min(water.moonMaxX, Math.max(water.moonMinX, moonProgress(minute.get()))),
+      moonX: water.moonMinX,
       night: n,
       centerX: s.centerX,
       bendStart: s.bendStart,
@@ -462,14 +436,7 @@ export function SkyCanvas({ size, bands, minute, mood, clock, gust, shootingStar
       <Moon width={size.width} apexY={arcApexY} endY={arcEndY} minute={minute} />
       <Sun width={size.width} apexY={arcApexY} endY={arcEndY} minute={minute} />
       {cloudLayers.map((layer) => (
-        <CloudLayer
-          key={layer.at}
-          layer={layer}
-          y={scene.top + scene.height * layer.at}
-          width={size.width}
-          clock={clock}
-          minute={minute}
-        />
+        <CloudLayer key={layer.seed} layer={layer} y={scene.top + scene.height * layer.at} width={size.width} clock={clock} night={night} />
       ))}
       <ShootingStar
         clock={clock}
@@ -479,8 +446,9 @@ export function SkyCanvas({ size, bands, minute, mood, clock, gust, shootingStar
         night={night}
       />
 
-      <StaticScene rect={scene} night={night} />
+      <StaticScene rect={scene} night={night} minute={minute} />
       <StreamWater rect={scene} minute={minute} clock={clock} />
+      <StreamMouth rect={scene} clock={clock} night={night} />
       {Array.from({ length: meadow.swayBatches }, (_, batch) => (
         <TuftBatch
           key={batch}

@@ -75,3 +75,28 @@ half4 main(float2 p) {
 `;
 
 export const waterEffect = Skia.RuntimeEffect.Make(source);
+
+// Where the stream meets the lake: rings spreading out across the water, with foam at the mouth.
+export const splashEffect = Skia.RuntimeEffect.Make(`
+ uniform float time;
+ uniform float2 center;
+ uniform float2 extent;
+ uniform float3 light;
+ uniform float opacity;
+ float rand(float2 p) { return fract(sin(dot(p, float2(127.1, 311.7))) * 43758.5453); }
+ float noise(float2 p) {
+   float2 i = floor(p);
+   float2 f = fract(p);
+   f = f * f * (3.0 - 2.0 * f);
+   return mix(mix(rand(i), rand(i + float2(1.0, 0.0)), f.x), mix(rand(i + float2(0.0, 1.0)), rand(i + float2(1.0, 1.0)), f.x), f.y);
+ }
+ half4 main(float2 p) {
+   float2 q = (p - center) / extent;
+   float r = length(q);
+   if (r >= 1.0) return half4(0.0);
+   float wobble = (noise(p * 0.12 + time * 0.3) - 0.5) * 0.12;
+   float rings = pow(max(0.0, sin((r + wobble) * 18.0 - time * 3.0)), 5.0) * (1.0 - smoothstep(0.1, 1.0, r));
+   float foam = smoothstep(0.55, 0.85, noise(p * 0.55 + float2(0.0, -time * 1.3))) * (1.0 - smoothstep(0.0, 0.3, r));
+   float a = clamp(rings * 0.55 + foam * 0.85, 0.0, 1.0) * opacity;
+   return half4(half3(light) * a, a);
+ }`);

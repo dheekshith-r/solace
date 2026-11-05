@@ -1,9 +1,10 @@
-import { blossom, fallingPetal, meadow, sceneShapes, treeDrop, trees, wind } from '../../../theme/sky';
+import { blossom, fallingPetal, goldenHour, meadow, sceneShapes, skyColor, treeDrop, trees, wind } from '../../../theme/sky';
 import { colors } from '../../../theme/tokens';
-import { isSleepy, moonIllumination, moonLitPath, moonPhase, moonProgress, skyArc, sleepyAmount, sunProgress, wrapMinute } from '../astro';
-import { gustSway, petalPose, streamAt, treeShape, tuftBatch } from '../landscape';
+import { isSleepy, moonIllumination, moonLitPath, moonPhase, moonProgress, sideArc, sleepyAmount, sunProgress, wrapMinute } from '../astro';
+import { gustSway, petalOutline, petalPose, streamAt, treeShape, tuftBatch, twigsOf } from '../landscape';
 import {
   contrastBetween,
+  goldenAmount,
   moonAmount,
   nightAmount,
   skyTextContrast,
@@ -64,19 +65,30 @@ describe('time of day', () => {
     expect(moonProgress(359)).toBeLessThan(1);
   });
 
-  it('shares one circle: in from the left edge, top at the middle, out past the right edge', () => {
-    const at = (p: number) => skyArc(p, 400, 100, 260, 0.12);
-    expect(at(0).x).toBeLessThan(0);
-    expect(at(1).x).toBeGreaterThan(400);
-    expect(at(0).y).toBeCloseTo(260);
-    expect(at(1).y).toBeCloseTo(260);
-    expect(at(0.5).x).toBeCloseTo(200);
-    expect(at(0.5).y).toBeCloseTo(100);
-    let previous = -Infinity;
-    for (let p = 0; p <= 1; p += 0.02) {
-      expect(at(p).x).toBeGreaterThan(previous);
-      previous = at(p).x;
+  it('keeps the sun on the right and the moon on the left, never reaching Sola', () => {
+    const width = 400;
+    const solaHalf = 0.14;
+    for (let p = 0; p <= 1; p += 0.01) {
+      const sun = sideArc(p, width, 100, 260, skyColor.sunEdgeX, skyColor.sunReachX);
+      const moonAt = sideArc(p, width, 100, 260, skyColor.moonEdgeX, skyColor.moonReachX);
+      expect(sun.x - 16).toBeGreaterThan((0.5 + solaHalf) * width);
+      expect(moonAt.x + 22).toBeLessThan((0.5 - solaHalf) * width);
     }
+  });
+
+  it('starts and ends each arc off-screen at the same edge, highest in the middle', () => {
+    const at = (p: number) => sideArc(p, 400, 100, 260, skyColor.sunEdgeX, skyColor.sunReachX);
+    expect(at(0).x).toBeGreaterThan(400);
+    expect(at(1).x).toBeCloseTo(at(0).x);
+    expect(at(0.5).y).toBeCloseTo(100);
+    expect(at(0).y).toBeCloseTo(260);
+  });
+
+  it('warms the landscape only around sunrise and sunset', () => {
+    expect(goldenAmount(720)).toBe(0);
+    expect(goldenAmount(0)).toBe(0);
+    expect(goldenAmount(goldenHour.sunsetCenter)).toBe(1);
+    expect(goldenAmount(goldenHour.sunriseCenter)).toBe(1);
   });
 
   it('eases Sola into sleep over a few minutes, never snapping', () => {
@@ -162,10 +174,33 @@ describe('trees', () => {
     });
   });
 
-  it('places flowers on the tree and draws a shape for every limb', () => {
-    const { outline, flowers } = treeShape(trees.left, rect, 1);
-    expect(outline.match(/M/g)?.length).toBe(trees.left.length);
-    expect(flowers.length).toBe(trees.left.reduce((sum, limb) => sum + Math.round(limb.flowers * blossom.density), 0));
+  const shape = treeShape(trees.left, rect, 11);
+
+  it('draws every limb and its twigs as tapering wood', () => {
+    expect(shape.outline.match(/M/g)?.length).toBe(trees.left.length * (1 + blossom.twigsPerLimb));
+    twigsOf(trees.left[0]!, 5).forEach((twig) => expect(twig.to).toBeLessThan(twig.from));
+  });
+
+  it('grows dense clusters with inner, middle and outer flowers, inner drawn first', () => {
+    expect(shape.flowers.length).toBeGreaterThan(100);
+    const layers = shape.flowers.map((f) => f.layer);
+    expect(new Set(layers).size).toBe(3);
+    expect(layers).toEqual([...layers].sort((a, b) => a - b));
+  });
+
+  it('gives thick limbs knots and every fork a joint for moss', () => {
+    expect(shape.knots.length).toBeGreaterThan(0);
+    expect(shape.joints.length).toBe(trees.left.length - 1);
+  });
+
+  it('stays the same every time, so a bake never shifts', () => {
+    expect(treeShape(trees.left, rect, 11).flowers).toEqual(shape.flowers);
+  });
+
+  it('notches each petal at its tip, with the tips further out than the notch', () => {
+    const p = petalOutline(0, 0, 0, 10);
+    expect(p.notch.x).toBeLessThan(p.tipLeft.x);
+    expect(p.tipLeft.y).toBeCloseTo(-p.tipRight.y);
   });
 });
 

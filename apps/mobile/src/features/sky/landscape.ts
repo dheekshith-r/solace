@@ -45,23 +45,35 @@ function seeded(seed: number): number {
   return x - Math.floor(x);
 }
 
-function limbPoint(limb: Limb, t: number, rect: SceneRect): Point {
+function limbFraction(limb: Limb, t: number): Point {
   const [p0, p1, p2, p3] = limb.points;
   const u = 1 - t;
   const at = (i: 0 | 1) =>
     u * u * u * (p0[i] as number) + 3 * u * u * t * (p1[i] as number) + 3 * u * t * t * (p2[i] as number) + t * t * t * (p3[i] as number);
-  return { x: at(0) * rect.width, y: rect.top + (at(1) + treeDrop) * rect.height };
+  return { x: at(0), y: at(1) };
 }
 
-/** A limb as a closed shape that tapers from its base width to its tip width. */
-function limbOutline(limb: Limb, rect: SceneRect): string {
+function limbPoint(limb: Limb, t: number, rect: SceneRect): Point {
+  const f = limbFraction(limb, t);
+  return { x: f.x * rect.width, y: rect.top + (f.y + treeDrop) * rect.height };
+}
+
+function limbWidth(limb: Limb, t: number, seed: number): number {
+  const base = limb.from + (limb.to - limb.from) * t ** 0.8;
+  // Irregular taper: real wood swells and narrows along its length.
+  const wobble = 1 + blossom.widthWobble * (Math.sin(t * 17 + seed) * 0.65 + Math.sin(t * 41 + seed * 2) * 0.35);
+  return Math.max(0.4, base * wobble);
+}
+
+/** A limb as a closed shape that tapers irregularly from base to tip. */
+function limbOutline(limb: Limb, rect: SceneRect, seed: number): string {
   const samples = Array.from({ length: blossom.limbSamples + 1 }, (_, i) => i / blossom.limbSamples);
   const side = (t: number, sign: number) => {
     const here = limbPoint(limb, t, rect);
     const a = limbPoint(limb, Math.max(0, t - 0.02), rect);
     const b = limbPoint(limb, Math.min(1, t + 0.02), rect);
     const length = Math.hypot(b.x - a.x, b.y - a.y) || 1;
-    const half = ((limb.from + (limb.to - limb.from) * t) / 2) * sign;
+    const half = (limbWidth(limb, t, seed) / 2) * sign;
     return `${here.x - ((b.y - a.y) / length) * half} ${here.y + ((b.x - a.x) / length) * half}`;
   };
   const forward = samples.map((t) => side(t, 1));
@@ -69,24 +81,100 @@ function limbOutline(limb: Limb, rect: SceneRect): string {
   return `M${forward.join(' L')} L${back.join(' L')} Z`;
 }
 
-/** One tree: its limbs as an SVG path, and where each flower sits. */
+/** Thin twigs growing off a limb at irregular points and angles. */
+export function twigsOf(limb: Limb, seed: number): Limb[] {
+  return Array.from({ length: blossom.twigsPerLimb }, (_, i) => {
+    const s = seed + i * 13;
+    const t = 0.3 + (0.62 * (i + seeded(s))) / blossom.twigsPerLimb;
+    const start = limbFraction(limb, t);
+    const ahead = limbFraction(limb, Math.min(1, t + 0.05));
+    const heading = Math.atan2(ahead.y - start.y, ahead.x - start.x);
+    const turn = (i % 2 === 0 ? 1 : -1) * (0.5 + seeded(s + 1) * 0.6);
+    const angle = heading + turn;
+    const length = blossom.twigMinLength + seeded(s + 2) * (blossom.twigMaxLength - blossom.twigMinLength);
+    const go = (share: number, bend: number) => [
+      start.x + Math.cos(angle + bend) * length * share,
+      start.y + Math.sin(angle + bend) * length * share,
+    ];
+    return {
+      points: [[start.x, start.y], go(0.35, 0.1), go(0.7, -0.12), go(1, -0.05)],
+      from: Math.min(2.2, limbWidth(limb, t, seed) * 0.6),
+      to: 0.45,
+      flowers: 2,
+    } as Limb;
+  });
+}
+
+export type Flower = Point & { r: number; angle: number; layer: 0 | 1 | 2 };
+
+/** The outline of one notched sakura petal, pointing along an angle from a flower's center. */
+export function petalOutline(cx: number, cy: number, angle: number, r: number) {
+  const at = (along: number, across: number): Point => ({
+    x: cx + Math.cos(angle) * along * r - Math.sin(angle) * across * r,
+    y: cy + Math.sin(angle) * along * r + Math.cos(angle) * across * r,
+  });
+  return {
+    base: at(0.08, 0),
+    c1: at(0.35, -0.42),
+    c2: at(0.82, -0.5),
+    tipLeft: at(1.02, -0.14),
+    notch: at(0.86, 0),
+    tipRight: at(1.02, 0.14),
+    c3: at(0.82, 0.5),
+    c4: at(0.35, 0.42),
+  };
+}
+
+/** One tree: limbs and twigs as an SVG path, flower clusters, knots, and the joints where moss grows. */
 export function treeShape(limbs: readonly Limb[], rect: SceneRect, seedBase: number) {
-  const outline = limbs.map((limb) => limbOutline(limb, rect)).join(' ');
-  const flowers: (Point & { r: number })[] = [];
-  limbs.forEach((limb, limbIndex) => {
-    for (let i = 0; i < Math.round(limb.flowers * blossom.density); i += 1) {
-      const seed = seedBase + limbIndex * 37 + i * 3;
-      // Flowers gather toward the tips, as they do on real sakura.
-      const t = 0.3 + 0.7 * Math.sqrt(seeded(seed));
-      const p = limbPoint(limb, t, rect);
-      flowers.push({
-        x: p.x + (seeded(seed + 1) - 0.5) * blossom.scatter * 2,
-        y: p.y + (seeded(seed + 2) - 0.5) * blossom.scatter * 2,
-        r: blossom.radius * (0.7 + seeded(seed + 3) * 0.5),
+  const twigs = limbs.flatMap((limb, i) => twigsOf(limb, seedBase + i * 71));
+  const outline = [...limbs, ...twigs].map((limb, i) => limbOutline(limb, rect, seedBase + i)).join(' ');
+  const flowers: Flower[] = [];
+
+  const addCluster = (center: Point, seed: number) => {
+    const flowersHere: Flower[] = [];
+    for (let i = 0; i < blossom.flowersPerCluster; i += 1) {
+      const s = seed + i * 5;
+      const spread = Math.sqrt(seeded(s));
+      const heading = seeded(s + 1) * Math.PI * 2;
+      flowersHere.push({
+        x: center.x + Math.cos(heading) * spread * blossom.clusterRadius,
+        y: center.y + Math.sin(heading) * spread * blossom.clusterRadius * 0.82,
+        r: blossom.radius * (1 - blossom.radiusVariation / 2 + seeded(s + 2) * blossom.radiusVariation),
+        angle: seeded(s + 3) * Math.PI * 2,
+        // Inner flowers are deeper and darker, and outer ones sit on top.
+        layer: spread < 0.45 ? 0 : spread < 0.8 ? 1 : 2,
       });
     }
+    flowers.push(...flowersHere);
+  };
+
+  limbs.forEach((limb, limbIndex) => {
+    const clusters = Math.max(1, Math.round(limb.flowers * blossom.clustersPerFlowerUnit));
+    for (let i = 0; i < clusters; i += 1) {
+      const seed = seedBase + limbIndex * 37 + i * 3;
+      addCluster(limbPoint(limb, 0.3 + (0.7 * (i + seeded(seed))) / clusters, rect), seed);
+    }
   });
-  return { outline, flowers };
+  twigs.forEach((twig, i) => addCluster(limbPoint(twig, 1, rect), seedBase + 900 + i * 11));
+  flowers.sort((a, b) => a.layer - b.layer);
+
+  const knots = limbs
+    .filter((limb) => limb.from >= blossom.knotMinLimbWidth)
+    .flatMap((limb, limbIndex) =>
+      Array.from({ length: blossom.knotsPerLimb }, (_, i) => {
+        const seed = seedBase + limbIndex * 19 + i * 7 + 300;
+        const t = 0.1 + seeded(seed) * 0.5;
+        const p = limbPoint(limb, t, rect);
+        return { x: p.x, y: p.y, r: limbWidth(limb, t, seed) * 0.26 };
+      }),
+    );
+  const joints = limbs.slice(1).map((limb, i) => {
+    const p = limbPoint(limb, 0, rect);
+    return { x: p.x, y: p.y, r: limb.from * 1.25 + seeded(seedBase + i) };
+  });
+
+  return { outline, flowers, knots, joints };
 }
 
 /** A branch's sway in radians, a given number of seconds into a gust. Zero outside the gust. */

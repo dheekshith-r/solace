@@ -30,6 +30,7 @@ Fewer screens, done extremely well, beat many screens done badly.
 - Every screen has loading (skeleton), empty, error and offline states.
 - Respect reduce-motion and lite mode (RAM under ~4 GB).
 - Today is locked as the main page. Don't add features or clutter to it. New features go on other pages, reached from the tabs (Today, Sola, You) or from cards on those pages.
+- Every new screen uses only the component kit in `src/components` and the theme tokens. No one-off styles. If a screen needs something new, add it to the kit first.
 - Quality bar for all illustration and motion: Apple-level realistic 2D, like the animated backgrounds in Apple's Weather app. No outlines; soft gradients and light; one consistent light source (sun by day, moon at night) with rim light on edges facing it; atmospheric depth (far = lighter, bluer, softer; near = sharper, richer). For every visual element, study real photos and Apple Weather first, then compare the result side by side on Ddk's phone and fix it until it holds up.
 - Before designing any screen, look at every image in `design/refs` and note what makes each one feel premium. Borrow principles, never copy a layout, illustration or asset.
 - After building a screen, screenshot Ddk's phone with adb, compare against the refs and spec tokens, fix what is off, then show him.

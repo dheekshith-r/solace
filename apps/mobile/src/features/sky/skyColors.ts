@@ -1,6 +1,6 @@
 // Sky color and text contrast calculations. Pure, so tests can check every minute of the day.
 
-import { skyKeyframes, skyTimes, type Stops } from '../../theme/sky';
+import { goldenHour, skyKeyframes, skyTimes, type Stops } from '../../theme/sky';
 import { wrapMinute } from './astro';
 
 export type Rgb = [number, number, number];
@@ -66,6 +66,14 @@ export function sunAmount(minute: number): number {
 export function moonAmount(minute: number): number {
   'worklet';
   return Math.max(0, 2 * nightAmount(minute) - 1);
+}
+
+/** How warm the low sun makes the landscape: 1 at the peak of golden hour, 0 otherwise. */
+export function goldenAmount(minute: number): number {
+  'worklet';
+  const m = wrapMinute(minute);
+  const near = Math.min(Math.abs(m - goldenHour.sunriseCenter), Math.abs(m - goldenHour.sunsetCenter));
+  return Math.max(0, 1 - near / goldenHour.reach);
 }
 
 function channel(v: number): number {

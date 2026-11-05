@@ -46,7 +46,8 @@ float fbm(float2 p) {
 
 // Ridges run down the fall line: tight across the slope, long down it.
 float ridge(float u, float t) {
-  float n = fbm(float2(u * 6.5 + 0.35 * noise(float2(t * 5.0, u * 2.0)), t * 1.7 + 11.0));
+  float warp = 0.5 * fbm(float2(u * 2.3 + 4.0, t * 2.6));
+  float n = fbm(float2((u + warp) * (4.5 + 3.0 * noise(float2(u * 1.7, 5.0))) + 0.35 * noise(float2(t * 5.0, u * 2.0)), t * 1.5 + 11.0));
   return 1.0 - abs(2.0 * n - 1.0);
 }
 
@@ -68,8 +69,8 @@ float4 fuji(float2 q) {
   float lit = 0.5 + 0.4 * u * lightX + slope * 0.95 * lightX;
 
   // Gullies hold snow further down than ridges, and the line breaks up into fine tongues.
-  float line = 0.5 + (fbm(float2(u * 4.5, 2.0)) - 0.5) * 0.3 + (0.5 - h) * 0.2
-    + (noise(float2(u * 34.0, 7.0)) - 0.5) * 0.07 + (noise(float2(u * 80.0, t * 3.0)) - 0.5) * 0.03;
+  float line = 0.5 + (fbm(float2(u * 3.1, 2.0)) - 0.5) * 0.42 + (0.5 - h) * 0.2
+    + (fbm(float2(u * 13.0, 7.0)) - 0.5) * 0.16 + (noise(float2(u * 60.0, t * 3.0)) - 0.5) * 0.035;
   float snow = 1.0 - smoothstep(line - 0.012, line + 0.012, t);
 
   float3 rock = mix(rockShade, rockLit, clamp(lit, 0.0, 1.0));
@@ -107,18 +108,18 @@ half4 main(float2 p) {
 
   // The lake: a mirrored Fuji, broken up by small horizontal ripples.
   if (q.y >= footY) {
-    float ripple = noise(float2(p.x * 0.05, p.y * 0.6)) - 0.5;
-    float2 mirrored = float2(q.x + ripple * 0.006, footY - (q.y - footY) / 0.3);
+    float ripple = noise(float2(p.x * 0.035, p.y * 0.42)) - 0.5;
+    float2 mirrored = float2(q.x + ripple * 0.0045, footY - (q.y - footY) / 0.54);
     float4 reflected = fuji(mirrored);
-    float3 water = mix(lake, haze, 0.25 + ripple * 0.12);
-    water = mix(water, reflected.rgb, reflected.a * 0.62);
-    water += smoothstep(0.62, 0.8, noise(float2(p.x * 0.05, p.y * 0.55))) * 0.05;
+    float3 water = mix(lake, haze, 0.25 + ripple * 0.08);
+    water = mix(water, reflected.rgb, reflected.a * 0.72);
+    water += smoothstep(0.68, 0.86, noise(float2(p.x * 0.04, p.y * 0.48))) * 0.03;
     result = float4(water, 1.0);
   }
 
   float x = q.x;
-  float far = crest(x, 0.585, 0.725, 0.27, 2.0, 0.035);
-  float mid = crest(x, 0.68, 0.79, 0.31, 7.0, 0.05);
+  float far = crest(x, 0.53, 0.745, 0.3, 2.0, 0.03);
+  float mid = crest(x, 0.66, 0.8, 0.33, 7.0, 0.05);
   float near = crest(x, 0.77, 0.87, 0.36, 13.0, 0.05);
 
   // Each layer is richer and sharper than the one behind it.

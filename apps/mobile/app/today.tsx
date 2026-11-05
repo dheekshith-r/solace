@@ -11,8 +11,9 @@ import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions, type LayoutChangeEvent } from 'react-native';
-import {
+import Animated, {
   useAnimatedReaction,
+  useAnimatedStyle,
   useFrameCallback,
   useReducedMotion,
   useSharedValue,
@@ -37,6 +38,7 @@ import {
   spacing,
   tabBarHeight,
   today,
+  type Palette,
 } from '../src/theme/tokens';
 
 const LITE_MODE_BYTES = 4 * 1024 ** 3;
@@ -61,6 +63,41 @@ function isNightCopy(minute: number): boolean {
 
 function formatDate(date: Date): string {
   return date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+}
+
+function Chrome({ palette, words, selected, onSelect, headerTop, clearance, tabBottom, onSheetHeight, hidden }: {
+  palette: Palette;
+  words: { suggestion: string };
+  selected: number;
+  onSelect: (mood: number) => void;
+  headerTop: number;
+  clearance: number;
+  tabBottom: number;
+  onSheetHeight?: (event: LayoutChangeEvent) => void;
+  hidden: boolean;
+}) {
+  return (
+    <View style={StyleSheet.absoluteFill} pointerEvents="box-none" importantForAccessibility={hidden ? 'no-hide-descendants' : 'auto'} accessibilityElementsHidden={hidden}>
+      <View style={[styles.header, { paddingTop: headerTop }]} pointerEvents="none">
+        <Text style={[styles.date, { color: palette.ink }]}>{formatDate(new Date())}</Text>
+      </View>
+      <View style={[styles.sheet, { backgroundColor: palette.surface }]}>
+        <View onLayout={onSheetHeight} style={styles.sheetBlock}>
+          <Text style={[styles.heading, { color: palette.ink }]}>How are you arriving?</Text>
+          <MoodRow mood={selected} palette={palette} onSelect={onSelect} />
+          <View style={[styles.separator, { backgroundColor: palette.separator }]} />
+          <View style={[styles.suggestion, { backgroundColor: palette.tint }]}>
+            <Text style={[styles.body, styles.flex, { color: palette.ink }]}>{words.suggestion}</Text>
+            <Pressable style={[styles.pill, { backgroundColor: palette.accent }]} accessibilityRole="button">
+              <Text style={[styles.pillText, { color: palette.onAccent }]}>Breathe</Text>
+            </Pressable>
+          </View>
+        </View>
+        <View style={{ height: clearance }} />
+      </View>
+      <TabBar palette={palette} bottom={tabBottom} />
+    </View>
+  );
 }
 
 function Today({ initialMinute, firstGust }: {
@@ -176,11 +213,16 @@ function Today({ initialMinute, firstGust }: {
     setDisplayMinute(target);
   }, [demoIndex, minute]);
 
+  const darkness = useSharedValue(textIsWhite ? 1 : 0);
+  useEffect(() => {
+    darkness.set(withTiming(textIsWhite ? 1 : 0, { duration: duration.entrance, easing }));
+  }, [darkness, textIsWhite]);
+  const lightStyle = useAnimatedStyle(() => ({ opacity: 1 - darkness.get() }));
+  const darkStyle = useAnimatedStyle(() => ({ opacity: darkness.get() }));
+
   const measure = (setter: (value: number) => void) => (event: LayoutChangeEvent) =>
     setter(Math.ceil(event.nativeEvent.layout.height));
 
-  const skyText = textIsWhite ? colors.dark.ink : colors.light.ink;
-  const palette = textIsWhite ? colors.dark : colors.light;
   const words = isNightCopy(displayMinute) ? copy.night : copy.day;
 
   return (
@@ -199,27 +241,13 @@ function Today({ initialMinute, firstGust }: {
 
       <Pressable style={StyleSheet.absoluteFill} onLongPress={cycleSky} delayLongPress={LONG_PRESS_MS} accessible={false} />
 
-      <View style={[styles.header, { paddingTop: headerTop }]} pointerEvents="none">
-        <Text style={[styles.date, { color: skyText }]}>{formatDate(new Date())}</Text>
-      </View>
-
-      <View style={[styles.sheet, { backgroundColor: palette.surface }]}>
-          <View onLayout={measure(setRestHeight)} style={styles.sheetBlock}>
-            <Text style={[styles.heading, { color: palette.ink }]}>How are you arriving?</Text>
-            <MoodRow mood={selected} palette={palette} onSelect={pickMood} />
-            <View style={[styles.separator, { backgroundColor: palette.separator }]} />
-            <View style={[styles.suggestion, { backgroundColor: palette.tint }]}>
-              <Text style={[styles.body, styles.flex, { color: palette.ink }]}>{words.suggestion}</Text>
-              <Pressable style={[styles.pill, { backgroundColor: palette.accent }]} accessibilityRole="button">
-                <Text style={[styles.pillText, { color: palette.onAccent }]}>Breathe</Text>
-              </Pressable>
-            </View>
-          </View>
-
-          <View style={{ height: clearance }} />
-      </View>
-
-      <TabBar palette={palette} bottom={insets.bottom + spacing.md} />
+      {/* One set of controls per scheme, cross-faded, so nothing snaps between light and dark. */}
+      <Animated.View style={[StyleSheet.absoluteFill, lightStyle]} pointerEvents={textIsWhite ? 'none' : 'box-none'}>
+        <Chrome palette={colors.light} words={words} selected={selected} onSelect={pickMood} headerTop={headerTop} clearance={clearance} tabBottom={insets.bottom + spacing.md} onSheetHeight={measure(setRestHeight)} hidden={textIsWhite} />
+      </Animated.View>
+      <Animated.View style={[StyleSheet.absoluteFill, darkStyle]} pointerEvents={textIsWhite ? 'box-none' : 'none'}>
+        <Chrome palette={colors.dark} words={words} selected={selected} onSelect={pickMood} headerTop={headerTop} clearance={clearance} tabBottom={insets.bottom + spacing.md} hidden={!textIsWhite} />
+      </Animated.View>
     </View>
   );
 }

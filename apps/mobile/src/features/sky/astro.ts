@@ -53,16 +53,11 @@ export function moonProgress(minute: number): number {
   return (m >= skyTimes.sunset ? m - skyTimes.sunset : m + 1440 - skyTimes.sunset) / night;
 }
 
-/** A point on the one big circle both bodies share: 0 off the left edge, 0.5 at the top, 1 off the right. */
-export function skyArc(progress: number, width: number, apexY: number, endY: number, overscan: number) {
+/** A body rising from a screen edge, curving in toward Sola's side and sinking back to the same edge. */
+export function sideArc(progress: number, width: number, apexY: number, endY: number, edgeX: number, reachX: number) {
   'worklet';
-  const p = Math.min(1, Math.max(0, progress));
-  const halfChord = width * (0.5 + overscan);
-  const rise = endY - apexY;
-  const radius = (halfChord * halfChord + rise * rise) / (2 * rise);
-  const half = Math.asin(halfChord / radius);
-  const angle = -half + 2 * half * p;
-  return { x: width / 2 + radius * Math.sin(angle), y: apexY + radius - radius * Math.cos(angle) };
+  const s = Math.sin(Math.PI * Math.min(1, Math.max(0, progress)));
+  return { x: (edgeX + (reachX - edgeX) * s) * width, y: endY - (endY - apexY) * s };
 }
 
 /** 0 awake, 1 asleep, easing over a few minutes at each end so Sola's eyes never snap. */
