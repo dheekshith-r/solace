@@ -39,6 +39,32 @@ export function wrapMinute(minute: number): number {
   return ((minute % 1440) + 1440) % 1440;
 }
 
+/** How far the sun has crossed the sky, 0 at sunrise and 1 at sunset. Outside 0..1 it has set. */
+export function sunProgress(minute: number): number {
+  'worklet';
+  return (wrapMinute(minute) - skyTimes.sunrise) / (skyTimes.sunset - skyTimes.sunrise);
+}
+
+/** How far the moon has crossed the sky, 0 at sunset, 0.5 at midnight, 1 at sunrise. */
+export function moonProgress(minute: number): number {
+  'worklet';
+  const m = wrapMinute(minute);
+  const night = 1440 - skyTimes.sunset + skyTimes.sunrise;
+  return (m >= skyTimes.sunset ? m - skyTimes.sunset : m + 1440 - skyTimes.sunset) / night;
+}
+
+/** A point on the one big circle both bodies share: 0 off the left edge, 0.5 at the top, 1 off the right. */
+export function skyArc(progress: number, width: number, apexY: number, endY: number, overscan: number) {
+  'worklet';
+  const p = Math.min(1, Math.max(0, progress));
+  const halfChord = width * (0.5 + overscan);
+  const rise = endY - apexY;
+  const radius = (halfChord * halfChord + rise * rise) / (2 * rise);
+  const half = Math.asin(halfChord / radius);
+  const angle = -half + 2 * half * p;
+  return { x: width / 2 + radius * Math.sin(angle), y: apexY + radius - radius * Math.cos(angle) };
+}
+
 /** 0 awake, 1 asleep, easing over a few minutes at each end so Sola's eyes never snap. */
 export function sleepyAmount(minute: number): number {
   'worklet';

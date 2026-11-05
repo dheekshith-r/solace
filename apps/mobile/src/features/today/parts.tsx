@@ -105,31 +105,6 @@ export function MoodRow({ mood, palette, onSelect }: { mood: number; palette: Pa
   );
 }
 
-export function Ring({ palette, progress, label }: { palette: Palette; progress: number; label: string }) {
-  const r = (today.ring - today.ringStroke) / 2;
-  const circumference = 2 * Math.PI * r;
-  const c = today.ring / 2;
-  return (
-    <View style={styles.ring}>
-      <Svg width={today.ring} height={today.ring}>
-        <Circle cx={c} cy={c} r={r} stroke={palette.surface} strokeWidth={today.ringStroke} fill="none" />
-        <Circle
-          cx={c}
-          cy={c}
-          r={r}
-          stroke={palette.accent}
-          strokeWidth={today.ringStroke}
-          strokeLinecap="round"
-          fill="none"
-          strokeDasharray={`${circumference * progress} ${circumference}`}
-          transform={`rotate(-90 ${c} ${c})`}
-        />
-      </Svg>
-      <Text style={[styles.ringLabel, { color: palette.ink }]}>{label}</Text>
-    </View>
-  );
-}
-
 const TABS = ['Today', 'Sola', 'You'] as const;
 
 export function TabBar({ palette, bottom }: { palette: Palette; bottom: number }) {
@@ -159,8 +134,6 @@ const styles = StyleSheet.create({
   moodLabel: { fontFamily: font.regular, fontSize: fontSize.footnote, textAlign: 'center' },
   moodLabelStack: { height: today.moodLabelHeight },
   moodLabelLayer: { ...StyleSheet.absoluteFill },
-  ring: { width: today.ring, height: today.ring, alignItems: 'center', justifyContent: 'center' },
-  ringLabel: { position: 'absolute', fontFamily: font.bold, fontSize: fontSize.callout },
   tabBar: {
     position: 'absolute',
     alignSelf: 'center',

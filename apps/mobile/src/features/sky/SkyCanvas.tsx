@@ -43,7 +43,7 @@ import {
   type Limb,
 } from '../../theme/sky';
 import { today } from '../../theme/tokens';
-import { sleepyAmount } from './astro';
+import { moonProgress, skyArc, sleepyAmount, sunProgress } from './astro';
 import { gustSway, petalPose, scenePaths, treeShape, tuftBatch, type SceneRect } from './landscape';
 import { hexToRgb, mixRgb, moonAmount, nightAmount, rgbToCss, sunAmount, timeStops, type Rgb } from './skyColors';
 import { starEffect } from './starShader';
@@ -133,18 +133,22 @@ function StarField({ size, horizon, clock, night, lite }: {
   );
 }
 
-function Sun({ x, y, minute }: { x: number; y: number; minute: SharedValue<number> }) {
+function Sun({ width, apexY, endY, minute }: { width: number; apexY: number; endY: number; minute: SharedValue<number> }) {
   const opacity = useDerivedValue(() => sunAmount(minute.get()));
+  const transform = useDerivedValue(() => {
+    const p = skyArc(sunProgress(minute.get()), width, apexY, endY, skyColor.arcEdgeOverscan);
+    return [{ translateX: p.x }, { translateY: p.y }];
+  });
   return (
-    <Group transform={[{ translateX: x }, { translateY: y }]} opacity={opacity}>
+    <Group transform={transform} opacity={opacity}>
       <Circle cx={0} cy={0} r={skyColor.sunRadius}>
-        <RadialGradient c={vec(0, 0)} r={skyColor.sunRadius} colors={[...skyColor.sun]} positions={[0.32, 0.42, 1]} />
+        <RadialGradient c={vec(0, 0)} r={skyColor.sunRadius} colors={[...skyColor.sun]} positions={[...skyColor.sunStops]} />
       </Circle>
     </Group>
   );
 }
 
-function Moon({ x, y, minute }: { x: number; y: number; minute: SharedValue<number> }) {
+function Moon({ width, apexY, endY, minute }: { width: number; apexY: number; endY: number; minute: SharedValue<number> }) {
   const r = moon.radius;
   const picture = useMemo(() => {
     const clip = Skia.PathBuilder.Make().addCircle(0, 0, r).build();
@@ -172,8 +176,12 @@ function Moon({ x, y, minute }: { x: number; y: number; minute: SharedValue<numb
     });
   }, [r]);
   const opacity = useDerivedValue(() => moonAmount(minute.get()));
+  const transform = useDerivedValue(() => {
+    const p = skyArc(moonProgress(minute.get()), width, apexY, endY, skyColor.arcEdgeOverscan);
+    return [{ translateX: p.x }, { translateY: p.y }];
+  });
   return (
-    <Group transform={[{ translateX: x }, { translateY: y }]} opacity={opacity}>
+    <Group transform={transform} opacity={opacity}>
       <Circle cx={0} cy={0} r={r * moon.haloRadius}>
         <RadialGradient c={vec(0, 0)} r={r * moon.haloRadius} colors={[...moon.halo]} positions={[...moon.haloStops]} />
       </Circle>
@@ -377,7 +385,8 @@ function StreamWater({ rect, minute, clock }: { rect: SceneRect; minute: SharedV
       tint: unit(hexToRgb(water.tint)),
       mountain: unit(hexToRgb(sceneColor.mountain)).map((v) => v * (1 - n * sceneColor.nightOverlayOpacity)),
       moon: moonAmount(minute.get()),
-      moonX: water.moonX,
+      // The column of light follows the moon, within the part of the stream that can show it.
+      moonX: Math.min(water.moonMaxX, Math.max(water.moonMinX, moonProgress(minute.get()))),
       night: n,
       centerX: s.centerX,
       bendStart: s.bendStart,
@@ -580,8 +589,8 @@ export function SkyCanvas({ size, bands, minute, mood, clock, gust, shootingStar
   const colors = useDerivedValue(() => timeStops(minute.get()).map(rgbToCss));
   const night = useDerivedValue(() => nightAmount(minute.get()));
   const { scene } = bands;
-  const bodyX = size.width * skyColor.bodyX;
-  const bodyY = bands.solaCenterY + skyColor.bodyBelowSola;
+  const arcApexY = bands.dateBottom + skyColor.arcApexBelowDate;
+  const arcEndY = bands.solaCenterY + bands.solaSize * skyColor.arcEndBelowSola;
 
   // Petals only ever start from real blossoms on the two trees.
   const petalOrigins = useMemo(
@@ -596,8 +605,8 @@ export function SkyCanvas({ size, bands, minute, mood, clock, gust, shootingStar
       </Rect>
 
       <StarField size={size} horizon={scene.top + scene.height * sceneShapes.fuji.footY} clock={clock} night={night} lite={lite} />
-      <Moon x={bodyX} y={bodyY} minute={minute} />
-      <Sun x={bodyX} y={bodyY} minute={minute} />
+      <Moon width={size.width} apexY={arcApexY} endY={arcEndY} minute={minute} />
+      <Sun width={size.width} apexY={arcApexY} endY={arcEndY} minute={minute} />
       {cloudLayers.map((layer) => (
         <CloudLayer
           key={layer.at}

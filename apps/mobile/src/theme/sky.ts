@@ -22,6 +22,8 @@ export const skyTimes = {
   duskStart: 1050,
   dusk: 1080,
   nightStart: 1110,
+  sunrise: 360,
+  sunset: 1080,
   sleepyFrom: 1320, // 10 pm, spec section 7.4.
   sleepyUntil: 300,
   sleepyRamp: 8,
@@ -36,12 +38,15 @@ export const moodLabels = ['Heavy', 'Low', 'Okay', 'Good', 'Bright'] as const;
 
 export const skyColor = {
   star: '#FFFFFF',
-  sun: ['#FFFFFF', '#FFCC00', 'rgba(255,141,40,0)'], // White, Yellow, Orange fading out.
-  sunRadius: 30,
+  // A full white disc with a soft white glow.
+  sun: ['#FFFFFF', '#FFFFFF', 'rgba(255,255,255,0.32)', 'rgba(255,255,255,0)'],
+  sunStops: [0, 0.3, 0.36, 1],
+  sunRadius: 54,
   moon: '#F2F2F7', // Gray 6.
-  // Clear sky to the right of Sola, between the date row and the headline.
-  bodyX: 0.84,
-  bodyBelowSola: 8,
+  // One big circle: the sun and moon enter at the left edge, cross above Sola and leave at the right.
+  arcEdgeOverscan: 0.05, // Fraction of the width past each edge, so they start and end off-screen.
+  arcApexBelowDate: 30, // Points below the date row at the top of the arc.
+  arcEndBelowSola: 0.75, // Sola sizes below Sola's center where the arc meets the screen edges.
   cloud: '#FFFFFF',
   cloudDayOpacity: 0.72,
   cloudNightOpacity: 0.06,
@@ -359,4 +364,4 @@ export const fallingPetal = {
 } as const;
 
 // The stream's water shader. Tint is HIG Teal.
-export const water = { tint: '#00C3D0', moonX: 0.68, flow: 0.42 } as const;
+export const water = { tint: '#00C3D0', moonMinX: 0.42, moonMaxX: 0.74, flow: 0.42 } as const;

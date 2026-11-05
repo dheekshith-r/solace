@@ -56,11 +56,6 @@ export const today = {
   moodFace: 30,
   moodFillFrom: 0.82,
   moodLabelHeight: 18,
-  ring: 56,
-  ringStroke: 6,
-  sheetHandleWidth: 36,
-  sheetHandleHeight: 4,
-  sheetDragThreshold: 0.3,
   sheetOverlap: 36,
 } as const;
 

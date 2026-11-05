@@ -1,5 +1,5 @@
-// Today: the cards in a pull-up sheet, with the scene behind them (spec sections 7.7 and 8). Copy and
-// numbers are sample data until Phase 3 connects the API. The m, open, gust and v params only
+// Today: the mood check-in and suggestion in a sheet, with the scene behind them (spec sections 7.7 and 8). Copy and
+// numbers are sample data until Phase 3 connects the API. The m, gust and v params only
 // exist for screenshots.
 import { PlusJakartaSans_400Regular } from '@expo-google-fonts/plus-jakarta-sans/400Regular';
 import { PlusJakartaSans_600SemiBold } from '@expo-google-fonts/plus-jakarta-sans/600SemiBold';
@@ -11,11 +11,8 @@ import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions, type LayoutChangeEvent } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, {
-  interpolate,
+import {
   useAnimatedReaction,
-  useAnimatedStyle,
   useFrameCallback,
   useReducedMotion,
   useSharedValue,
@@ -27,7 +24,7 @@ import { scheduleOnRN } from 'react-native-worklets';
 import { minuteOfDay, wrapMinute } from '../src/features/sky/astro';
 import { SkyCanvas, type Gust } from '../src/features/sky/SkyCanvas';
 import { skyTextIsWhite } from '../src/features/sky/skyColors';
-import { MoodRow, Ring, TabBar } from '../src/features/today/parts';
+import { MoodRow, TabBar } from '../src/features/today/parts';
 import { duration, easing, spring } from '../src/theme/motion';
 import { demoMinutes, moodNeutral, skyMotion, skyTimes, sola, wind } from '../src/theme/sky';
 import {
@@ -45,20 +42,15 @@ import {
 const LITE_MODE_BYTES = 4 * 1024 ** 3;
 const MINUTE_MS = 60_000;
 const LONG_PRESS_MS = 700;
-const SAMPLE_STREAK_DAYS = 6;
-const SAMPLE_STREAK_PROGRESS = 0.6;
 const ESTIMATED_REST_HEIGHT = 290;
-const ESTIMATED_STATS_HEIGHT = 170;
 const DATE_LINE_HEIGHT = 18;
 
 const copy = {
   day: {
     suggestion: 'Your chest felt tight earlier, so a slow exhale could help.',
-    affirmation: 'You showed up yesterday, even when it was hard.',
   },
   night: {
     suggestion: 'Sleep breathing could slow things down before bed.',
-    affirmation: 'Tomorrow can wait until tomorrow.',
   },
 } as const;
 
@@ -71,9 +63,8 @@ function formatDate(date: Date): string {
   return date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
 }
 
-function Today({ initialMinute, startOpen, firstGust }: {
+function Today({ initialMinute, firstGust }: {
   initialMinute: number;
-  startOpen: boolean;
   firstGust: number;
 }) {
   const insets = useSafeAreaInsets();
@@ -89,7 +80,6 @@ function Today({ initialMinute, startOpen, firstGust }: {
   const [demoIndex, setDemoIndex] = useState(0);
   const [textIsWhite, setTextIsWhite] = useState(() => skyTextIsWhite(initialMinute));
   const [restHeight, setRestHeight] = useState(ESTIMATED_REST_HEIGHT);
-  const [statsHeight, setStatsHeight] = useState(ESTIMATED_STATS_HEIGHT);
 
   const minute = useSharedValue(initialMinute);
   const mood = useSharedValue<number>(moodNeutral);
@@ -98,8 +88,6 @@ function Today({ initialMinute, startOpen, firstGust }: {
   const nextShootingAt = useSharedValue<number>(skyMotion.shootingMinGap);
   const gust = useSharedValue<Gust>({ start: -100, count: 0, seed: 0 });
   const nextGustAt = useSharedValue<number>(firstGust);
-  const sheetOpen = useSharedValue(startOpen ? 1 : 0);
-  const dragStart = useSharedValue(0);
 
   const solaSize = Math.min(sola.maxSize, Math.max(sola.minSize, height * sola.screenRatio));
   const headerTop = insets.top + spacing.lg;
@@ -188,31 +176,6 @@ function Today({ initialMinute, startOpen, firstGust }: {
     setDisplayMinute(target);
   }, [demoIndex, minute]);
 
-  const pan = useMemo(
-    () =>
-      Gesture.Pan()
-        .activeOffsetY([-spacing.md, spacing.md])
-        .onBegin(() => {
-          dragStart.set(sheetOpen.get());
-        })
-        .onUpdate((event) => {
-          const next = dragStart.get() - event.translationY / Math.max(1, statsHeight);
-          sheetOpen.set(Math.min(1, Math.max(0, next)));
-        })
-        .onEnd(() => {
-          const opening = sheetOpen.get() > dragStart.get();
-          const moved = Math.abs(sheetOpen.get() - dragStart.get()) > today.sheetDragThreshold;
-          const open = moved ? opening : dragStart.get() > 0.5;
-          sheetOpen.set(withSpring(open ? 1 : 0, spring));
-        }),
-    [dragStart, sheetOpen, statsHeight],
-  );
-
-  const sheetStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: interpolate(sheetOpen.get(), [0, 1], [statsHeight, 0]) }],
-  }));
-  const statsStyle = useAnimatedStyle(() => ({ opacity: sheetOpen.get() }));
-
   const measure = (setter: (value: number) => void) => (event: LayoutChangeEvent) =>
     setter(Math.ceil(event.nativeEvent.layout.height));
 
@@ -240,10 +203,8 @@ function Today({ initialMinute, startOpen, firstGust }: {
         <Text style={[styles.date, { color: skyText }]}>{formatDate(new Date())}</Text>
       </View>
 
-      <GestureDetector gesture={pan}>
-        <Animated.View style={[styles.sheet, { backgroundColor: palette.surface }, sheetStyle]}>
+      <View style={[styles.sheet, { backgroundColor: palette.surface }]}>
           <View onLayout={measure(setRestHeight)} style={styles.sheetBlock}>
-            <View style={[styles.handle, { backgroundColor: palette.separator }]} />
             <Text style={[styles.heading, { color: palette.ink }]}>How are you arriving?</Text>
             <MoodRow mood={selected} palette={palette} onSelect={pickMood} />
             <View style={[styles.separator, { backgroundColor: palette.separator }]} />
@@ -255,21 +216,8 @@ function Today({ initialMinute, startOpen, firstGust }: {
             </View>
           </View>
 
-          <Animated.View onLayout={measure(setStatsHeight)} style={[styles.statsBlock, statsStyle]}>
-            <View style={styles.statRow}>
-              <View style={[styles.statCard, { backgroundColor: palette.tint }]}>
-                <Ring palette={palette} progress={SAMPLE_STREAK_PROGRESS} label={String(SAMPLE_STREAK_DAYS)} />
-                <Text style={[styles.caption, { color: palette.ink }]}>{SAMPLE_STREAK_DAYS}-day streak</Text>
-              </View>
-              <View style={[styles.statCard, styles.flex, { backgroundColor: palette.tint }]}>
-                <Text style={[styles.caption, { color: palette.muted }]}>For today</Text>
-                <Text style={[styles.body, { color: palette.ink }]}>{words.affirmation}</Text>
-              </View>
-            </View>
-          </Animated.View>
           <View style={{ height: clearance }} />
-        </Animated.View>
-      </GestureDetector>
+      </View>
 
       <TabBar palette={palette} bottom={insets.bottom + spacing.md} />
     </View>
@@ -277,7 +225,7 @@ function Today({ initialMinute, startOpen, firstGust }: {
 }
 
 export default function TodayScreen() {
-  const params = useLocalSearchParams<{ m?: string; open?: string; v?: string; gust?: string }>();
+  const params = useLocalSearchParams<{ m?: string; v?: string; gust?: string }>();
   const [loaded] = useFonts({
     PlusJakartaSans_400Regular,
     PlusJakartaSans_600SemiBold,
@@ -291,9 +239,8 @@ export default function TodayScreen() {
 
   return (
     <Today
-      key={`${params.m ?? ''}-${params.open ?? ''}-${params.v ?? ''}`}
+      key={`${params.m ?? ''}-${params.v ?? ''}`}
       initialMinute={initialMinute}
-      startOpen={params.open === '1'}
       firstGust={gustParam > 0 ? gustParam : wind.minGap}
     />
   );
@@ -311,18 +258,10 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: radius.sheet,
     borderTopRightRadius: radius.sheet,
   },
-  sheetBlock: { paddingHorizontal: spacing.xl, paddingTop: spacing.md, gap: spacing.md },
-  statsBlock: { paddingHorizontal: spacing.xl, paddingTop: spacing.md },
-  handle: {
-    alignSelf: 'center',
-    width: today.sheetHandleWidth,
-    height: today.sheetHandleHeight,
-    borderRadius: radius.full,
-  },
+  sheetBlock: { paddingHorizontal: spacing.xl, paddingTop: spacing.xl, gap: spacing.md },
   heading: { fontFamily: font.semibold, fontSize: fontSize.body },
   separator: { height: StyleSheet.hairlineWidth },
   body: { fontFamily: font.regular, fontSize: fontSize.callout, lineHeight: fontSize.callout * lineHeightRatio.body },
-  caption: { fontFamily: font.semibold, fontSize: fontSize.footnote },
   suggestion: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -332,6 +271,4 @@ const styles = StyleSheet.create({
   },
   pill: { borderRadius: radius.chip, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm },
   pillText: { fontFamily: font.semibold, fontSize: fontSize.footnote },
-  statRow: { flexDirection: 'row', gap: spacing.md },
-  statCard: { borderRadius: radius.card, padding: spacing.lg, gap: spacing.sm },
 });

@@ -1,6 +1,6 @@
 import { blossom, fallingPetal, meadow, sceneShapes, treeDrop, trees, wind } from '../../../theme/sky';
 import { colors } from '../../../theme/tokens';
-import { isSleepy, moonIllumination, moonLitPath, moonPhase, sleepyAmount, wrapMinute } from '../astro';
+import { isSleepy, moonIllumination, moonLitPath, moonPhase, moonProgress, skyArc, sleepyAmount, sunProgress, wrapMinute } from '../astro';
 import { gustSway, petalPose, scenePaths, streamAt, treeShape, tuftBatch } from '../landscape';
 import {
   contrastBetween,
@@ -53,6 +53,30 @@ describe('time of day', () => {
     expect(isSleepy(1320)).toBe(true);
     expect(isSleepy(120)).toBe(true);
     expect(isSleepy(720)).toBe(false);
+  });
+
+  it('moves the sun across the day and the moon across the night, matched to the clock', () => {
+    expect(sunProgress(360)).toBe(0);
+    expect(sunProgress(720)).toBeCloseTo(0.5);
+    expect(sunProgress(1080)).toBe(1);
+    expect(moonProgress(1080)).toBe(0);
+    expect(moonProgress(0)).toBeCloseTo(0.5);
+    expect(moonProgress(359)).toBeLessThan(1);
+  });
+
+  it('shares one circle: in from the left edge, top at the middle, out past the right edge', () => {
+    const at = (p: number) => skyArc(p, 400, 100, 260, 0.12);
+    expect(at(0).x).toBeLessThan(0);
+    expect(at(1).x).toBeGreaterThan(400);
+    expect(at(0).y).toBeCloseTo(260);
+    expect(at(1).y).toBeCloseTo(260);
+    expect(at(0.5).x).toBeCloseTo(200);
+    expect(at(0.5).y).toBeCloseTo(100);
+    let previous = -Infinity;
+    for (let p = 0; p <= 1; p += 0.02) {
+      expect(at(p).x).toBeGreaterThan(previous);
+      previous = at(p).x;
+    }
   });
 
   it('eases Sola into sleep over a few minutes, never snapping', () => {
