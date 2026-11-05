@@ -29,7 +29,6 @@ import {
   fallingPetal,
   meadow,
   moon,
-  moonStreak,
   starField,
   sceneColor,
   sceneShapes,
@@ -37,18 +36,18 @@ import {
   skyMotion,
   skyStopPositions,
   sola,
-  streamShimmer,
   treeDrop,
   trees,
-  waterTint,
+  water,
   wind,
   type Limb,
 } from '../../theme/sky';
 import { today } from '../../theme/tokens';
 import { sleepyAmount } from './astro';
-import { gustSway, petalPose, scenePaths, shimmerPose, streamAt, treeShape, tuftBatch, type SceneRect } from './landscape';
+import { gustSway, petalPose, scenePaths, treeShape, tuftBatch, type SceneRect } from './landscape';
 import { hexToRgb, mixRgb, moonAmount, nightAmount, rgbToCss, sunAmount, timeStops, type Rgb } from './skyColors';
 import { starEffect } from './starShader';
+import { waterEffect } from './waterShader';
 
 const TWO_PI = Math.PI * 2;
 const CLOUD_MARGIN = 100;
@@ -334,27 +333,6 @@ function StaticScene({ rect, night }: { rect: SceneRect; night: SharedValue<numb
   );
 }
 
-function Shimmer({ index, rect, clock }: { index: number; rect: SceneRect; clock: SharedValue<number> }) {
-  const pose = useDerivedValue(() => shimmerPose(clock.get(), index));
-  const transform = useDerivedValue(() => {
-    const g = pose.get();
-    return [
-      { translateX: g.x * rect.width },
-      { translateY: rect.top + g.y * rect.height },
-      { scaleX: Math.max(0.5, (g.length * rect.width) / 2) },
-      { scaleY: Math.max(streamShimmer.minThickness, g.thickness * rect.width) },
-    ];
-  });
-  const opacity = useDerivedValue(() => pose.get().opacity);
-  return (
-    <Group transform={transform}>
-      <Circle cx={0} cy={0} r={1} color={sceneColor.shimmer} opacity={opacity}>
-        <BlurMask blur={streamShimmer.blur} style="normal" respectCTM={false} />
-      </Circle>
-    </Group>
-  );
-}
-
 /** One batch of grass tufts at the bottom edge, leaning with the breeze and gusts. */
 function TuftBatch({ batch, width, baseY, night, clock, gust }: {
   batch: number;
@@ -380,37 +358,42 @@ function TuftBatch({ batch, width, baseY, night, clock, gust }: {
   );
 }
 
-/** The water reflects the sky: the far end shows the horizon, the near end the sky overhead. */
+/** The stream: one shader pass that reflects the sky, mountain and moon through flowing noise. */
 function StreamWater({ rect, minute, clock }: { rect: SceneRect; minute: SharedValue<number>; clock: SharedValue<number> }) {
-  const path = useMemo(() => Skia.Path.MakeFromSVGString(scenePaths(rect).stream) ?? Skia.Path.Make(), [rect]);
-  const colors = useDerivedValue(() => {
+  const s = sceneShapes.stream;
+  const top = rect.top + rect.height * s.topY;
+  const bottom = rect.top + rect.height * s.bottomY;
+  const uniforms = useDerivedValue(() => {
     const stops = timeStops(minute.get());
-    return [rgbToCss(stops[3] as Rgb), rgbToCss(stops[2] as Rgb), rgbToCss(stops[0] as Rgb)];
+    const unit = (c: Rgb) => [c[0] / 255, c[1] / 255, c[2] / 255];
+    const n = nightAmount(minute.get());
+    return {
+      time: clock.get(),
+      width: rect.width,
+      top,
+      bottom,
+      far: unit(stops[3] as Rgb),
+      near: unit(stops[0] as Rgb),
+      tint: unit(hexToRgb(water.tint)),
+      mountain: unit(hexToRgb(sceneColor.mountain)).map((v) => v * (1 - n * sceneColor.nightOverlayOpacity)),
+      moon: moonAmount(minute.get()),
+      moonX: water.moonX,
+      night: n,
+      centerX: s.centerX,
+      bendStart: s.bendStart,
+      bendGrowth: s.bendGrowth,
+      bends: s.bends,
+      widthStart: s.widthStart,
+      widthGrowth: s.widthGrowth,
+      widthPower: s.widthPower,
+      flow: water.flow,
+    };
   });
-  const top = rect.top + rect.height * sceneShapes.stream.topY;
-  const bottom = rect.top + rect.height * sceneShapes.stream.bottomY;
-  const moon = useDerivedValue(() => moonAmount(minute.get()) * moonStreak.opacity);
-  const streak = streamAt(moonStreak.at);
+  if (!waterEffect) return null;
   return (
-    <Group clip={path}>
-      <Path path={path}>
-        <LinearGradient start={vec(0, top)} end={vec(0, bottom)} colors={colors} />
-      </Path>
-      <Path path={path} color={waterTint.color} opacity={waterTint.opacity} />
-      <Oval
-        x={(streak.x - moonStreak.halfWidth) * rect.width}
-        y={rect.top + (streak.y - moonStreak.halfLength) * rect.height}
-        width={moonStreak.halfWidth * 2 * rect.width}
-        height={moonStreak.halfLength * 2 * rect.height}
-        color={skyColor.moon}
-        opacity={moon}
-      >
-        <BlurMask blur={moonStreak.blur} style="normal" />
-      </Oval>
-      {Array.from({ length: streamShimmer.count }, (_, index) => (
-        <Shimmer key={index} index={index} rect={rect} clock={clock} />
-      ))}
-    </Group>
+    <Rect x={0} y={top} width={rect.width} height={bottom - top}>
+      <Shader source={waterEffect} uniforms={uniforms} />
+    </Rect>
   );
 }
 

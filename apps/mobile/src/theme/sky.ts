@@ -265,17 +265,7 @@ export const sceneShapes = {
   },
 } as const;
 
-// Soft highlights flowing away from the viewer, toward the mountain.
-export const streamShimmer = {
-  count: 14,
-  speed: 0.03, // Fraction of the stream per second.
-  lengthRatio: 0.42,
-  minLength: 0.008,
-  thicknessRatio: 0.016,
-  minThickness: 0.5,
-  blur: 1.2,
-  peakOpacity: 0.34,
-} as const;
+
 
 // The meadow darkens toward the viewer. Colors are HIG Green and Green (increased contrast).
 export const meadow = {
@@ -300,10 +290,7 @@ export const meadow = {
   gustAmount: 0.14,
 } as const;
 
-// The moon's soft streak on the water, as fractions of the stream.
-export const moonStreak = { at: 0.72, halfLength: 0.17, halfWidth: 0.05, opacity: 0.5, blur: 7 } as const;
 
-export const waterTint = { color: '#00C3D0', opacity: 0.2 } as const; // Teal.
 
 export type Limb = {
   points: readonly [readonly number[], readonly number[], readonly number[], readonly number[]];
@@ -371,3 +358,5 @@ export const fallingPetal = {
   shape: 'M0 5 C-3.6 3 -4.6 -2 -2.2 -4.6 L0 -3.4 L2.2 -4.6 C4.6 -2 3.6 3 0 5 Z',
 } as const;
 
+// The stream's water shader. Tint is HIG Teal.
+export const water = { tint: '#00C3D0', moonX: 0.68, flow: 0.42 } as const;

@@ -1,7 +1,7 @@
-import { blossom, fallingPetal, meadow, sceneShapes, streamShimmer, treeDrop, trees, wind } from '../../../theme/sky';
+import { blossom, fallingPetal, meadow, sceneShapes, treeDrop, trees, wind } from '../../../theme/sky';
 import { colors } from '../../../theme/tokens';
 import { isSleepy, moonIllumination, moonLitPath, moonPhase, sleepyAmount, wrapMinute } from '../astro';
-import { gustSway, petalPose, scenePaths, shimmerPose, streamAt, treeShape, tuftBatch } from '../landscape';
+import { gustSway, petalPose, scenePaths, streamAt, treeShape, tuftBatch } from '../landscape';
 import {
   contrastBetween,
   moonAmount,
@@ -227,8 +227,6 @@ describe('wind and petals', () => {
 });
 
 describe('stream', () => {
-  const { count } = streamShimmer;
-
   it('widens from Fuji’s foot toward the viewer', () => {
     let previous = 0;
     for (let t = 0; t <= 1; t += 0.05) {
@@ -249,22 +247,6 @@ describe('stream', () => {
     const { pool } = sceneShapes;
     expect(streamAt(0).y).toBeGreaterThanOrEqual(pool.topY);
     expect(streamAt(0).y).toBeLessThanOrEqual(pool.bottomY);
-  });
-
-  it('keeps every glint inside the water as it moves', () => {
-    for (let clock = 0; clock < 60; clock += 0.5) {
-      for (let i = 0; i < count; i += 1) {
-        const g = shimmerPose(clock, i);
-        const t = (g.y - sceneShapes.stream.topY) / (sceneShapes.stream.bottomY - sceneShapes.stream.topY);
-        const s = streamAt(t);
-        expect(g.x - g.length / 2).toBeGreaterThanOrEqual(s.x - s.width / 2 - 0.01);
-        expect(g.x + g.length / 2).toBeLessThanOrEqual(s.x + s.width / 2 + 0.01);
-      }
-    }
-  });
-
-  it('moves the highlights away from the viewer, toward the mountain', () => {
-    expect(shimmerPose(5, 3).y).toBeLessThan(shimmerPose(1, 3).y);
   });
 
   it('narrows into the distance with perspective', () => {

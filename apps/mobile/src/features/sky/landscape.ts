@@ -1,6 +1,6 @@
 // Scene shapes and the owl's flight. Pure, so tests can check them without drawing.
 
-import { blossom, fallingPetal, meadow, sceneShapes, streamShimmer, treeDrop, wind, type Limb } from '../../theme/sky';
+import { blossom, fallingPetal, meadow, sceneShapes, treeDrop, wind, type Limb } from '../../theme/sky';
 
 export type SceneRect = { width: number; top: number; height: number };
 
@@ -143,27 +143,6 @@ function streamOutline(rect: SceneRect, widthScale = 1): string {
     return `${x * rect.width} ${rect.top + p.y * rect.height}`;
   };
   return `M${ts.map((t) => edge(t, -1)).join(' L')} L${[...ts].reverse().map((t) => edge(t, 1)).join(' L')} Z`;
-}
-
-export type ShimmerPose = { x: number; y: number; length: number; thickness: number; opacity: number };
-
-/** A soft highlight flowing toward the mountain. It stays in the water and fades in and out. */
-export function shimmerPose(clock: number, index: number): ShimmerPose {
-  'worklet';
-  const raw = index / streamShimmer.count - clock * streamShimmer.speed;
-  const t = raw - Math.floor(raw);
-  const p = streamAt(t);
-  const length = Math.min(p.width, Math.max(streamShimmer.minLength, p.width * streamShimmer.lengthRatio));
-  // Each glint keeps to its own lane across the stream's width.
-  const lane = Math.sin(index * 12.9898) * 0.5;
-  const room = Math.max(0, p.width - length) / 2;
-  return {
-    x: p.x + lane * 2 * room,
-    y: p.y,
-    length,
-    thickness: p.width * streamShimmer.thicknessRatio,
-    opacity: Math.sin(Math.PI * t) * streamShimmer.peakOpacity,
-  };
 }
 
 type Point = { x: number; y: number };
