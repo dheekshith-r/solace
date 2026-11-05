@@ -162,7 +162,7 @@ All ids are `uuid` (default `gen_random_uuid()`), all timestamps `timestamptz` d
 
 **mood_checkins**: id, user_id → users (cascade), mood (smallint 1–5), note (text, nullable, max 280), source (`home` \| `post_breathe` \| `chat`), created_at. Index on (user_id, created_at desc).
 
-**assessments**: id, user_id → users (cascade), answers (jsonb), score (smallint), band (`steady` \| `stretched` \| `strained`), created_at.
+**assessments**: id, user_id → users (cascade), kind (`mood` \| `anxiety` \| `self_talk`), answers (jsonb), score (smallint), band (`steady` \| `stretched` \| `strained`), moves (jsonb), created_at. Stores results from the Check-ins hub.
 
 **conversations**: id, user_id → users (cascade), title (text, nullable), summary (text, nullable), last_message_at, message_count (int), created_at. Index on (user_id, last_message_at desc).
 
@@ -198,7 +198,7 @@ Base URL from `EXPO_PUBLIC_API_URL`. JSON everywhere except the SSE stream. Erro
 | `GET /today` | — | `{ greeting, affirmation, lastMood, suggestion, stats }` (one call powers Today) |
 | `POST /checkins` | `{ mood, note?, source }` | `{ checkin, xpAwarded, stats, suggestion }` |
 | `GET /checkins?days=30` | — | `{ items: [...] }` |
-| `POST /assessments` | `{ answers }` | `{ assessment, insight }` |
+| `POST /assessments` | `{ kind, answers }` | `{ assessment, moves }` (three AI-written moves, each with an action) |
 | `POST /activities` | `{ kind, meta }` | `{ xpAwarded, stats }` |
 | `GET /conversations?cursor=` | — | `{ items: [{ id, title, preview, lastMessageAt }], nextCursor }` |
 | `POST /conversations` | `{}` | `{ conversation }` |
@@ -237,7 +237,7 @@ System prompt rules (Opus writes the final prompt in `apps/api/src/ai/prompts.ts
 
 - Daily affirmation: generated once per user per day from goal + recent mood; fallback list of 30 handwritten ones.
 - Check-in suggestion: after a mood check-in, one sentence suggestion + action.
-- Assessment insight: two sentences explaining the result kindly, with one next step.
+- Check-in moves: three wellness moves for this user from their result, recent moods and chats, each mapped to an activity.
 - Conversation summary: max 80 words, facts and feelings only.
 
 ### 5.4 Evaluation before demo
@@ -262,7 +262,7 @@ apps/mobile/
     (tabs)/you.tsx            progress, streak calendar, settings entry
     breathe.tsx               full-screen modal
     checkin.tsx               form-sheet modal (mood + note)
-    assessment.tsx            stepped questions
+    check-ins/                hub, one question at a time in the sky, results
     resources/index.tsx, resources/[slug].tsx
     settings/reminders.tsx, settings/privacy.tsx
   src/
@@ -368,7 +368,10 @@ Offline and timeout errors show within a few seconds, never after a long wait. R
 5. **Check-in** (sheet): mood, optional note, save → +10 XP toast, Sola reacts.
 6. **Sola tab**: history list (title, preview, time; swipe left to delete with confirm; "New conversation" button) → conversation screen (streamed replies, suggestion cards that deep-link, quick-reply chips when empty, keyboard-aware input).
 7. **Breathe** (full-screen): pick a pattern (Calm 4-4-6, Box 4-4-4-4, Sleep 4-7-8), 4 rounds, orb scales on the UI thread, phase label and countdown, haptic per phase, finish → "How do you feel now?" quick mood → +15 XP.
-8. **Assessment**: 6 short questions (sleep, energy, worry, mood, connection, stress) on a 0–3 scale, one per page, result band + AI insight + suggested next step. Labelled a wellness check, not a diagnosis.
+8. **Check-ins hub**: three short screenings of 4 questions each, labelled "friendly check-ins, not diagnoses": Mood (PHQ-4 style), Anxiety (GAD style) and Self-talk. Keeps the sky design, not a saturated card stack.
+   - **Questions:** Sola asks each one at a time in the sky, conversationally, with soft tappable answers on a 0–3 scale. Not a form.
+   - **Results:** a gentle score band with a kind name, a "not a diagnosis" note, a Tele-MANAS 14416 call button, and three wellness moves written by the AI for this user from their recent moods and chats (only when `personalize` is on). Each move is tappable and opens the matching activity.
+   - **Streak:** completing a check-in adds a star to the constellation.
 9. **You**: streak calendar (last 5 weeks), mood trend (simple SVG line, last 14 days), level and XP, links to reminders, privacy (personalize toggle, delete all chats, delete account), resources, appearance (section 7.2), log out.
 10. **Reminders**: toggles and time pickers per reminder type, custom reminders (add, edit, delete), "send a test notification" button.
 11. **Resources**: 5 short guides (Mindfulness 101, Anxiety toolkit with 5-4-3-2-1 grounding, Beating the blues, Self-esteem reset, Sleep wind-down) + a Get help now page (Tele-MANAS 14416, call button) + "not a substitute for professional care" note.
@@ -429,12 +432,12 @@ Each phase ends with its acceptance check passing on the phone. No phase starts 
 | 2. Auth + onboarding | Fri | Splash, onboarding, sign up, log in, refresh, logout | Full auth tests pass; kill and reopen stays logged in |
 | 3. Today + check-ins + XP | Fri–Sat | `/today`, check-ins, suggestion card, streak/level ring, affirmation | Check-in updates Sola, ring, streak, and survives restart |
 | 4. Sola chat | Sat | Conversations, streaming, safety, classification, cards, history, delete, summaries | 12-message AI eval reads well; delete is real; crisis path shows the helpline |
-| 5. Breathe + assessment | Sun | Breathing patterns, post-session mood, assessment + insight | 60 fps on the orb; XP awarded once per session |
+| 5. Breathe + check-ins hub | Sun | Breathing patterns, post-session mood, three check-ins with AI moves | 60 fps on the orb; XP awarded once per session; each move opens its activity |
 | 6. Notifications + settings | Sun | Channels, schedules, custom reminders, deep links, privacy controls | Notification fires with the app killed and opens the right screen |
 | 7. Polish + perf | Mon morning | Empty/error states, budget check, accessibility pass, copy pass | Performance budget met; Maestro flow green |
 | 8. Ship | Mon | Release APK, fresh-install test, demo video | Submitted Monday night; Tuesday morning is buffer only |
 
-Cut order if time runs short (last cut first): assessment → custom reminders → mood trend chart → resources detail pages. Never cut: auth, chat + history, breathing, notifications, Today.
+Cut order if time runs short (last cut first): check-ins hub → custom reminders → mood trend chart → resources detail pages. Never cut: auth, chat + history, breathing, notifications, Today.
 
 ---
 
