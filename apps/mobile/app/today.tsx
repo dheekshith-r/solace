@@ -1,6 +1,6 @@
 // Today: the cards in a pull-up sheet, with the scene behind them (spec sections 7.7 and 8). Copy and
-// numbers are sample data until Phase 3 connects the API. The m, owl and open params only exist for
-// screenshots.
+// numbers are sample data until Phase 3 connects the API. The m, open, gust and v params only
+// exist for screenshots.
 import { PlusJakartaSans_400Regular } from '@expo-google-fonts/plus-jakarta-sans/400Regular';
 import { PlusJakartaSans_600SemiBold } from '@expo-google-fonts/plus-jakarta-sans/600SemiBold';
 import { PlusJakartaSans_700Bold } from '@expo-google-fonts/plus-jakarta-sans/700Bold';
@@ -24,11 +24,11 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { scheduleOnRN } from 'react-native-worklets';
 import { minuteOfDay, moonPhase, wrapMinute } from '../src/features/sky/astro';
-import { SkyCanvas } from '../src/features/sky/SkyCanvas';
-import { nightAmount, skyTextIsWhite } from '../src/features/sky/skyColors';
+import { SkyCanvas, type Gust } from '../src/features/sky/SkyCanvas';
+import { skyTextIsWhite } from '../src/features/sky/skyColors';
 import { MoodRow, Ring, TabBar } from '../src/features/today/parts';
 import { duration, easing, spring } from '../src/theme/motion';
-import { demoMinutes, moodNeutral, owlVisit, skyMotion, skyTimes, sola } from '../src/theme/sky';
+import { demoMinutes, moodNeutral, skyMotion, skyTimes, sola, wind } from '../src/theme/sky';
 import {
   colors,
   font,
@@ -74,10 +74,10 @@ function formatDate(date: Date): string {
   return date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
 }
 
-function Today({ initialMinute, owlDelayOverride, startOpen }: {
+function Today({ initialMinute, startOpen, firstGust }: {
   initialMinute: number;
-  owlDelayOverride: number | null;
   startOpen: boolean;
+  firstGust: number;
 }) {
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
@@ -92,9 +92,6 @@ function Today({ initialMinute, owlDelayOverride, startOpen }: {
   const [demoIndex, setDemoIndex] = useState(0);
   const [textIsWhite, setTextIsWhite] = useState(() => skyTextIsWhite(initialMinute));
   const [moonValue] = useState(() => moonPhase(Date.now()));
-  const [owlDelay] = useState(
-    () => owlDelayOverride ?? owlVisit.minDelay + Math.random() * (owlVisit.maxDelay - owlVisit.minDelay),
-  );
   const [headlineHeight, setHeadlineHeight] = useState(ESTIMATED_HEADLINE_HEIGHT);
   const [restHeight, setRestHeight] = useState(ESTIMATED_REST_HEIGHT);
   const [statsHeight, setStatsHeight] = useState(ESTIMATED_STATS_HEIGHT);
@@ -104,7 +101,8 @@ function Today({ initialMinute, owlDelayOverride, startOpen }: {
   const clock = useSharedValue(0);
   const shootingStartedAt = useSharedValue(-100);
   const nextShootingAt = useSharedValue<number>(skyMotion.shootingMinGap);
-  const owlStartedAt = useSharedValue(-1);
+  const gust = useSharedValue<Gust>({ start: -100, count: 0, seed: 0 });
+  const nextGustAt = useSharedValue<number>(firstGust);
   const sheetOpen = useSharedValue(startOpen ? 1 : 0);
   const dragStart = useSharedValue(0);
 
@@ -136,9 +134,11 @@ function Today({ initialMinute, owlDelayOverride, startOpen }: {
       const gap = skyMotion.shootingMaxGap - skyMotion.shootingMinGap;
       nextShootingAt.set(t + skyMotion.shootingMinGap + Math.random() * gap);
     }
-    // Once per visit, at night, after the random delay.
-    if (owlStartedAt.get() < 0 && t >= owlDelay && nightAmount(minute.get()) >= owlVisit.minNight) {
-      owlStartedAt.set(t);
+    // Mostly still. Every 15 to 30 seconds, a gust sways the branches and releases a few petals.
+    if (t >= nextGustAt.get()) {
+      const span = wind.maxPetals - wind.minPetals + 1;
+      gust.set({ start: t, count: wind.minPetals + Math.floor(Math.random() * span), seed: Math.random() });
+      nextGustAt.set(t + wind.minGap + Math.random() * (wind.maxGap - wind.minGap));
     }
   }, false);
 
@@ -229,8 +229,8 @@ function Today({ initialMinute, owlDelayOverride, startOpen }: {
         minute={minute}
         mood={mood}
         clock={clock}
+        gust={gust}
         shootingStartedAt={shootingStartedAt}
-        owlStartedAt={owlStartedAt}
         moonPhaseValue={moonValue}
         lite={lite}
       />
@@ -286,7 +286,7 @@ function Today({ initialMinute, owlDelayOverride, startOpen }: {
 }
 
 export default function TodayScreen() {
-  const params = useLocalSearchParams<{ m?: string; owl?: string; open?: string }>();
+  const params = useLocalSearchParams<{ m?: string; open?: string; v?: string; gust?: string }>();
   const [loaded] = useFonts({
     PlusJakartaSans_400Regular,
     PlusJakartaSans_600SemiBold,
@@ -296,14 +296,14 @@ export default function TodayScreen() {
 
   const fromParam = Number(params.m);
   const initialMinute = params.m && !Number.isNaN(fromParam) ? fromParam : minuteOfDay(new Date());
-  const owlParam = Number(params.owl);
+  const gustParam = Number(params.gust ?? 0);
 
   return (
     <Today
-      key={`${params.m ?? ''}-${params.owl ?? ''}-${params.open ?? ''}`}
+      key={`${params.m ?? ''}-${params.open ?? ''}-${params.v ?? ''}`}
       initialMinute={initialMinute}
-      owlDelayOverride={params.owl && !Number.isNaN(owlParam) ? owlParam : null}
       startOpen={params.open === '1'}
+      firstGust={gustParam > 0 ? gustParam : wind.minGap}
     />
   );
 }

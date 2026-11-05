@@ -56,6 +56,18 @@ export function nightAmount(minute: number): number {
   return progress(m, duskStart, nightStart);
 }
 
+/** Sun visibility, 1 to 0. Reaches 0 exactly when the moon starts to appear, so they never overlap. */
+export function sunAmount(minute: number): number {
+  'worklet';
+  return Math.max(0, 1 - 2 * nightAmount(minute));
+}
+
+/** Moon visibility, 0 to 1. Only above 0 after the sun has gone. */
+export function moonAmount(minute: number): number {
+  'worklet';
+  return Math.max(0, 2 * nightAmount(minute) - 1);
+}
+
 function channel(v: number): number {
   'worklet';
   const c = v / 255;

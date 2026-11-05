@@ -1,8 +1,16 @@
-import { owlTimeline } from '../../../theme/sky';
+import { fallingPetal, sceneShapes, streamShimmer, trees, wind, blossom } from '../../../theme/sky';
 import { colors } from '../../../theme/tokens';
 import { isSleepy, moonIllumination, moonLitPath, moonPhase, wrapMinute } from '../astro';
-import { owlPose, scenePaths } from '../landscape';
-import { contrastBetween, nightAmount, skyTextContrast, skyTextIsWhite, timeStops } from '../skyColors';
+import { gustSway, petalPose, scenePaths, shimmerPose, streamAt, treeShape } from '../landscape';
+import {
+  contrastBetween,
+  moonAmount,
+  nightAmount,
+  skyTextContrast,
+  skyTextIsWhite,
+  sunAmount,
+  timeStops,
+} from '../skyColors';
 
 const AA = 4.5;
 const GRAPHIC = 3;
@@ -52,6 +60,22 @@ describe('time of day', () => {
     expect(nightAmount(0)).toBe(1);
   });
 
+  it('never shows the sun and moon together', () => {
+    for (let m = 0; m < 1440; m += 0.5) {
+      expect(Math.min(sunAmount(m), moonAmount(m))).toBe(0);
+    }
+  });
+
+  it('shows the sun only between sunrise and sunset, and the moon only outside it', () => {
+    for (let m = 0; m < 1440; m += 1) {
+      const daytime = m >= 360 && m <= 1080;
+      if (!daytime) expect(sunAmount(m)).toBe(0);
+      if (daytime) expect(moonAmount(m)).toBe(0);
+    }
+    expect(sunAmount(720)).toBe(1);
+    expect(moonAmount(0)).toBe(1);
+  });
+
   it('changes gradually: no jump between consecutive minutes', () => {
     for (let m = 0; m < 1440; m += 1) {
       const a = timeStops(m);
@@ -84,42 +108,129 @@ describe('scene', () => {
   });
 });
 
-describe('owl', () => {
-  const o = owlTimeline;
+describe('trees', () => {
+  const rect = { width: 400, top: 300, height: 200 };
+  const summitLeft = 0.462;
+  const summitRight = 0.538;
 
-  it('is hidden before and after its visit', () => {
-    expect(owlPose(-1).opacity).toBe(0);
-    expect(owlPose(o.flyEnd).opacity).toBe(0);
+  it.each(['left', 'right'] as const)('grows the %s tree from its screen edge', (side) => {
+    const main = trees[side][0];
+    expect(main?.points[0]?.[0]).toBe(side === 'left' ? 0 : 1);
   });
 
-  it('starts off-screen and lands on the perch with folded wings', () => {
-    expect(owlPose(0).x).toBeGreaterThan(1);
-    const landed = owlPose(o.glideEnd);
-    expect(landed.x).toBeCloseTo(o.perch.x);
-    expect(landed.y).toBeCloseTo(o.perch.y);
-    expect(landed.wing).toBe(0);
+  it.each(['left', 'right'] as const)('tapers every %s limb and keeps clear of the summit', (side) => {
+    trees[side].forEach((limb) => {
+      expect(limb.to).toBeLessThan(limb.from);
+      limb.points.forEach(([x]) => {
+        if (side === 'left') expect(x).toBeLessThan(summitLeft);
+        else expect(x).toBeGreaterThan(summitRight);
+      });
+    });
   });
 
-  it('arrives without a jump at the end of the glide', () => {
-    const before = owlPose(o.glideEnd - 0.01);
-    const after = owlPose(o.glideEnd + 0.01);
-    expect(Math.abs(before.x - after.x)).toBeLessThan(0.01);
-    expect(Math.abs(before.y - after.y)).toBeLessThan(0.01);
+  it.each(['left', 'right'] as const)('starts every %s fork close to its parent', (side) => {
+    const main = trees[side][0]!;
+    trees[side].slice(1).forEach((fork) => {
+      const [x, y] = fork.points[0] as readonly [number, number];
+      const distance = Math.min(
+        ...main.points.map((p) => Math.hypot((p[0] as number) - x, (p[1] as number) - y)),
+        ...trees[side].slice(1, 2).flatMap((l) => l.points.map((p) => Math.hypot((p[0] as number) - x, (p[1] as number) - y))),
+      );
+      expect(distance).toBeLessThan(0.12);
+    });
   });
 
-  it('turns to look at the user, blinks, then turns back', () => {
-    expect(owlPose(o.settleEnd).look).toBe(0);
-    expect(owlPose(o.turnEnd).look).toBe(1);
-    expect(owlPose(o.blinkStart + o.blinkLength / 2).eyeOpen).toBeCloseTo(0);
-    expect(owlPose(o.holdEnd - 0.1).eyeOpen).toBe(1);
-    expect(owlPose(o.turnBackEnd - 0.001).look).toBeCloseTo(0, 1);
+  it('places flowers on the tree and draws a shape for every limb', () => {
+    const { outline, flowers } = treeShape(trees.left, rect, 1);
+    expect(outline.match(/M/g)?.length).toBe(trees.left.length);
+    expect(flowers.length).toBe(trees.left.reduce((sum, limb) => sum + Math.round(limb.flowers * blossom.density), 0));
+  });
+});
+
+describe('wind and petals', () => {
+  const origin = { x: 100, y: 300 };
+  const ground = 500;
+  const pose = (t: number) => petalPose(t, origin.x, origin.y, ground, 1);
+
+  it('keeps the branches still outside a gust', () => {
+    expect(gustSway(-1)).toBe(0);
+    expect(gustSway(wind.swayLength)).toBe(0);
+    expect(gustSway(1)).not.toBe(0);
   });
 
-  it('flies toward the mountain, shrinking and fading', () => {
-    const end = owlPose(o.flyEnd - 0.01);
-    expect(end.x).toBeCloseTo(o.leave.x, 1);
-    expect(end.scale).toBeCloseTo(o.leaveScale, 1);
-    expect(end.opacity).toBeLessThan(0.05);
+  it('keeps the sway slight', () => {
+    for (let t = 0; t < wind.swayLength; t += 0.05) {
+      expect(Math.abs(gustSway(t))).toBeLessThanOrEqual(wind.swayRadians);
+    }
+  });
+
+  it('releases each petal from its blossom', () => {
+    const start = pose(0);
+    expect(start.x).toBeCloseTo(origin.x);
+    expect(start.y).toBeCloseTo(origin.y);
+  });
+
+  it('falls steadily, only downward', () => {
+    let previous = origin.y;
+    for (let t = 0.1; t < fallingPetal.life; t += 0.1) {
+      const y = pose(t).y;
+      expect(y).toBeGreaterThanOrEqual(previous);
+      previous = y;
+    }
+  });
+
+  it('sways sideways and rotates slowly', () => {
+    const xs = Array.from({ length: 100 }, (_, i) => pose((i / 100) * fallingPetal.life).x);
+    expect(Math.max(...xs) - Math.min(...xs)).toBeGreaterThan(fallingPetal.swayDistance / 2);
+    expect(pose(5).rotate).not.toBe(pose(1).rotate);
+  });
+
+  it('fades out near the ground, and is gone by the end', () => {
+    expect(pose(fallingPetal.life / 3).opacity).toBe(1);
+    expect(pose(fallingPetal.life - 0.05).opacity).toBeLessThan(0.05);
+    expect(pose(fallingPetal.life).opacity).toBe(0);
+  });
+});
+
+describe('stream', () => {
+  const { count } = streamShimmer;
+
+  it('widens from Fuji’s foot toward the viewer', () => {
+    let previous = 0;
+    for (let t = 0; t <= 1; t += 0.05) {
+      const width = streamAt(t).width;
+      expect(width).toBeGreaterThan(previous);
+      previous = width;
+    }
+  });
+
+  it('winds from side to side rather than running straight', () => {
+    const xs = Array.from({ length: 40 }, (_, i) => streamAt(i / 39).x);
+    const center = sceneShapes.stream.centerX;
+    expect(Math.min(...xs)).toBeLessThan(center - 0.03);
+    expect(Math.max(...xs)).toBeGreaterThan(center + 0.03);
+  });
+
+  it('starts at the water at Fuji’s foot', () => {
+    const { pool } = sceneShapes;
+    expect(streamAt(0).y).toBeGreaterThanOrEqual(pool.topY);
+    expect(streamAt(0).y).toBeLessThanOrEqual(pool.bottomY);
+  });
+
+  it('keeps every glint inside the water as it moves', () => {
+    for (let clock = 0; clock < 60; clock += 0.5) {
+      for (let i = 0; i < count; i += 1) {
+        const g = shimmerPose(clock, i);
+        const t = (g.y - sceneShapes.stream.topY) / (sceneShapes.stream.bottomY - sceneShapes.stream.topY);
+        const s = streamAt(t);
+        expect(g.x - g.length / 2).toBeGreaterThanOrEqual(s.x - s.width / 2 - 0.01);
+        expect(g.x + g.length / 2).toBeLessThanOrEqual(s.x + s.width / 2 + 0.01);
+      }
+    }
+  });
+
+  it('moves the shimmer downstream over time', () => {
+    expect(shimmerPose(5, 0).y).toBeGreaterThan(shimmerPose(1, 0).y);
   });
 });
 

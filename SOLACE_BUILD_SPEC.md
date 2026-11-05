@@ -341,11 +341,13 @@ Sentence case, plain verbs, warm but not syrupy. Errors say what happened and wh
 Everything is slow and few, so it stays calm. No buildings.
 
 - **Time of day:** day, dusk and night blend over about 30 minutes.
-- **Landscape:** a distant snow-capped mountain in the center, softly hazy, with a small stream winding toward it and a gentle shimmer. Slim tree branches reach in from the left and right screen edges. Pink petals drift down slowly, a few at a time.
-- **Day:** a small sun in the top corner and slowly drifting clouds.
-- **Night:** the moon in the top corner shows tonight's real phase, calculated on-device. 30 to 40 stars twinkle slowly and out of sync. A shooting star only every 10 to 20 seconds.
-- **Owl:** night only, once per visit, after a random 20 to 90 seconds. It glides in, lands on a branch, slowly turns to look at the user, blinks, and flies off toward the mountain. If the flight looks clumsy, fall back to a perched owl that only blinks and turns its head.
-- **Performance:** one Skia canvas. Static layers are drawn once into a cached picture. Only petals, water, stars, clouds, the rare shooting star and the owl animate. It pauses when Today isn't focused. Moving parts turn off with reduce-motion.
+- **Landscape:** Mount Fuji in the center: a broad symmetric cone with concave slopes, a flat summit, a jagged snow line, blue-grey haze, and a soft reflection where the stream meets it. A wide stream winds from the foreground toward it, with a subtle moving shimmer. The landscape fills the space between the headline and the sheet.
+- **Trees:** branches overhang from the top left and top right corners, with natural forks, tapering and pink blossoms.
+- **Wind and petals:** mostly still. Every 15 to 30 seconds a gentle gust sways the branches slightly and releases 2 to 5 soft pink sakura petals from the blossoms. They drift down with sideways sway and slow rotation, then fade near the ground.
+- **Sun and moon:** in clear sky, never behind UI. The sun shows only between sunrise and sunset and the moon only at night, never both. The moon shows tonight's real phase, calculated on-device.
+- **Day:** slowly drifting clouds. **Night:** 30 to 40 stars twinkle slowly and out of sync. A shooting star only every 10 to 20 seconds.
+- **Owl:** night only, once per visit, after a random 20 to 90 seconds. It flies in low from the side with a few strong wingbeats then a silent glide, lands on a branch, settles, slowly turns its head to look at the user, blinks, and flies off to the side. It must come from a commercially licensed animation; no hand-drawn owl.
+- **Performance:** one Skia canvas. Static layers are drawn once into cached pictures. Only petals, water, stars, clouds, the branch sway, the rare shooting star and the owl animate. It pauses when Today isn't focused. Moving parts turn off with reduce-motion.
 - **Demo control:** a hidden long-press on the sky cycles dawn, day, dusk and night for recording.
 
 ---
