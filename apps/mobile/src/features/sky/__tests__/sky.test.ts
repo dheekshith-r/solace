@@ -1,7 +1,7 @@
 import { blossom, fallingPetal, meadow, sceneShapes, treeDrop, trees, wind } from '../../../theme/sky';
 import { colors } from '../../../theme/tokens';
 import { isSleepy, moonIllumination, moonLitPath, moonPhase, moonProgress, skyArc, sleepyAmount, sunProgress, wrapMinute } from '../astro';
-import { gustSway, petalPose, scenePaths, streamAt, treeShape, tuftBatch } from '../landscape';
+import { gustSway, petalPose, streamAt, treeShape, tuftBatch } from '../landscape';
 import {
   contrastBetween,
   moonAmount,
@@ -119,25 +119,6 @@ describe('time of day', () => {
         });
       });
     }
-  });
-});
-
-describe('scene', () => {
-  const rect = { width: 400, top: 300, height: 200 };
-
-  it('keeps every shape inside the scene rectangle', () => {
-    Object.values(scenePaths(rect)).forEach((path) => {
-      const numbers = path.match(/-?\d+(\.\d+)?/g)?.map(Number) ?? [];
-      numbers.forEach((value, index) => {
-        if (index % 2 === 0) {
-          expect(value).toBeGreaterThanOrEqual(0);
-          expect(value).toBeLessThanOrEqual(rect.width);
-        } else {
-          expect(value).toBeGreaterThanOrEqual(rect.top);
-          expect(value).toBeLessThanOrEqual(rect.top + rect.height);
-        }
-      });
-    });
   });
 });
 

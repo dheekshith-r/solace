@@ -5,24 +5,22 @@ import {
   Circle,
   createPicture,
   Group,
+  Image as SkiaImage,
   Line,
   LinearGradient,
   Oval,
   Path,
-  PathOp,
   Picture,
   RadialGradient,
   Rect,
   Shader,
   Skia,
   vec,
-  type SkPath,
 } from '@shopify/react-native-skia';
 import { useMemo } from 'react';
 import { StyleSheet } from 'react-native';
 import { useDerivedValue, type SharedValue } from 'react-native-reanimated';
 import {
-  blossom,
   cloudLayers,
   cloudNight,
   cloudShapes,
@@ -44,7 +42,8 @@ import {
 } from '../../theme/sky';
 import { today } from '../../theme/tokens';
 import { moonProgress, skyArc, sleepyAmount, sunProgress } from './astro';
-import { gustSway, petalPose, scenePaths, treeShape, tuftBatch, type SceneRect } from './landscape';
+import { bakeLandscape, bakeTree } from './bake';
+import { gustSway, petalPose, treeShape, tuftBatch, type SceneRect } from './landscape';
 import { hexToRgb, mixRgb, moonAmount, nightAmount, rgbToCss, sunAmount, timeStops, type Rgb } from './skyColors';
 import { starEffect } from './starShader';
 import { waterEffect } from './waterShader';
@@ -216,127 +215,13 @@ function ShootingStar({ clock, startedAt, startX, startY, night }: {
   return <Line p1={tail} p2={head} color={skyColor.shootingStar} strokeWidth={1.4} strokeCap="round" opacity={opacity} />;
 }
 
-/** The static scene: drawn once into a cached picture, with one overlay for night. */
+/** The landscape: painted once into a day and a night image, cross-faded with the time of day. */
 function StaticScene({ rect, night }: { rect: SceneRect; night: SharedValue<number> }) {
-  const { picture, silhouette, moonlitSnow } = useMemo(() => {
-    const paths = scenePaths(rect);
-    const toPath = (d: string) => Skia.Path.MakeFromSVGString(d) ?? Skia.Path.Make();
-    const mountain = toPath(paths.mountain);
-    const snow = toPath(paths.snow);
-    const snowShadows = toPath(paths.snowShadows);
-    const ridges = toPath(paths.ridges);
-    const streaks = toPath(paths.streaks);
-    const slopeLines = toPath(paths.slopeLines);
-    const ticks = toPath(paths.ticks);
-    const pool = toPath(paths.pool);
-    const hillFar = toPath(paths.hillFar);
-    const hillNear = toPath(paths.hillNear);
-    const bank = toPath(paths.bank);
-    const hillFront = toPath(paths.hillFront);
-    const grassDark = toPath(paths.grassDark);
-    const grassLight = toPath(paths.grassLight);
-
-    const pic = createPicture((canvas) => {
-      const paint = Skia.Paint();
-      paint.setAntiAlias(true);
-      const fill = (path: ReturnType<typeof toPath>, color: string, opacity: number) => {
-        paint.setShader(null);
-        paint.setColor(Skia.Color(color));
-        paint.setAlphaf(opacity);
-        canvas.drawPath(path, paint);
-      };
-
-      // Fuji: gray fading into haze at its foot, with a blue veil because it is far away.
-      const fuji = sceneShapes.fuji;
-      const summitY = rect.top + rect.height * fuji.summitY;
-      const footY = rect.top + rect.height * fuji.footY;
-      const fujiGradient = (top: string, bottom: string) =>
-        Skia.Shader.MakeLinearGradient(vec(0, summitY), vec(0, footY), [Skia.Color(top), Skia.Color(bottom)], null, 0);
-      const drawFuji = () => {
-        paint.setAlphaf(1);
-        paint.setShader(fujiGradient(sceneColor.mountain, sceneColor.mountainFade));
-        canvas.drawPath(mountain, paint);
-        paint.setShader(fujiGradient(sceneColor.mountainBlue, sceneColor.mountainBlueFade));
-        canvas.drawPath(mountain, paint);
-        canvas.save();
-        canvas.clipPath(mountain, 1, true);
-        // Rock texture first, then the shaded side away from the sun.
-        fill(slopeLines, sceneColor.rock, sceneColor.rockLineOpacity);
-        fill(ticks, sceneColor.rock, sceneColor.rockTickOpacity);
-        fill(snow, sceneColor.snow, 1);
-        fill(streaks, sceneColor.snow, 0.9);
-        fill(snowShadows, sceneColor.snowShadow, sceneColor.snowShadowOpacity);
-        fill(ridges, sceneColor.ridgeShadow, sceneColor.ridgeShadowOpacity);
-        const detail = sceneShapes.fujiDetail;
-        paint.setAlphaf(1);
-        paint.setShader(
-          Skia.Shader.MakeLinearGradient(
-            vec(0, 0),
-            vec(rect.width * detail.shadeToX, 0),
-            [Skia.Color(sceneColor.rock), Skia.Color('rgba(28,28,30,0)')],
-            null,
-            0,
-          ),
-        );
-        paint.setAlphaf(sceneColor.shadeOpacity);
-        canvas.drawPath(mountain, paint);
-        // Haze thickens toward the base because the mountain is far away.
-        paint.setAlphaf(sceneColor.hazeOpacity);
-        paint.setShader(
-          Skia.Shader.MakeLinearGradient(
-            vec(0, rect.top + rect.height * detail.hazeFromY),
-            vec(0, footY),
-            [Skia.Color('rgba(242,242,247,0)'), Skia.Color(sceneColor.haze)],
-            null,
-            0,
-          ),
-        );
-        canvas.drawPath(mountain, paint);
-        canvas.restore();
-      };
-      drawFuji();
-      fill(hillFar, sceneColor.hill, sceneColor.hillFarOpacity);
-
-      // The still water at Fuji's foot holds a soft, squashed reflection.
-      fill(pool, sceneColor.pool, sceneColor.poolOpacity);
-      const waterLine = rect.top + rect.height * sceneShapes.pool.topY;
-      canvas.save();
-      canvas.clipPath(pool, 1, true);
-      canvas.translate(0, waterLine);
-      canvas.scale(1, -sceneShapes.pool.reflectionScale);
-      canvas.translate(0, -footY);
-      fill(mountain, sceneColor.mountain, sceneColor.reflectionOpacity);
-      canvas.clipPath(mountain, 1, true);
-      fill(snow, sceneColor.snow, sceneColor.reflectionOpacity);
-      canvas.restore();
-
-      fill(hillNear, sceneColor.hill, sceneColor.hillNearOpacity);
-      fill(hillFront, meadow.near, meadow.frontOpacity);
-      fill(grassDark, meadow.near, meadow.darkBladeOpacity);
-      fill(grassLight, sceneColor.hill, meadow.lightBladeOpacity);
-      // Soft banks under the water.
-      paint.setMaskFilter(Skia.MaskFilter.MakeBlur(BlurStyle.Normal, sceneShapes.stream.bankBlur, true));
-      fill(bank, sceneColor.bank, sceneColor.bankOpacity);
-      paint.setMaskFilter(null);
-    });
-
-    const union = [hillFar, hillNear].reduce(
-      (all, next) => Skia.Path.MakeFromOp(all, next, PathOp.Union) ?? all,
-      mountain,
-    );
-    // Snow clipped to the mountain, for the moonlit layer above the night overlay.
-    const moonlitSnow = Skia.Path.MakeFromOp(snow, mountain, PathOp.Intersect) ?? snow;
-    return { picture: pic, silhouette: union, moonlitSnow };
-  }, [rect]);
-
-  const overlay = useDerivedValue(() => night.get() * sceneColor.nightOverlayOpacity);
-  const moonlight = useDerivedValue(() => night.get() * sceneColor.snowNightOpacity);
-
+  const images = useMemo(() => ({ day: bakeLandscape(rect, 'day'), night: bakeLandscape(rect, 'night') }), [rect]);
   return (
     <>
-      <Picture picture={picture} />
-      <Path path={silhouette} color={sceneColor.nightOverlay} opacity={overlay} />
-      <Path path={moonlitSnow} color={sceneColor.snow} opacity={moonlight} />
+      {images.day ? <SkiaImage image={images.day} x={0} y={rect.top} width={rect.width} height={rect.height} fit="fill" /> : null}
+      {images.night ? <SkiaImage image={images.night} x={0} y={rect.top} width={rect.width} height={rect.height} fit="fill" opacity={night} /> : null}
     </>
   );
 }
@@ -360,7 +245,9 @@ function TuftBatch({ batch, width, baseY, night, clock, gust }: {
   const overlay = useDerivedValue(() => night.get() * sceneColor.nightOverlayOpacity);
   return (
     <Group transform={transform}>
-      <Path path={path} color={meadow.near} />
+      <Path path={path}>
+        <LinearGradient start={vec(0, baseY)} end={vec(0, baseY - meadow.tuftMaxHeight)} colors={[meadow.near, meadow.tip]} />
+      </Path>
       <Path path={path} color={sceneColor.nightOverlay} opacity={overlay} />
     </Group>
   );
@@ -406,10 +293,12 @@ function StreamWater({ rect, minute, clock }: { rect: SceneRect; minute: SharedV
   );
 }
 
-/** One overhanging tree: cached once, with one overlay for night. Only its sway animates. */
-function Tree({ limbs, seedBase, pivotX, pivotY, rect, night, clock, gust, swaySign }: {
+/** One overhanging tree: baked once for day and night. Only its sway animates. */
+function Tree({ limbs, seedBase, regionX, regionWidth, pivotX, pivotY, rect, night, clock, gust, swaySign }: {
   limbs: readonly Limb[];
   seedBase: number;
+  regionX: number;
+  regionWidth: number;
   pivotX: number;
   pivotY: number;
   rect: SceneRect;
@@ -418,53 +307,18 @@ function Tree({ limbs, seedBase, pivotX, pivotY, rect, night, clock, gust, swayS
   gust: SharedValue<Gust>;
   swaySign: number;
 }) {
-  const { picture, wood, flowerShape } = useMemo(() => {
-    const { outline, flowers } = treeShape(limbs, rect, seedBase);
-    const woodPath = Skia.Path.MakeFromSVGString(outline) ?? Skia.Path.Make();
-    // Every flower in one path, so the whole tree is only four draws.
-    const petalsBuilder = Skia.PathBuilder.Make();
-    const centersBuilder = Skia.PathBuilder.Make();
-    flowers.forEach(({ x, y, r }) => {
-      for (let i = 0; i < 5; i += 1) {
-        const angle = (TWO_PI * i) / 5 + x;
-        petalsBuilder.addCircle(
-          x + Math.cos(angle) * r * blossom.petalOffset,
-          y + Math.sin(angle) * r * blossom.petalOffset,
-          r * blossom.petalRadius,
-        );
-      }
-      centersBuilder.addCircle(x, y, r * blossom.centerRadius);
-    });
-    const flowerPath = petalsBuilder.build();
-    const centerPath = centersBuilder.build();
-
-    const pic = createPicture((canvas) => {
-      const paint = Skia.Paint();
-      paint.setAntiAlias(true);
-      const fill = (path: SkPath, color: string, opacity: number) => {
-        paint.setColor(Skia.Color(color));
-        paint.setAlphaf(opacity);
-        canvas.drawPath(path, paint);
-      };
-      fill(woodPath, sceneColor.branch, 1);
-      fill(flowerPath, sceneColor.flowerBase, sceneColor.flowerBaseOpacity);
-      fill(flowerPath, sceneColor.flowerVeil, sceneColor.flowerVeilOpacity);
-      fill(centerPath, sceneColor.flowerVeil, sceneColor.flowerCenterOpacity);
-    });
-    // The wood's night overlay stops at the flowers, so branches don't cut across them.
-    const bareWood = Skia.Path.MakeFromOp(woodPath, flowerPath, PathOp.Difference) ?? woodPath;
-    return { picture: pic, wood: bareWood, flowerShape: flowerPath };
-  }, [limbs, rect, seedBase]);
-
+  const images = useMemo(
+    () => ({
+      day: bakeTree(limbs, rect, seedBase, regionX, regionWidth, 'day'),
+      night: bakeTree(limbs, rect, seedBase, regionX, regionWidth, 'night'),
+    }),
+    [limbs, rect, regionWidth, regionX, seedBase],
+  );
   const transform = useDerivedValue(() => [{ rotate: swaySign * gustSway(clock.get() - gust.get().start) }]);
-  const woodOverlay = useDerivedValue(() => night.get() * sceneColor.nightOverlayOpacity);
-  const flowerOverlay = useDerivedValue(() => night.get() * sceneColor.flowerNightOverlayOpacity);
-
   return (
     <Group transform={transform} origin={vec(pivotX, pivotY)}>
-      <Picture picture={picture} />
-      <Path path={wood} color={sceneColor.nightOverlay} opacity={woodOverlay} />
-      <Path path={flowerShape} color={sceneColor.nightOverlay} opacity={flowerOverlay} />
+      {images.day ? <SkiaImage image={images.day} x={regionX} y={rect.top} width={regionWidth} height={rect.height} fit="fill" /> : null}
+      {images.night ? <SkiaImage image={images.night} x={regionX} y={rect.top} width={regionWidth} height={rect.height} fit="fill" opacity={night} /> : null}
     </Group>
   );
 }
@@ -641,6 +495,8 @@ export function SkyCanvas({ size, bands, minute, mood, clock, gust, shootingStar
       <Tree
         limbs={trees.left}
         seedBase={11}
+        regionX={0}
+        regionWidth={size.width / 2}
         pivotX={0}
         pivotY={scene.top + scene.height * treeDrop}
         rect={scene}
@@ -652,6 +508,8 @@ export function SkyCanvas({ size, bands, minute, mood, clock, gust, shootingStar
       <Tree
         limbs={trees.right}
         seedBase={503}
+        regionX={size.width / 2}
+        regionWidth={size.width / 2}
         pivotX={size.width}
         pivotY={scene.top + scene.height * treeDrop}
         rect={scene}

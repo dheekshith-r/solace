@@ -135,125 +135,37 @@ export const sola = {
   glowNight: ['rgba(255,146,48,0.62)', 'rgba(255,146,48,0)'], // Orange (dark) fading out.
 } as const;
 
-// Published HIG colors. Opacity keeps them soft and quiet.
+// Published HIG colors. The scene mixes these in bake.ts rather than adding any new colors.
 export const sceneColor = {
+  hig: {
+    white: '#FFFFFF',
+    gray: '#8E8E93',
+    gray6: '#F2F2F7',
+    grayDark: '#48484A', // Gray 3 (dark).
+    blue: '#0088FF',
+    green: '#34C759',
+    greenDeep: '#008932', // Green, increased contrast.
+    brown: '#AC7F5E',
+    brownDeep: '#956D51', // Brown, increased contrast.
+    pink: '#FF2D55',
+    skyDay: '#A6D3FF', // The day sky's own color.
+    nightSky: '#001D33', // The night sky's own color.
+  },
   mountain: '#8E8E93', // Gray.
-  mountainFade: 'rgba(142,142,147,0.25)',
-  mountainBlue: 'rgba(0,136,255,0.26)', // Blue, for atmospheric haze.
-  mountainBlueFade: 'rgba(0,136,255,0.06)',
-  snow: '#FFFFFF',
-  snowShadow: '#8E8E93',
-  snowShadowOpacity: 0.14,
-  ridgeShadow: '#8E8E93', // Gray.
-  ridgeShadowOpacity: 0.15,
-  rock: '#1C1C1E', // Gray 6 (dark).
-  rockLineOpacity: 0.05,
-  rockTickOpacity: 0.09,
-  shadeOpacity: 0.2,
-  haze: '#F2F2F7', // Gray 6.
-  hazeOpacity: 0.62,
-  snowNightOpacity: 0.3, // The snow keeps a little moonlight.
-  reflectionOpacity: 0.22,
-  pool: '#0088FF', // Blue.
-  poolOpacity: 0.22,
-  hill: '#34C759', // Green.
-  hillFarOpacity: 0.26,
-  hillNearOpacity: 0.42,
-  bank: '#956D51', // Brown, increased contrast.
-  bankOpacity: 0.34,
-  branch: '#956D51', // Brown, increased contrast.
-  // Soft pink: white, with a veil of HIG Pink over it. The center is Pink itself.
-  flowerBase: '#FFFFFF',
-  flowerBaseOpacity: 0.96,
-  flowerVeil: '#FF2D55', // Pink.
-  flowerVeilOpacity: 0.26,
-  flowerCenterOpacity: 0.75,
-  flowerNightOverlayOpacity: 0.48, // Blossoms hold more light at night than the wood does.
   petalBase: '#FFFFFF',
-  petalVeil: '#FF2D55',
-  petalVeilOpacity: 0.26,
+  petalVeil: '#FF2D55', // Pink.
+  petalVeilOpacity: 0.2,
   petalOpacity: 0.95,
   petalNightOpacity: 0.5,
-  shimmer: '#FFFFFF',
-  nightOverlay: '#001D33', // The night sky's own color.
+  nightOverlay: '#001D33',
   nightOverlayOpacity: 0.78,
 } as const;
 
-// Fractions of the scene, the visible strip between the headline and the sheet.
+// Fractions of the scene, the visible strip between Sola and the sheet.
 export const sceneShapes = {
-  // Mount Fuji: a broad cone with a flat summit. Each slope curves out from summit to foot.
-  fuji: {
-    summitLeft: 0.462,
-    summitRight: 0.538,
-    summitY: 0.14,
-    summitDip: 0.012,
-    footLeft: 0,
-    footRight: 1,
-    footY: 0.61,
-    // Bezier handles for the left slope, mirrored for the right.
-    slope: [
-      [0.385, 0.25],
-      [0.215, 0.53],
-    ],
-  },
-  // The snow line, left to right: jagged tongues running down the slopes.
-  snowLine: [
-    [0.3, 0.33],
-    [0.325, 0.3],
-    [0.338, 0.335],
-    [0.352, 0.31],
-    [0.372, 0.395],
-    [0.388, 0.325],
-    [0.402, 0.35],
-    [0.418, 0.32],
-    [0.438, 0.43],
-    [0.452, 0.335],
-    [0.468, 0.365],
-    [0.482, 0.325],
-    [0.5, 0.385],
-    [0.518, 0.33],
-    [0.536, 0.47],
-    [0.552, 0.34],
-    [0.57, 0.375],
-    [0.585, 0.32],
-    [0.606, 0.405],
-    [0.622, 0.315],
-    [0.64, 0.345],
-    [0.66, 0.305],
-    [0.7, 0.33],
-  ],
-  // Faint gullies fanning out from the summit, as [topX, topY, bottomX, bottomY].
-  snowShadows: [
-    [0.478, 0.17, 0.43, 0.3],
-    [0.5, 0.17, 0.495, 0.33],
-    [0.522, 0.17, 0.565, 0.3],
-    [0.54, 0.2, 0.61, 0.29],
-  ],
-  // The water at Fuji's foot, and how far the reflection is squashed to fit it.
-  pool: { left: 0.1, right: 0.9, topY: 0.61, bottomY: 0.72, reflectionScale: 0.24 },
-  fujiDetail: {
-    ridgeCount: 11,
-    ridgeTop: 0.165,
-    ridgeMinBottom: 0.24,
-    ridgeMaxBottom: 0.4,
-    ridgeSpread: 0.28,
-    ridgeWidth: 0.006,
-    streakCount: 16,
-    streakMinLength: 0.015,
-    streakMaxLength: 0.055,
-    streakWidth: 0.008,
-    slopeCount: 26,
-    slopeTop: 0.36,
-    slopeMinBottom: 0.47,
-    slopeMaxBottom: 0.59,
-    slopeSpread: 0.48,
-    slopeWidth: 0.005,
-    tickCount: 150,
-    tickLength: 0.012,
-    hazeFromY: 0.4,
-    shadeToX: 0.5,
-  },
-  // The stream: one S-curve from the water at Fuji's foot, widening as it comes toward the viewer.
+  fuji: { summitY: 0.2, footY: 0.6 },
+  pool: { topY: 0.6, bottomY: 0.725 },
+  // The stream: one S-curve from the lake, widening as it comes toward the viewer.
   stream: {
     topY: 0.712,
     bottomY: 0.93,
@@ -264,31 +176,19 @@ export const sceneShapes = {
     widthStart: 0.012,
     widthGrowth: 0.56,
     widthPower: 1.8, // Perspective: most of the narrowing happens in the distance.
-    samples: 40,
-    bankScale: 1.28,
-    bankBlur: 3,
   },
 } as const;
-
-
 
 // The meadow darkens toward the viewer. Colors are HIG Green and Green (increased contrast).
 export const meadow = {
   near: '#008932',
-  frontOpacity: 0.5,
-  bladeCount: 520,
-  bladeTop: 0.66,
-  bladeMinHeight: 0.006,
-  bladeMaxHeight: 0.035,
-  bladeWidth: 0.0028,
-  darkBladeOpacity: 0.24,
-  lightBladeOpacity: 0.3,
-  tuftCount: 14,
-  tuftBlades: 5,
-  tuftMinHeight: 11,
-  tuftMaxHeight: 22,
-  tuftSpread: 9,
-  tuftBlade: 2.2,
+  tip: '#34C759', // Green.
+  tuftCount: 18,
+  tuftBlades: 7,
+  tuftMinHeight: 10,
+  tuftMaxHeight: 24,
+  tuftSpread: 12,
+  tuftBlade: 1.5,
   swayBatches: 4,
   swaySpeed: 0.7,
   swayAmount: 0.035,
@@ -327,12 +227,14 @@ export const trees: { left: readonly Limb[]; right: readonly Limb[] } = {
 export const treeDrop = 0.21;
 
 export const blossom = {
-  radius: 4.2,
-  petalOffset: 0.6,
-  petalRadius: 0.58,
-  centerRadius: 0.26,
-  scatter: 8,
-  density: 1.6,
+  radius: 2.9,
+  petalOffset: 0.42,
+  petalRadius: 0.66,
+  centerRadius: 0.16,
+  massRadius: 2,
+  massBlur: 5,
+  scatter: 9,
+  density: 3.4,
   limbSamples: 14,
 } as const;
 

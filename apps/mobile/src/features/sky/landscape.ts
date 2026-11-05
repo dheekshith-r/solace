@@ -1,66 +1,8 @@
-// Scene shapes and the owl's flight. Pure, so tests can check them without drawing.
+// Scene shapes and motion. Pure, so tests can check them without drawing.
 
 import { blossom, fallingPetal, meadow, sceneShapes, treeDrop, wind, type Limb } from '../../theme/sky';
 
 export type SceneRect = { width: number; top: number; height: number };
-
-/** Every static shape as an SVG path in screen points, inside the scene rectangle. */
-export function scenePaths(rect: SceneRect) {
-  const at = (x: number, y: number) => `${x * rect.width} ${rect.top + y * rect.height}`;
-  const f = sceneShapes.fuji;
-  const [h1, h2] = f.slope as readonly [readonly number[], readonly number[]];
-  const mirror = (x: number) => f.footLeft + f.footRight - x;
-  const slopeLeft = `C${at(h1[0] as number, h1[1] as number)} ${at(h2[0] as number, h2[1] as number)} ${at(f.footLeft, f.footY)}`;
-  const slopeRightUp = `C${at(mirror(h2[0] as number), h2[1] as number)} ${at(mirror(h1[0] as number), h1[1] as number)} ${at(f.summitRight, f.summitY)}`;
-  const summit = `M${at(f.summitLeft, f.summitY)}`;
-  const crater = `Q${at(0.5, f.summitY + f.summitDip)} ${at(f.summitLeft, f.summitY)}`;
-  const line = sceneShapes.snowLine;
-  const first = line[0] as readonly number[];
-  const last = line[line.length - 1] as readonly number[];
-  const p = sceneShapes.pool;
-  const midX = (p.left + p.right) / 2;
-  return {
-    mountain: `${summit} ${slopeLeft} L${at(f.footRight, f.footY)} ${slopeRightUp} ${crater} Z`,
-    // The snow cap follows the summit and slopes, then returns along the jagged snow line.
-    snow: `${summit} L${at(first[0] as number, first[1] as number)} ${line
-      .slice(1)
-      .map((q) => `L${at(q[0] as number, q[1] as number)}`)
-      .join(' ')} L${at(last[0] as number, last[1] as number)} L${at(f.summitRight, f.summitY)} ${crater} Z`,
-    snowShadows: sceneShapes.snowShadows
-      .map(([topX, topY, bottomX, bottomY]) => `M${at(topX as number, topY as number)} L${at((bottomX as number) + 0.008, bottomY as number)} L${at((bottomX as number) - 0.008, bottomY as number)} Z`)
-      .join(' '),
-    pool: `M${at(p.left, p.topY)} L${at(p.right, p.topY)} Q${at(p.right - 0.14, p.bottomY)} ${at(midX, p.bottomY)} Q${at(p.left + 0.14, p.bottomY)} ${at(p.left, p.topY)} Z`,
-    hillFar: `M${at(0, 0.6)} C${at(0.15, 0.57)} ${at(0.26, 0.6)} ${at(0.32, 0.625)} C${at(0.42, 0.655)} ${at(0.58, 0.655)} ${at(0.68, 0.625)} C${at(0.75, 0.6)} ${at(0.86, 0.57)} ${at(1, 0.6)} L${at(1, 1)} L${at(0, 1)} Z`,
-    hillNear: `M${at(0, 0.76)} C${at(0.2, 0.7)} ${at(0.36, 0.78)} ${at(0.5, 0.8)} C${at(0.64, 0.82)} ${at(0.82, 0.72)} ${at(1, 0.75)} L${at(1, 1)} L${at(0, 1)} Z`,
-    stream: streamOutline(rect),
-    bank: streamOutline(rect, sceneShapes.stream.bankScale),
-    hillFront: `M${at(0, 0.8)} C${at(0.16, 0.76)} ${at(0.34, 0.83)} ${at(0.52, 0.85)} C${at(0.7, 0.86)} ${at(0.84, 0.77)} ${at(1, 0.79)} L${at(1, 1)} L${at(0, 1)} Z`,
-    ...grassPaths(at),
-    ...fujiDetailPaths(rect, at),
-  };
-}
-
-/** Fine grass texture: blades get taller toward the viewer, split into dark and light sets. */
-function grassPaths(at: (x: number, y: number) => string) {
-  const m = meadow;
-  const dark: string[] = [];
-  const light: string[] = [];
-  for (let i = 0; i < m.bladeCount; i += 1) {
-    const x = seeded(i + 1301);
-    // More blades toward the viewer, as the ground is closer.
-    const depth = Math.sqrt(seeded(i + 1361));
-    const y = m.bladeTop + depth * (1 - m.bladeTop);
-    const height = m.bladeMinHeight + depth * (m.bladeMaxHeight - m.bladeMinHeight);
-    const lean = (seeded(i + 1423) - 0.5) * height * 0.7;
-    const half = (m.bladeWidth * (0.5 + depth)) / 2;
-    const left = Math.max(0, x - half);
-    const right = Math.min(1, x + half);
-    const tip = Math.min(1, Math.max(0, x + lean));
-    const blade = `M${at(left, y)} L${at(right, y)} L${at(tip, y - height)} Z`;
-    (i % 2 === 0 ? dark : light).push(blade);
-  }
-  return { grassDark: dark.join(' '), grassLight: light.join(' ') };
-}
 
 /** Grass tufts for one sway batch, standing on a baseline in screen points. */
 export function tuftBatch(batch: number, width: number, baseY: number): string {
@@ -85,44 +27,6 @@ export function tuftBatch(batch: number, width: number, baseY: number): string {
   return parts.join(' ');
 }
 
-/** Fine detail on Fuji: ridges in the snow, tongues of snow on the rock, and slope texture. */
-function fujiDetailPaths(rect: SceneRect, at: (x: number, y: number) => string) {
-  const d = sceneShapes.fujiDetail;
-  const sliver = (x0: number, y0: number, x1: number, y1: number, width: number) =>
-    `M${at(x0 - width / 2, y0)} L${at(x0 + width / 2, y0)} L${at(x1, y1)} Z`;
-
-  const ridges = Array.from({ length: d.ridgeCount }, (_, i) => {
-    const u = ((i + 0.5) / d.ridgeCount) * 2 - 1;
-    const bottom = d.ridgeMinBottom + seeded(i + 901) * (d.ridgeMaxBottom - d.ridgeMinBottom);
-    const reach = (bottom - d.ridgeTop) / (d.ridgeMaxBottom - d.ridgeTop);
-    return sliver(0.5 + u * 0.035, d.ridgeTop, 0.5 + u * d.ridgeSpread * reach, bottom, d.ridgeWidth);
-  }).join(' ');
-
-  // Snow tongues start on the snow line and run down the slope, pointing away from the summit.
-  const line = sceneShapes.snowLine;
-  const streaks = Array.from({ length: d.streakCount }, (_, i) => {
-    const a = line[Math.floor(seeded(i + 941) * (line.length - 1))] as readonly number[];
-    const x = (a[0] as number) + seeded(i + 967) * 0.02 - 0.01;
-    const y = (a[1] as number) - 0.01;
-    const length = d.streakMinLength + seeded(i + 983) * (d.streakMaxLength - d.streakMinLength);
-    return sliver(x, y, x + (x - 0.5) * length * 1.6, y + length, d.streakWidth);
-  }).join(' ');
-
-  const slopeLines = Array.from({ length: d.slopeCount }, (_, i) => {
-    const u = ((i + seeded(i + 1009)) / d.slopeCount) * 2 - 1;
-    const bottom = d.slopeMinBottom + seeded(i + 1031) * (d.slopeMaxBottom - d.slopeMinBottom);
-    return sliver(0.5 + u * 0.2, d.slopeTop, 0.5 + u * d.slopeSpread, bottom, d.slopeWidth);
-  }).join(' ');
-
-  const ticks = Array.from({ length: d.tickCount }, (_, i) => {
-    const x = 0.14 + seeded(i + 1061) * 0.72;
-    const y = d.slopeTop + seeded(i + 1103) * (sceneShapes.fuji.footY - d.slopeTop);
-    return sliver(x, y, x + (x - 0.5) * 0.03, y + d.tickLength, 0.0025);
-  }).join(' ');
-
-  return { ridges, streaks, slopeLines, ticks };
-}
-
 /** The stream at t, from 0 at Fuji's foot to 1 nearest the viewer, in scene fractions. */
 export function streamAt(t: number): { x: number; y: number; width: number } {
   'worklet';
@@ -132,17 +36,6 @@ export function streamAt(t: number): { x: number; y: number; width: number } {
     y: s.topY + (s.bottomY - s.topY) * t,
     width: s.widthStart + s.widthGrowth * t ** s.widthPower,
   };
-}
-
-function streamOutline(rect: SceneRect, widthScale = 1): string {
-  const { samples } = sceneShapes.stream;
-  const ts = Array.from({ length: samples + 1 }, (_, i) => i / samples);
-  const edge = (t: number, sign: number) => {
-    const p = streamAt(t);
-    const x = Math.min(1, Math.max(0, p.x + (sign * p.width * widthScale) / 2));
-    return `${x * rect.width} ${rect.top + p.y * rect.height}`;
-  };
-  return `M${ts.map((t) => edge(t, -1)).join(' L')} L${[...ts].reverse().map((t) => edge(t, 1)).join(' L')} Z`;
 }
 
 type Point = { x: number; y: number };
