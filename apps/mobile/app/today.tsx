@@ -1,25 +1,23 @@
-// Today, built around the living sky (spec sections 7.7 and 8). Copy and streak are sample data
-// until Phase 3 connects the API. The m and fresh params only exist for screenshots.
+// Today: the cards in a pull-up sheet, with the scene behind them (spec sections 7.7 and 8). Copy and
+// numbers are sample data until Phase 3 connects the API. The m, owl and open params only exist for
+// screenshots.
 import { PlusJakartaSans_400Regular } from '@expo-google-fonts/plus-jakarta-sans/400Regular';
 import { PlusJakartaSans_600SemiBold } from '@expo-google-fonts/plus-jakarta-sans/600SemiBold';
 import { PlusJakartaSans_700Bold } from '@expo-google-fonts/plus-jakarta-sans/700Bold';
 import * as Device from 'expo-device';
 import { useFonts } from 'expo-font';
-import * as Haptics from 'expo-haptics';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Pressable, StyleSheet, Text, View, useWindowDimensions, type LayoutChangeEvent } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
+  interpolate,
   useAnimatedReaction,
   useAnimatedStyle,
-  useDerivedValue,
   useFrameCallback,
   useReducedMotion,
   useSharedValue,
-  withRepeat,
-  withSequence,
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
@@ -27,19 +25,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { scheduleOnRN } from 'react-native-worklets';
 import { minuteOfDay, moonPhase, wrapMinute } from '../src/features/sky/astro';
 import { SkyCanvas } from '../src/features/sky/SkyCanvas';
-import { skyTextIsWhite } from '../src/features/sky/skyColors';
-import { storage, storageKeys } from '../src/lib/storage';
+import { nightAmount, skyTextIsWhite } from '../src/features/sky/skyColors';
+import { MoodRow, Ring, TabBar } from '../src/features/today/parts';
 import { duration, easing, spring } from '../src/theme/motion';
-import {
-  demoMinutes,
-  moodLabels,
-  moodLevels,
-  moodNeutral,
-  skyLayout,
-  skyMotion,
-  skyTimes,
-  sola,
-} from '../src/theme/sky';
+import { demoMinutes, moodNeutral, owlVisit, skyMotion, skyTimes, sola } from '../src/theme/sky';
 import {
   colors,
   font,
@@ -50,26 +39,29 @@ import {
   spacing,
   tabBarHeight,
   titleTracking,
-  touchTarget,
+  today,
 } from '../src/theme/tokens';
 
 const LITE_MODE_BYTES = 4 * 1024 ** 3;
 const MINUTE_MS = 60_000;
-const SAMPLE_STREAK_DAYS = 5;
 const LONG_PRESS_MS = 700;
-const LEVELS = Array.from({ length: moodLevels }, (_, i) => moodLevels - i);
-const TABS = ['Today', 'Sola', 'You'] as const;
+const SAMPLE_STREAK_DAYS = 6;
+const SAMPLE_STREAK_PROGRESS = 0.6;
+const ESTIMATED_HEADLINE_HEIGHT = 100;
+const ESTIMATED_REST_HEIGHT = 290;
+const ESTIMATED_STATS_HEIGHT = 170;
+const DATE_LINE_HEIGHT = 18;
 
 const copy = {
   day: {
     line: "You said the exam felt heavy yesterday. How's it sitting this morning?",
     suggestion: 'Your chest felt tight earlier, so a slow exhale could help.',
-    action: 'Breathe',
+    affirmation: 'You showed up yesterday, even when it was hard.',
   },
   night: {
     line: "The exam's been loud in your head all day. Want to set it down for tonight?",
     suggestion: 'Sleep breathing could slow things down before bed.',
-    action: 'Breathe',
+    affirmation: 'Tomorrow can wait until tomorrow.',
   },
 } as const;
 
@@ -82,7 +74,11 @@ function formatDate(date: Date): string {
   return date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
 }
 
-function Today({ initialMinute, showHintFirst }: { initialMinute: number; showHintFirst: boolean }) {
+function Today({ initialMinute, owlDelayOverride, startOpen }: {
+  initialMinute: number;
+  owlDelayOverride: number | null;
+  startOpen: boolean;
+}) {
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const size = useMemo(() => ({ width, height }), [height, width]);
@@ -90,33 +86,47 @@ function Today({ initialMinute, showHintFirst }: { initialMinute: number; showHi
   const lite = (Device.totalMemory ?? LITE_MODE_BYTES) < LITE_MODE_BYTES;
   const moving = !reducedMotion && !lite;
 
-  const levelTop = height * skyLayout.levelTop;
-  const levelGap = (height * (skyLayout.levelBottom - skyLayout.levelTop)) / (moodLevels - 1);
-  const yForMood = useCallback(
-    (m: number) => {
-      'worklet';
-      return levelTop + (moodLevels - m) * levelGap;
-    },
-    [levelGap, levelTop],
-  );
-
   const [selected, setSelected] = useState<number>(moodNeutral);
-  const [showHint, setShowHint] = useState(showHintFirst);
   const [displayMinute, setDisplayMinute] = useState(initialMinute);
   const [overridden, setOverridden] = useState(false);
   const [demoIndex, setDemoIndex] = useState(0);
+  const [textIsWhite, setTextIsWhite] = useState(() => skyTextIsWhite(initialMinute));
   const [moonValue] = useState(() => moonPhase(Date.now()));
-  const [textIsWhite, setTextIsWhite] = useState(() => skyTextIsWhite(initialMinute, moodNeutral));
+  const [owlDelay] = useState(
+    () => owlDelayOverride ?? owlVisit.minDelay + Math.random() * (owlVisit.maxDelay - owlVisit.minDelay),
+  );
+  const [headlineHeight, setHeadlineHeight] = useState(ESTIMATED_HEADLINE_HEIGHT);
+  const [restHeight, setRestHeight] = useState(ESTIMATED_REST_HEIGHT);
+  const [statsHeight, setStatsHeight] = useState(ESTIMATED_STATS_HEIGHT);
 
   const minute = useSharedValue(initialMinute);
   const mood = useSharedValue<number>(moodNeutral);
   const clock = useSharedValue(0);
   const shootingStartedAt = useSharedValue(-100);
   const nextShootingAt = useSharedValue<number>(skyMotion.shootingMinGap);
-  const bob = useSharedValue(0);
-  const dragStart = useSharedValue<number>(moodNeutral);
+  const owlStartedAt = useSharedValue(-1);
+  const sheetOpen = useSharedValue(startOpen ? 1 : 0);
+  const dragStart = useSharedValue(0);
 
-  const solaY = useDerivedValue(() => yForMood(mood.get()) + bob.get());
+  const solaSize = Math.min(sola.maxSize, Math.max(sola.minSize, height * sola.screenRatio));
+  const headerTop = insets.top + spacing.lg;
+  const dateBottom = headerTop + DATE_LINE_HEIGHT;
+  const solaTop = dateBottom + spacing.sm;
+  const headlineBottom = solaTop + solaSize + spacing.sm + headlineHeight;
+  const clearance = tabBarHeight + insets.bottom + spacing.md + spacing.md;
+  const restVisible = restHeight + clearance;
+  const sceneTop = headlineBottom + spacing.xs;
+  const sceneBottom = height - restVisible + today.sheetOverlap;
+
+  const bands = useMemo(
+    () => ({
+      dateBottom,
+      solaCenterY: solaTop + solaSize / 2,
+      solaSize,
+      scene: { width, top: sceneTop, height: Math.max(0, sceneBottom - sceneTop) },
+    }),
+    [dateBottom, sceneBottom, sceneTop, solaSize, solaTop, width],
+  );
 
   const frame = useFrameCallback((info) => {
     const t = info.timeSinceFirstFrame / 1000;
@@ -126,9 +136,13 @@ function Today({ initialMinute, showHintFirst }: { initialMinute: number; showHi
       const gap = skyMotion.shootingMaxGap - skyMotion.shootingMinGap;
       nextShootingAt.set(t + skyMotion.shootingMinGap + Math.random() * gap);
     }
+    // Once per visit, at night, after the random delay.
+    if (owlStartedAt.get() < 0 && t >= owlDelay && nightAmount(minute.get()) >= owlVisit.minNight) {
+      owlStartedAt.set(t);
+    }
   }, false);
 
-  // The canvas only animates while Today is focused and motion is allowed.
+  // Only animates while Today is focused and motion is allowed.
   useFocusEffect(
     useCallback(() => {
       frame.setActive(moving);
@@ -150,61 +164,19 @@ function Today({ initialMinute, showHintFirst }: { initialMinute: number; showHi
   }, [minute, overridden]);
 
   useAnimatedReaction(
-    () => skyTextIsWhite(minute.get(), mood.get()),
+    () => skyTextIsWhite(minute.get()),
     (white, previous) => {
       if (white !== previous) scheduleOnRN(setTextIsWhite, white);
     },
   );
 
-  // A small bob for the one-time hint, never shown again after the first check-in.
-  useEffect(() => {
-    if (!showHint || !moving) return undefined;
-    bob.set(
-      withRepeat(
-        withSequence(
-          withTiming(-sola.floatDistance * 3, { duration: duration.hintBob, easing }),
-          withTiming(0, { duration: duration.hintBob, easing }),
-        ),
-        -1,
-      ),
-    );
-    return () => bob.set(0);
-  }, [bob, moving, showHint]);
-
-  const commitMood = useCallback((level: number) => {
-    void Haptics.selectionAsync();
-    setSelected(level);
-    setShowHint(false);
-    storage.set(storageKeys.hasCheckedIn, true);
-  }, []);
-
-  const selectLevel = useCallback(
+  const pickMood = useCallback(
     (level: number) => {
       mood.set(withSpring(level, spring));
-      commitMood(level);
+      setSelected(level);
     },
-    [commitMood, mood],
+    [mood],
   );
-
-  const pan = useMemo(
-    () =>
-      Gesture.Pan()
-        .onBegin(() => {
-          dragStart.set(mood.get());
-        })
-        .onUpdate((event) => {
-          const next = dragStart.get() - event.translationY / levelGap;
-          mood.set(Math.min(moodLevels, Math.max(1, next)));
-        })
-        .onEnd(() => {
-          const level = Math.round(mood.get());
-          mood.set(withSpring(level, spring));
-          scheduleOnRN(commitMood, level);
-        }),
-    [commitMood, dragStart, levelGap, mood],
-  );
-
-  const followSola = useAnimatedStyle(() => ({ transform: [{ translateY: solaY.get() }] }));
 
   const cycleSky = useCallback(() => {
     const target = demoMinutes[demoIndex % demoMinutes.length] ?? demoMinutes[0];
@@ -216,112 +188,105 @@ function Today({ initialMinute, showHintFirst }: { initialMinute: number; showHi
     setDisplayMinute(target);
   }, [demoIndex, minute]);
 
+  const pan = useMemo(
+    () =>
+      Gesture.Pan()
+        .activeOffsetY([-spacing.md, spacing.md])
+        .onBegin(() => {
+          dragStart.set(sheetOpen.get());
+        })
+        .onUpdate((event) => {
+          const next = dragStart.get() - event.translationY / Math.max(1, statsHeight);
+          sheetOpen.set(Math.min(1, Math.max(0, next)));
+        })
+        .onEnd(() => {
+          const opening = sheetOpen.get() > dragStart.get();
+          const moved = Math.abs(sheetOpen.get() - dragStart.get()) > today.sheetDragThreshold;
+          const open = moved ? opening : dragStart.get() > 0.5;
+          sheetOpen.set(withSpring(open ? 1 : 0, spring));
+        }),
+    [dragStart, sheetOpen, statsHeight],
+  );
+
+  const sheetStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: interpolate(sheetOpen.get(), [0, 1], [statsHeight, 0]) }],
+  }));
+  const statsStyle = useAnimatedStyle(() => ({ opacity: sheetOpen.get() }));
+
+  const measure = (setter: (value: number) => void) => (event: LayoutChangeEvent) =>
+    setter(Math.ceil(event.nativeEvent.layout.height));
+
   const skyText = textIsWhite ? colors.dark.ink : colors.light.ink;
   const palette = textIsWhite ? colors.dark : colors.light;
   const words = isNightCopy(displayMinute) ? copy.night : copy.day;
-  const solaLeft = width * skyLayout.solaX;
-  const bubbleWidth = width - screenPadding * 2 - touchTarget - spacing.sm;
 
   return (
     <View style={styles.flex}>
       <StatusBar style={textIsWhite ? 'light' : 'dark'} />
       <SkyCanvas
         size={size}
+        bands={bands}
         minute={minute}
         mood={mood}
-        solaY={solaY}
         clock={clock}
         shootingStartedAt={shootingStartedAt}
+        owlStartedAt={owlStartedAt}
         moonPhaseValue={moonValue}
-        streakDays={SAMPLE_STREAK_DAYS}
         lite={lite}
-        moving={moving}
       />
 
-      <Pressable
-        style={StyleSheet.absoluteFill}
-        onLongPress={cycleSky}
-        delayLongPress={LONG_PRESS_MS}
-        accessible={false}
-      />
+      <Pressable style={StyleSheet.absoluteFill} onLongPress={cycleSky} delayLongPress={LONG_PRESS_MS} accessible={false} />
 
-      <View style={[styles.header, { paddingTop: insets.top + spacing.lg }]} pointerEvents="none">
+      <View style={[styles.header, { paddingTop: headerTop }]} pointerEvents="none">
         <Text style={[styles.date, { color: skyText }]}>{formatDate(new Date())}</Text>
-        <Text style={[styles.line, { color: skyText }]} accessibilityRole="header">
+        <View style={{ height: solaSize, marginVertical: spacing.sm }} />
+        <Text
+          style={[styles.line, { color: skyText }]}
+          accessibilityRole="header"
+          onLayout={measure(setHeadlineHeight)}
+        >
           {words.line}
         </Text>
       </View>
 
-      {LEVELS.map((level) => {
-        const isSelected = level === selected;
-        return (
-          <Pressable
-            key={level}
-            onPress={() => selectLevel(level)}
-            accessibilityRole="button"
-            accessibilityLabel={moodLabels[level - 1]}
-            accessibilityState={{ selected: isSelected }}
-            style={[styles.level, { top: levelTop + (moodLevels - level) * levelGap - touchTarget / 2 }]}
-          >
-            {isSelected ? (
-              <View style={[styles.levelLabel, { backgroundColor: palette.surface }]}>
-                <Text style={[styles.levelLabelText, { color: palette.ink }]}>{moodLabels[level - 1]}</Text>
-              </View>
-            ) : null}
-            <View
-              style={[
-                styles.levelDot,
-                isSelected ? styles.levelDotSelected : undefined,
-                { backgroundColor: skyText },
-              ]}
-            />
-          </Pressable>
-        );
-      })}
-
       <GestureDetector gesture={pan}>
-        <Animated.View
-          style={[styles.solaHit, { left: solaLeft - sola.hitSize / 2, top: -sola.hitSize / 2 }, followSola]}
-          accessibilityLabel="Sola. Drag up or down to show how you feel."
-        />
+        <Animated.View style={[styles.sheet, { backgroundColor: palette.surface }, sheetStyle]}>
+          <View onLayout={measure(setRestHeight)} style={styles.sheetBlock}>
+            <View style={[styles.handle, { backgroundColor: palette.separator }]} />
+            <Text style={[styles.heading, { color: palette.ink }]}>How are you arriving?</Text>
+            <MoodRow mood={selected} palette={palette} onSelect={pickMood} />
+            <View style={[styles.separator, { backgroundColor: palette.separator }]} />
+            <View style={[styles.suggestion, { backgroundColor: palette.tint }]}>
+              <Text style={[styles.body, styles.flex, { color: palette.ink }]}>{words.suggestion}</Text>
+              <Pressable style={[styles.pill, { backgroundColor: palette.accent }]} accessibilityRole="button">
+                <Text style={[styles.pillText, { color: palette.onAccent }]}>Breathe</Text>
+              </Pressable>
+            </View>
+          </View>
+
+          <Animated.View onLayout={measure(setStatsHeight)} style={[styles.statsBlock, statsStyle]}>
+            <View style={styles.statRow}>
+              <View style={[styles.statCard, { backgroundColor: palette.tint }]}>
+                <Ring palette={palette} progress={SAMPLE_STREAK_PROGRESS} label={String(SAMPLE_STREAK_DAYS)} />
+                <Text style={[styles.caption, { color: palette.ink }]}>{SAMPLE_STREAK_DAYS}-day streak</Text>
+              </View>
+              <View style={[styles.statCard, styles.flex, { backgroundColor: palette.tint }]}>
+                <Text style={[styles.caption, { color: palette.muted }]}>For today</Text>
+                <Text style={[styles.body, { color: palette.ink }]}>{words.affirmation}</Text>
+              </View>
+            </View>
+          </Animated.View>
+          <View style={{ height: clearance }} />
+        </Animated.View>
       </GestureDetector>
 
-      <Animated.View
-        style={[styles.bubble, { top: sola.bubbleOffset, width: bubbleWidth, backgroundColor: palette.surface }, followSola]}
-      >
-        <View
-          style={[styles.bubbleTail, { left: solaLeft - screenPadding - spacing.sm, backgroundColor: palette.surface }]}
-        />
-        {showHint ? (
-          <Text style={[styles.bubbleText, { color: palette.ink }]}>Slide me to show how you feel</Text>
-        ) : (
-          <>
-            <Text style={[styles.bubbleText, { color: palette.ink }]}>{words.suggestion}</Text>
-            <Pressable
-              style={[styles.bubbleAction, { backgroundColor: palette.accent }]}
-              accessibilityRole="button"
-            >
-              <Text style={[styles.bubbleActionText, { color: palette.onAccent }]}>{words.action}</Text>
-            </Pressable>
-          </>
-        )}
-      </Animated.View>
-
-      <View
-        style={[styles.tabBar, { backgroundColor: palette.surface, bottom: insets.bottom + spacing.md, shadowColor: palette.ink }]}
-      >
-        {TABS.map((tab, index) => (
-          <View key={tab} style={[styles.tab, index === 0 ? { backgroundColor: palette.accent } : undefined]}>
-            <Text style={[styles.tabText, { color: index === 0 ? palette.onAccent : palette.muted }]}>{tab}</Text>
-          </View>
-        ))}
-      </View>
+      <TabBar palette={palette} bottom={insets.bottom + spacing.md} />
     </View>
   );
 }
 
 export default function TodayScreen() {
-  const params = useLocalSearchParams<{ m?: string; fresh?: string }>();
+  const params = useLocalSearchParams<{ m?: string; owl?: string; open?: string }>();
   const [loaded] = useFonts({
     PlusJakartaSans_400Regular,
     PlusJakartaSans_600SemiBold,
@@ -331,82 +296,57 @@ export default function TodayScreen() {
 
   const fromParam = Number(params.m);
   const initialMinute = params.m && !Number.isNaN(fromParam) ? fromParam : minuteOfDay(new Date());
-  const showHintFirst = params.fresh === '1' || !storage.getBoolean(storageKeys.hasCheckedIn);
+  const owlParam = Number(params.owl);
 
   return (
     <Today
-      key={`${params.m ?? ''}-${params.fresh ?? ''}`}
+      key={`${params.m ?? ''}-${params.owl ?? ''}-${params.open ?? ''}`}
       initialMinute={initialMinute}
-      showHintFirst={showHintFirst}
+      owlDelayOverride={params.owl && !Number.isNaN(owlParam) ? owlParam : null}
+      startOpen={params.open === '1'}
     />
   );
 }
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  header: { paddingHorizontal: screenPadding, gap: spacing.sm },
-  date: { fontFamily: font.semibold, fontSize: fontSize.footnote },
+  header: { paddingHorizontal: screenPadding },
+  date: { fontFamily: font.semibold, fontSize: fontSize.footnote, lineHeight: DATE_LINE_HEIGHT },
   line: {
     fontFamily: font.bold,
     fontSize: fontSize.title,
     lineHeight: fontSize.title * lineHeightRatio.title,
     letterSpacing: fontSize.title * titleTracking,
   },
-  level: {
+  sheet: {
     position: 'absolute',
-    right: screenPadding,
-    height: touchTarget,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderTopLeftRadius: radius.sheet,
+    borderTopRightRadius: radius.sheet,
+  },
+  sheetBlock: { paddingHorizontal: spacing.xl, paddingTop: spacing.md, gap: spacing.md },
+  statsBlock: { paddingHorizontal: spacing.xl, paddingTop: spacing.md },
+  handle: {
+    alignSelf: 'center',
+    width: today.sheetHandleWidth,
+    height: today.sheetHandleHeight,
+    borderRadius: radius.full,
+  },
+  heading: { fontFamily: font.semibold, fontSize: fontSize.body },
+  separator: { height: StyleSheet.hairlineWidth },
+  body: { fontFamily: font.regular, fontSize: fontSize.callout, lineHeight: fontSize.callout * lineHeightRatio.body },
+  caption: { fontFamily: font.semibold, fontSize: fontSize.footnote },
+  suggestion: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-end',
-    gap: spacing.sm,
-    minWidth: touchTarget,
-  },
-  levelDot: { width: spacing.sm, height: spacing.sm, borderRadius: radius.full, opacity: 0.55 },
-  levelDotSelected: { width: spacing.md, height: spacing.md, opacity: 1 },
-  levelLabel: { borderRadius: radius.chip, paddingHorizontal: spacing.md, paddingVertical: spacing.xs },
-  levelLabelText: { fontFamily: font.semibold, fontSize: fontSize.footnote },
-  solaHit: { position: 'absolute', width: sola.hitSize, height: sola.hitSize },
-  bubble: {
-    position: 'absolute',
-    left: screenPadding,
+    gap: spacing.md,
     borderRadius: radius.card,
     padding: spacing.lg,
-    gap: spacing.md,
   },
-  bubbleTail: {
-    position: 'absolute',
-    top: -spacing.xs - 2,
-    width: spacing.lg,
-    height: spacing.lg,
-    borderRadius: spacing.xs,
-    transform: [{ rotate: '45deg' }],
-  },
-  bubbleText: {
-    fontFamily: font.regular,
-    fontSize: fontSize.callout,
-    lineHeight: fontSize.callout * lineHeightRatio.body,
-  },
-  bubbleAction: {
-    alignSelf: 'flex-start',
-    borderRadius: radius.button,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.sm,
-  },
-  bubbleActionText: { fontFamily: font.semibold, fontSize: fontSize.callout },
-  tabBar: {
-    position: 'absolute',
-    alignSelf: 'center',
-    flexDirection: 'row',
-    height: tabBarHeight,
-    padding: spacing.xs + spacing.xs / 2,
-    gap: spacing.xs,
-    borderRadius: radius.full,
-    elevation: 10,
-    shadowOpacity: 0.18,
-    shadowRadius: spacing.lg,
-    shadowOffset: { width: 0, height: spacing.sm },
-  },
-  tab: { paddingHorizontal: spacing.xxl, borderRadius: radius.full, alignItems: 'center', justifyContent: 'center' },
-  tabText: { fontFamily: font.semibold, fontSize: fontSize.callout },
+  pill: { borderRadius: radius.chip, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm },
+  pillText: { fontFamily: font.semibold, fontSize: fontSize.footnote },
+  statRow: { flexDirection: 'row', gap: spacing.md },
+  statCard: { borderRadius: radius.card, padding: spacing.lg, gap: spacing.sm },
 });

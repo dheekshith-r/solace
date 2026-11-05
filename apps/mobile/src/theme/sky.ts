@@ -1,10 +1,11 @@
-// Values for the living sky (spec section 7.7). Sky colors are derived from HIG blue, cyan, teal,
-// indigo and orange. The first two stops of each sky are identical on purpose: the headline sits
-// there, and black or white on a single color always passes AA, including during the blends.
+// Values for the scene behind Today (spec section 7.7). Colors are published HIG values, or tints of
+// them through opacity. Sky stops are derived from HIG blue, cyan, teal, indigo and orange. The first
+// two stops of each sky are identical on purpose: the date and headline sit there, and black or white
+// on a single color always passes AA, including during the blends.
 
 export type Stops = readonly [string, string, string, string];
 
-export const skyStopPositions = [0, 0.38, 0.7, 1] as const;
+export const skyStopPositions = [0, 0.5, 0.75, 1] as const;
 
 export const skyKeyframes = {
   night: ['#0D0F1F', '#0D0F1F', '#001D33', '#002E52'],
@@ -21,8 +22,6 @@ export const skyTimes = {
   duskStart: 1050,
   dusk: 1080,
   nightStart: 1110,
-  sunrise: 360,
-  sunset: 1080,
   sleepyFrom: 1320, // 10 pm, spec section 7.4.
   sleepyUntil: 300,
 } as const;
@@ -32,29 +31,17 @@ export const demoMinutes = [360, 720, 1080, 1380] as const;
 
 export const moodLevels = 5;
 export const moodNeutral = 3;
-export const moodDimPerLevel = 0.07;
-export const moodBrightPerLevel = 0.05;
 export const moodLabels = ['Heavy', 'Low', 'Okay', 'Good', 'Bright'] as const;
-
-// Fractions of the screen. Nothing moves behind the headline, above skyContentTop.
-export const skyLayout = {
-  contentTop: 0.27,
-  horizon: 0.64,
-  arcApex: 0.3,
-  arcLeft: 0.12,
-  arcRight: 0.72,
-  levelTop: 0.32,
-  levelBottom: 0.58,
-  solaX: 0.42,
-} as const;
 
 export const skyColor = {
   star: '#FFFFFF',
   sun: ['#FFFFFF', '#FFCC00', 'rgba(255,141,40,0)'], // White, Yellow, Orange fading out.
-  sunRadius: 46,
-  moon: '#F2F2F7',
+  sunRadius: 30,
+  moon: '#F2F2F7', // Gray 6.
   moonDark: 'rgba(242,242,247,0.1)',
-  moonRadius: 20,
+  moonRadius: 16,
+  cornerInsetX: 44,
+  cornerInsetY: 34,
   cloud: '#FFFFFF',
   cloudDayOpacity: 0.72,
   cloudNightOpacity: 0.09,
@@ -71,15 +58,14 @@ export const skyMotion = {
   shootingMinGap: 10,
   shootingMaxGap: 20,
   shootingDuration: 0.9,
-  shootingLength: 110,
-  drizzleSpeed: 26,
+  shootingLength: 90,
 } as const;
 
 // Drift in points per second. Slower layers read as further away.
 export const cloudLayers = [
-  { y: 0.31, scale: 0.7, speed: 2.2, opacity: 0.6, offset: 0.1 },
-  { y: 0.43, scale: 1, speed: 3.6, opacity: 0.8, offset: 0.55 },
-  { y: 0.56, scale: 1.35, speed: 5.4, opacity: 1, offset: 0.25 },
+  { band: 'sola', at: 0.5, scale: 0.6, speed: 2.2, opacity: 0.6, offset: 0.1 },
+  { band: 'scene', at: 0.12, scale: 0.8, speed: 3.4, opacity: 0.85, offset: 0.55 },
+  { band: 'scene', at: 0.3, scale: 1, speed: 4.8, opacity: 1, offset: 0.25 },
 ] as const;
 
 export const cloudPuffs = [
@@ -90,40 +76,122 @@ export const cloudPuffs = [
   { x: 0, y: 8, r: 22 },
 ] as const;
 
-// Sola: offsets in points from Sola's center.
+// Sola: the round, glowing orange character, drawn in a 200-point box.
 export const sola = {
-  hitSize: 132,
-  bubbleOffset: 64,
-  floatDistance: 3,
-  floatPeriod: 4,
-  puffs: [
-    { x: -36, y: 8, r: 21 },
-    { x: -14, y: -14, r: 27 },
-    { x: 18, y: -12, r: 25 },
-    { x: 39, y: 9, r: 19 },
-    { x: 0, y: 12, r: 28 },
-  ],
-  heavyShrink: 0.14,
-  heavySag: 6,
-  rimScale: 1.05,
-  glowRadius: 92,
-  bright: ['#FFFFFF', '#F2F2F7'],
-  heavy: ['#AEAEB2', '#8E8E93'], // Gray 2, Gray.
-  silver: '#D1D1D6',
-  glow: ['rgba(209,209,214,0.42)', 'rgba(209,209,214,0)'],
-  ink: '#1C1C1E',
-  cheek: '#FF8D28',
-  cheekOpacity: 0.34,
-  drizzle: '#1E6EF4', // Blue, increased contrast.
+  maxSize: 104,
+  minSize: 72,
+  screenRatio: 0.115,
+  viewBox: 200,
+  body: ['#FFE3C8', '#FFAE66', '#FF8D28'], // Orange and its tints.
+  bodyStops: [0, 0.5, 1],
+  cheek: '#FF383C', // Red.
+  cheekOpacity: 0.5,
+  ink: '#3A1E08',
+  glowRatio: 1.05,
+  glowDay: ['rgba(255,255,255,0.72)', 'rgba(255,255,255,0)'],
+  glowNight: ['rgba(255,146,48,0.62)', 'rgba(255,146,48,0)'], // Orange (dark) fading out.
 } as const;
 
-// Fractions of the screen. One star per check-in day, joined through the week.
-export const constellation = [
-  { x: 0.08, y: 0.33 },
-  { x: 0.16, y: 0.285 },
-  { x: 0.25, y: 0.31 },
-  { x: 0.33, y: 0.275 },
-  { x: 0.44, y: 0.295 },
-  { x: 0.54, y: 0.27 },
-  { x: 0.63, y: 0.3 },
-] as const;
+// Published HIG colors. Opacity keeps them soft and quiet.
+export const sceneColor = {
+  mountain: '#AEAEB2', // Gray 2.
+  mountainFade: 'rgba(174,174,178,0)',
+  snow: '#FFFFFF',
+  hill: '#34C759', // Green.
+  hillFarOpacity: 0.26,
+  hillNearOpacity: 0.42,
+  stream: '#00C3D0', // Teal.
+  streamOpacity: 0.6,
+  branch: '#AC7F5E', // Brown.
+  blossom: '#FF2D55', // Pink.
+  blossomOpacity: 0.72,
+  petal: '#FF2D55',
+  petalOpacity: 0.7,
+  petalNightOpacity: 0.42,
+  shimmer: '#FFFFFF',
+  nightOverlay: '#001D33', // The night sky's own color.
+  nightOverlayOpacity: 0.78,
+} as const;
+
+// Fractions of the scene, the visible strip between the headline and the sheet.
+export const sceneShapes = {
+  mountain: [
+    [0.16, 0.74],
+    [0.34, 0.5],
+    [0.42, 0.56],
+    [0.5, 0.3],
+    [0.59, 0.54],
+    [0.68, 0.46],
+    [0.86, 0.74],
+  ],
+  snow: [
+    [0.5, 0.3],
+    [0.462, 0.43],
+    [0.48, 0.405],
+    [0.5, 0.45],
+    [0.52, 0.4],
+    [0.54, 0.44],
+  ],
+  blossoms: [
+    [0.3, 0.12, 3.2],
+    [0.255, 0.15, 2.6],
+    [0.19, 0.17, 2.4],
+    [0.24, 0.29, 2.8],
+    [0.685, 0.13, 3.2],
+    [0.74, 0.15, 2.6],
+    [0.8, 0.17, 2.2],
+    [0.77, 0.3, 2.8],
+  ],
+  shimmer: [
+    [0.5, 0.75, 6],
+    [0.485, 0.8, 8],
+    [0.525, 0.84, 10],
+    [0.57, 0.88, 12],
+    [0.6, 0.93, 15],
+    [0.56, 0.98, 18],
+  ],
+} as const;
+
+export const petals = {
+  count: 8,
+  countLite: 4,
+  fallSpeed: 11,
+  swayDistance: 14,
+  swaySpeed: 0.45,
+  spinSpeed: 0.5,
+  size: 4.5,
+} as const;
+
+export const owlVisit = { minDelay: 20, maxDelay: 90, minNight: 0.95 } as const;
+
+// Seconds since the owl's visit began. Positions are fractions of the scene; enter starts off-screen.
+export const owlTimeline = {
+  glideEnd: 7,
+  settleEnd: 9,
+  turnEnd: 11.5,
+  blinkStart: 12.2,
+  blinkLength: 0.35,
+  secondBlinkStart: 13.4,
+  holdEnd: 15,
+  turnBackEnd: 16,
+  flyEnd: 26,
+  fadeFrom: 23,
+  enter: { x: 1.15, y: 0.15 }, // Stays below the headline for the whole flight.
+  perch: { x: 0.8, y: 0.09 },
+  leave: { x: 0.5, y: 0.3 },
+  leaveScale: 0.2,
+  wingFoldTime: 2.2,
+  flapPerSecond: 0.9,
+  flapDegrees: 26,
+  arcLift: 0.12,
+  size: 0.9,
+} as const;
+
+export const owlColor = {
+  body: '#AC7F5E', // Brown.
+  wing: '#956D51', // Brown, increased contrast.
+  belly: '#E5E5EA', // Gray 5.
+  eye: '#FFCC00', // Yellow.
+  pupil: '#1C1C1E', // Gray 6 (dark).
+  beak: '#FF8D28', // Orange.
+} as const;

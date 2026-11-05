@@ -1,15 +1,8 @@
+import { owlTimeline } from '../../../theme/sky';
 import { colors } from '../../../theme/tokens';
-import { moodLevels } from '../../../theme/sky';
-import {
-  isSleepy,
-  moonIllumination,
-  moonLitPath,
-  moonPhase,
-  moonProgress,
-  sunProgress,
-  wrapMinute,
-} from '../astro';
-import { contrastBetween, nightAmount, skyStops, skyTextContrast, skyTextIsWhite, timeStops } from '../skyColors';
+import { isSleepy, moonIllumination, moonLitPath, moonPhase, wrapMinute } from '../astro';
+import { owlPose, scenePaths } from '../landscape';
+import { contrastBetween, nightAmount, skyTextContrast, skyTextIsWhite, timeStops } from '../skyColors';
 
 const AA = 4.5;
 const GRAPHIC = 3;
@@ -41,17 +34,7 @@ describe('moon phase', () => {
   });
 });
 
-describe('sun and moon arcs', () => {
-  it('puts the sun at its midpoint at noon', () => {
-    expect(sunProgress(720)).toBeCloseTo(0.5);
-  });
-
-  it('moves the moon from sunset to sunrise across midnight', () => {
-    expect(moonProgress(1080)).toBeCloseTo(0);
-    expect(moonProgress(0)).toBeCloseTo(0.5);
-    expect(moonProgress(359)).toBeLessThan(1);
-  });
-
+describe('time of day', () => {
   it('wraps minutes past midnight', () => {
     expect(wrapMinute(1500)).toBe(60);
     expect(wrapMinute(-60)).toBe(1380);
@@ -63,9 +46,7 @@ describe('sun and moon arcs', () => {
     expect(isSleepy(120)).toBe(true);
     expect(isSleepy(720)).toBe(false);
   });
-});
 
-describe('sky blends', () => {
   it('reaches full day and full night', () => {
     expect(nightAmount(720)).toBe(0);
     expect(nightAmount(0)).toBe(1);
@@ -82,25 +63,75 @@ describe('sky blends', () => {
       });
     }
   });
+});
 
-  it('dims with a low mood and brightens with a high one', () => {
-    const sum = (m: number, mood: number) => (skyStops(m, mood)[2] as number[]).reduce((p, q) => p + q, 0);
-    expect(sum(720, 1)).toBeLessThan(sum(720, 3));
-    expect(sum(0, 5)).toBeGreaterThan(sum(0, 3));
+describe('scene', () => {
+  const rect = { width: 400, top: 300, height: 200 };
+
+  it('keeps every shape inside the scene rectangle', () => {
+    Object.values(scenePaths(rect)).forEach((path) => {
+      const numbers = path.match(/-?\d+(\.\d+)?/g)?.map(Number) ?? [];
+      numbers.forEach((value, index) => {
+        if (index % 2 === 0) {
+          expect(value).toBeGreaterThanOrEqual(0);
+          expect(value).toBeLessThanOrEqual(rect.width);
+        } else {
+          expect(value).toBeGreaterThanOrEqual(rect.top);
+          expect(value).toBeLessThanOrEqual(rect.top + rect.height);
+        }
+      });
+    });
+  });
+});
+
+describe('owl', () => {
+  const o = owlTimeline;
+
+  it('is hidden before and after its visit', () => {
+    expect(owlPose(-1).opacity).toBe(0);
+    expect(owlPose(o.flyEnd).opacity).toBe(0);
+  });
+
+  it('starts off-screen and lands on the perch with folded wings', () => {
+    expect(owlPose(0).x).toBeGreaterThan(1);
+    const landed = owlPose(o.glideEnd);
+    expect(landed.x).toBeCloseTo(o.perch.x);
+    expect(landed.y).toBeCloseTo(o.perch.y);
+    expect(landed.wing).toBe(0);
+  });
+
+  it('arrives without a jump at the end of the glide', () => {
+    const before = owlPose(o.glideEnd - 0.01);
+    const after = owlPose(o.glideEnd + 0.01);
+    expect(Math.abs(before.x - after.x)).toBeLessThan(0.01);
+    expect(Math.abs(before.y - after.y)).toBeLessThan(0.01);
+  });
+
+  it('turns to look at the user, blinks, then turns back', () => {
+    expect(owlPose(o.settleEnd).look).toBe(0);
+    expect(owlPose(o.turnEnd).look).toBe(1);
+    expect(owlPose(o.blinkStart + o.blinkLength / 2).eyeOpen).toBeCloseTo(0);
+    expect(owlPose(o.holdEnd - 0.1).eyeOpen).toBe(1);
+    expect(owlPose(o.turnBackEnd - 0.001).look).toBeCloseTo(0, 1);
+  });
+
+  it('flies toward the mountain, shrinking and fading', () => {
+    const end = owlPose(o.flyEnd - 0.01);
+    expect(end.x).toBeCloseTo(o.leave.x, 1);
+    expect(end.scale).toBeCloseTo(o.leaveScale, 1);
+    expect(end.opacity).toBeLessThan(0.05);
   });
 });
 
 describe('WCAG AA', () => {
-  it('passes for the headline at every minute of the day and every mood', () => {
+  it('passes for the date and headline at every minute of the day', () => {
     let lowest = Infinity;
     let at = '';
     for (let m = 0; m < 1440; m += 1) {
-      for (let mood = 1; mood <= moodLevels; mood += 0.5) {
-        const c = skyTextContrast(m, mood);
-        if (c < lowest) {
-          lowest = c;
-          at = `minute ${m}, mood ${mood}, white ${skyTextIsWhite(m, mood)}`;
-        }
+      const c = skyTextContrast(m);
+      if (c < lowest) {
+        lowest = c;
+        at = `minute ${m}, white ${skyTextIsWhite(m)}`;
       }
     }
     expect({ passes: lowest >= AA, lowest: Number(lowest.toFixed(2)), at }).toMatchObject({ passes: true });
@@ -115,5 +146,6 @@ describe('WCAG AA', () => {
     expect(contrastBetween(c.muted, c.tint)).toBeGreaterThanOrEqual(AA);
     expect(contrastBetween(c.onAccent, c.accent)).toBeGreaterThanOrEqual(AA);
     expect(contrastBetween(c.accent, c.surface)).toBeGreaterThanOrEqual(GRAPHIC);
+    expect(contrastBetween(c.accent, c.tint)).toBeGreaterThanOrEqual(GRAPHIC);
   });
 });

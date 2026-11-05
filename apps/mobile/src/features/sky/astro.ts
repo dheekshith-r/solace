@@ -39,22 +39,6 @@ export function wrapMinute(minute: number): number {
   return ((minute % 1440) + 1440) % 1440;
 }
 
-/** How far the sun has crossed the sky, 0 at sunrise and 1 at sunset. Outside 0..1 it is set. */
-export function sunProgress(minute: number): number {
-  'worklet';
-  const m = wrapMinute(minute);
-  return (m - skyTimes.sunrise) / (skyTimes.sunset - skyTimes.sunrise);
-}
-
-/** How far the moon has crossed the sky, 0 at sunset and 1 at sunrise. */
-export function moonProgress(minute: number): number {
-  'worklet';
-  const m = wrapMinute(minute);
-  const nightLength = 1440 - skyTimes.sunset + skyTimes.sunrise;
-  const sinceSunset = m >= skyTimes.sunset ? m - skyTimes.sunset : m + 1440 - skyTimes.sunset;
-  return sinceSunset / nightLength;
-}
-
 export function isSleepy(minute: number): boolean {
   'worklet';
   const m = wrapMinute(minute);

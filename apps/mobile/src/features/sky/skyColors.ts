@@ -1,13 +1,6 @@
 // Sky color and text contrast calculations. Pure, so tests can check every minute of the day.
 
-import {
-  moodBrightPerLevel,
-  moodDimPerLevel,
-  moodNeutral,
-  skyKeyframes,
-  skyTimes,
-  type Stops,
-} from '../../theme/sky';
+import { skyKeyframes, skyTimes, type Stops } from '../../theme/sky';
 import { wrapMinute } from './astro';
 
 export type Rgb = [number, number, number];
@@ -38,7 +31,7 @@ function progress(m: number, from: number, to: number): number {
   return (m - from) / (to - from);
 }
 
-/** The sky's four colors for a time of day, before mood. */
+/** The sky's four colors for a time of day. */
 export function timeStops(minute: number): Rgb[] {
   'worklet';
   const m = wrapMinute(minute);
@@ -50,15 +43,6 @@ export function timeStops(minute: number): Rgb[] {
   if (m < duskStart) return blendStops(day, day, 0);
   if (m < skyTimes.dusk) return blendStops(day, dusk, progress(m, duskStart, skyTimes.dusk));
   return blendStops(dusk, night, progress(m, skyTimes.dusk, nightStart));
-}
-
-/** The sky's four colors for a time of day and a mood. Mood can be between levels mid-drag. */
-export function skyStops(minute: number, mood: number): Rgb[] {
-  'worklet';
-  const levels = mood - moodNeutral;
-  const target: Rgb = levels < 0 ? [0, 0, 0] : [255, 255, 255];
-  const amount = levels < 0 ? -levels * moodDimPerLevel : levels * moodBrightPerLevel;
-  return timeStops(minute).map((c) => mixRgb(c, target, amount));
 }
 
 /** 1 at full night, 0 in the daytime sky. */
@@ -90,9 +74,9 @@ export function contrastWith(c: Rgb, textIsWhite: boolean): number {
 }
 
 /** Text on the sky is black or white, whichever passes best across the two headline stops. */
-export function skyTextIsWhite(minute: number, mood: number): boolean {
+export function skyTextIsWhite(minute: number): boolean {
   'worklet';
-  const stops = skyStops(minute, mood);
+  const stops = timeStops(minute);
   const top = stops[0] as Rgb;
   const lower = stops[1] as Rgb;
   const white = Math.min(contrastWith(top, true), contrastWith(lower, true));
@@ -101,10 +85,10 @@ export function skyTextIsWhite(minute: number, mood: number): boolean {
 }
 
 /** Contrast of the chosen text color on the headline's part of the sky. */
-export function skyTextContrast(minute: number, mood: number): number {
+export function skyTextContrast(minute: number): number {
   'worklet';
-  const stops = skyStops(minute, mood);
-  const useWhite = skyTextIsWhite(minute, mood);
+  const stops = timeStops(minute);
+  const useWhite = skyTextIsWhite(minute);
   return Math.min(contrastWith(stops[0] as Rgb, useWhite), contrastWith(stops[1] as Rgb, useWhite));
 }
 
