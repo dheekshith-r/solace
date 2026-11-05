@@ -2,7 +2,7 @@ import { healthResponseSchema, type HealthResponse } from '@solace/shared';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
-const HEALTH_TIMEOUT_MS = 90_000; // Render's free tier can take about a minute to wake.
+const REQUEST_TIMEOUT_MS = 5_000; // Show failures fast. Waking Render is handled by background retries.
 
 export async function fetchHealth(): Promise<HealthResponse> {
   if (!API_URL) {
@@ -10,7 +10,7 @@ export async function fetchHealth(): Promise<HealthResponse> {
   }
 
   const response = await fetch(`${API_URL}/health`, {
-    signal: AbortSignal.timeout(HEALTH_TIMEOUT_MS),
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
   });
   if (!response.ok) {
     throw new Error(`Health check returned ${response.status}`);

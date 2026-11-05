@@ -58,7 +58,7 @@ export default function PhaseZeroCheck() {
 
   const label =
     health.kind === 'checking'
-      ? 'Reaching the API. This can take a minute if it was asleep.'
+      ? 'Reaching the API.'
       : health.kind === 'ok'
         ? `API and database OK (${health.ms} ms)`
         : `Failed: ${health.message}`;
