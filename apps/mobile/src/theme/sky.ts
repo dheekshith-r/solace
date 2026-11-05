@@ -1,16 +1,16 @@
 // Values for the living sky (spec section 7.7). Sky colors are derived from HIG blue, cyan, teal,
-// indigo and orange. The first two stops of each sky are nearly equal on purpose: the headline
-// sits there, so one text color always passes AA, including during the blends.
+// indigo and orange. The first two stops of each sky are identical on purpose: the headline sits
+// there, and black or white on a single color always passes AA, including during the blends.
 
 export type Stops = readonly [string, string, string, string];
 
 export const skyStopPositions = [0, 0.38, 0.7, 1] as const;
 
 export const skyKeyframes = {
-  night: ['#0D0F1F', '#0D1226', '#001D33', '#002E52'],
-  dawn: ['#8FBDF0', '#9CC5F0', '#F6D9C6', '#FFD9AE'],
-  day: ['#A6D3FF', '#AED8FC', '#DDF5F6', '#F2F2F7'],
-  dusk: ['#0A2A5C', '#0E2F64', '#4A6A94', '#F2A65E'],
+  night: ['#0D0F1F', '#0D0F1F', '#001D33', '#002E52'],
+  dawn: ['#8FBDF0', '#8FBDF0', '#F6D9C6', '#FFD9AE'],
+  day: ['#A6D3FF', '#A6D3FF', '#DDF5F6', '#F2F2F7'],
+  dusk: ['#0A2A5C', '#0A2A5C', '#4A6A94', '#F2A65E'],
 } as const satisfies Record<string, Stops>;
 
 // Minutes after midnight. Each blend takes 30 minutes.
@@ -50,7 +50,7 @@ export const skyLayout = {
 
 export const skyColor = {
   star: '#FFFFFF',
-  sun: ['#FFFFFF', '#FFE7C7', 'rgba(255,141,40,0)'],
+  sun: ['#FFFFFF', '#FFCC00', 'rgba(255,141,40,0)'], // White, Yellow, Orange fading out.
   sunRadius: 46,
   moon: '#F2F2F7',
   moonDark: 'rgba(242,242,247,0.1)',
@@ -108,13 +108,13 @@ export const sola = {
   rimScale: 1.05,
   glowRadius: 92,
   bright: ['#FFFFFF', '#F2F2F7'],
-  heavy: ['#AEAEB2', '#7C7C80'],
+  heavy: ['#AEAEB2', '#8E8E93'], // Gray 2, Gray.
   silver: '#D1D1D6',
   glow: ['rgba(209,209,214,0.42)', 'rgba(209,209,214,0)'],
   ink: '#1C1C1E',
   cheek: '#FF8D28',
   cheekOpacity: 0.34,
-  drizzle: '#5C7EA6',
+  drizzle: '#1E6EF4', // Blue, increased contrast.
 } as const;
 
 // Fractions of the screen. One star per check-in day, joined through the week.

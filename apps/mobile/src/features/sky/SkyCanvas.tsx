@@ -70,15 +70,15 @@ function CloudLayer({ layer, size, clock, minute }: {
 }) {
   const span = size.width + 200;
   const path = useMemo(() => {
-    const p = Skia.Path.Make();
+    const builder = Skia.PathBuilder.Make();
     [0, 0.52].forEach((at, index) => {
       const cx = span * at;
       const shrink = index === 0 ? 1 : 0.78;
       cloudPuffs.forEach((puff) => {
-        p.addCircle(cx + puff.x * layer.scale * shrink, puff.y * layer.scale * shrink, puff.r * layer.scale * shrink);
+        builder.addCircle(cx + puff.x * layer.scale * shrink, puff.y * layer.scale * shrink, puff.r * layer.scale * shrink);
       });
     });
-    return p;
+    return builder.build();
   }, [layer.scale, span]);
 
   const transform = useDerivedValue(() => {
@@ -205,11 +205,11 @@ function SolaCloud({ size, mood, solaY, clock, minute, night, moving }: {
   const body = useDerivedValue(() => {
     const h = heaviness.get();
     const shrink = 1 - sola.heavyShrink * h;
-    const p = Skia.Path.Make();
+    const builder = Skia.PathBuilder.Make();
     sola.puffs.forEach((puff) => {
-      p.addCircle(puff.x * (1 + 0.06 * h), puff.y + sola.heavySag * h, puff.r * shrink);
+      builder.addCircle(puff.x * (1 + 0.06 * h), puff.y + sola.heavySag * h, puff.r * shrink);
     });
-    return p;
+    return builder.build();
   });
 
   const transform = useDerivedValue(() => {

@@ -105,13 +105,14 @@ function Today({ initialMinute, showHintFirst }: { initialMinute: number; showHi
   const [displayMinute, setDisplayMinute] = useState(initialMinute);
   const [overridden, setOverridden] = useState(false);
   const [demoIndex, setDemoIndex] = useState(0);
+  const [moonValue] = useState(() => moonPhase(Date.now()));
   const [textIsWhite, setTextIsWhite] = useState(() => skyTextIsWhite(initialMinute, moodNeutral));
 
   const minute = useSharedValue(initialMinute);
   const mood = useSharedValue<number>(moodNeutral);
   const clock = useSharedValue(0);
   const shootingStartedAt = useSharedValue(-100);
-  const nextShootingAt = useSharedValue(skyMotion.shootingMinGap);
+  const nextShootingAt = useSharedValue<number>(skyMotion.shootingMinGap);
   const bob = useSharedValue(0);
   const dragStart = useSharedValue<number>(moodNeutral);
 
@@ -218,7 +219,6 @@ function Today({ initialMinute, showHintFirst }: { initialMinute: number; showHi
   const skyText = textIsWhite ? colors.dark.ink : colors.light.ink;
   const palette = textIsWhite ? colors.dark : colors.light;
   const words = isNightCopy(displayMinute) ? copy.night : copy.day;
-  const moonValue = useMemo(() => moonPhase(Date.now()), []);
   const solaLeft = width * skyLayout.solaX;
   const bubbleWidth = width - screenPadding * 2 - touchTarget - spacing.sm;
 
