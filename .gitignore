@@ -33,6 +33,7 @@ apps/mobile/ios/
 
 # Local design references: read in Phase 1, never committed
 design/refs/
+design/web-refs/
 
 # Logs and test output
 *.log

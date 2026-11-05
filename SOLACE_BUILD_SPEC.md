@@ -20,8 +20,22 @@ Verified against vendor pages on Nov 5, 2026. Anything marked **verify** must be
 | Streaming | Server-Sent Events from Fastify, read in the app with `expo/fetch` streaming | Words appear as they're generated, which matters more for perceived speed than raw latency. **Verify** `expo/fetch` `ReadableStream` support in SDK 58; fallback is `react-native-sse`. |
 | Hosting | Render free web service + free UptimeRobot (or cron-job.org) ping every 10 minutes | Render free sleeps after 15 min idle and takes about a minute to wake. One always-on service fits in the 750 free hours a month. If budget allows, the $7 plan removes the sleep entirely. |
 | Bottom sheets | expo-router `presentation: "formSheet"` or `"modal"` (native) first; small custom Reanimated sheet only if needed | `@gorhom/bottom-sheet` support for RN 0.88 is unconfirmed. Native screens are lighter anyway. |
-| Graphics | `@shopify/react-native-skia` for hero visuals (Sola's glow, breathing orb, blurred backgrounds); `react-native-svg` for simple icons and glyphs | Size is no longer a constraint; Skia draws on the GPU, so it looks premium without hurting smoothness. **Verify** RN 0.88 support in Phase 0. |
+| Graphics | `@shopify/react-native-skia` for hero visuals (the living sky, Sola, breathing orb); `react-native-svg` for simple icons and glyphs | Size is no longer a constraint; Skia draws on the GPU, so it looks premium without hurting smoothness. **Verify** RN 0.88 support in Phase 0. |
 | Not used | expo-blur (Skia blur replaces it), Lottie (no designer-made files), UI kits, Sentry, Firebase, Google/Apple sign-in, push server | Risk or no payoff in 4 days. |
+
+---
+
+## 0.1 Product concept
+
+**Must-have:**
+- **Sola speaks on the Today screen.** A specific line based on the user's recent mood and chats, not a static greeting.
+- **One connected loop.** Chat, check-in and breathing connect through Sola's suggestion cards, so each activity leads naturally to the next.
+- **Before and after mood.** After an activity, show the mood before and after it.
+- **Notifications in Sola's voice.** Written using the user's context, not generic reminders.
+
+**Stretch:**
+- **"What Sola remembers" screen.** Users can view and delete memories.
+- **Weekly letter from Sola.**
 
 ---
 
@@ -36,7 +50,7 @@ Verified against vendor pages on Nov 5, 2026. Anything marked **verify** must be
 | `react-native-screens`, `react-native-safe-area-context` | Native stack screens, safe areas (edge-to-edge is mandatory on Android) |
 | `react-native-reanimated` 4 + `react-native-worklets` | All animation on the UI thread. Worklets Bundle Mode stays off: it is marked unstable, and RN 0.88 already includes the Hermes memory fix. |
 | `react-native-gesture-handler` | Swipe-to-delete on chat history, press gestures |
-| `@shopify/react-native-skia` | Sola's glow and body shading, breathing orb, blurred background washes (GPU) |
+| `@shopify/react-native-skia` | The living sky and Sola on Today, breathing orb (GPU) |
 | `react-native-svg` | Progress ring, mood glyphs, simple icons |
 | `@shopify/flash-list` (v2) | Chat thread, chat history, resources |
 | `expo-image` | Images (WebP only) |
@@ -275,13 +289,26 @@ packages/shared/
 
 ### 7.1 Direction
 
-Calm, soft, airy, a little playful because of Sola. One soft palette, one accent, generous space. Structure borrowed from premium iOS apps (large titles, big rounded cards, floating tab bar, sheets), not their dark game-like mood.
+Calm, soft, airy, a little playful because of Sola. The app is built around a living sky that follows the real time of day. Apple HIG system colors, one accent, generous space. Avoid the generic AI app look: no round mascot over a card stack, no emoji faces.
 
 ### 7.2 Tokens (match the approved web preview)
 
-- Light: background `#EEF0F8`, surface `#FFFFFF`, ink `#25233A`, muted `#77758C`, accent `#6F63E8`, accent tint `#E3E0FB`, petal `#FFE1D8`, sea `#D8F1E8`, mascot `#B7ADFF`.
-- Dark: background `#12111C`, surface `#1C1B2B`, ink `#F0EEFA`, muted `#9C99B2`, accent `#A99DFF`, tint `#2A2746`, petal `#3B2A33`, sea `#1F3329`, mascot `#8D80F2`.
-- Follows the system theme; a manual override lives in settings.
+Colors come from Apple's HIG Color page (values updated June 2025) and its iOS system grays. The HIG gives no numbers for label or background colors, so those map onto the gray ramp plus pure black and white. All text meets WCAG AA (4.5:1); key graphics meet 3:1.
+
+| Token | Light | Dark | HIG source |
+|---|---|---|---|
+| background | `#F2F2F7` | `#000000` | Gray 6 / black |
+| surface | `#FFFFFF` | `#1C1C1E` | White / Gray 6 |
+| tint | `#F2F2F7` | `#2C2C2E` | Gray 6 / Gray 5 |
+| ink | `#000000` | `#FFFFFF` | Black / white |
+| muted | `#6C6C70` | `#AEAEB2` | Gray, increased contrast |
+| separator | `#D1D1D6` | `#3A3A3C` | Gray 4 |
+| accent | `#1E6EF4` | `#5CB8FF` | Blue, increased contrast |
+| onAccent | `#FFFFFF` | `#000000` | White / black |
+
+Sky colors are derived from HIG blue, cyan, teal, indigo and orange (section 7.7). Text on the sky is pure black or white, whichever passes AA across the sky behind it.
+
+**Appearance setting** (in settings): Sky (default, the time of day drives light or dark), Follow system, Always light, Always dark.
 - Type scale: 34 (large title) / 26 / 20 / 17 / 15 / 13 / 11.5. Weights 400, 600, 700 only. Letter-spacing −0.02em on titles.
 - Spacing on a 4/8 grid: 4, 8, 12, 16, 20, 24, 32, 40. Screen side padding 22.
 - Radii vary by hierarchy, not one radius for everything: hero cards 32–36 with one tighter corner (the "petal" shape), cards 22, buttons 18, chips 16, tab bar fully rounded.
@@ -295,11 +322,11 @@ Calm, soft, airy, a little playful because of Sola. One soft palette, one accent
 - Only `transform` and `opacity` animate. Never width, height or margins (use layout animations sparingly and only for list insert/remove).
 - Chat: bubbles rise in; streamed text appends word by word; the suggestion card expands in after the reply.
 - Reduce-motion: respect `AccessibilityInfo.isReduceMotionEnabled` (Reanimated `ReduceMotion.System`).
-- Lite mode (device RAM under ~4 GB): disable stagger and the mascot's idle float.
+- Lite mode (device RAM under ~4 GB): disable stagger, the mascot's idle float and the sky's moving parts.
 
 ### 7.4 Sola the mascot
 
-A soft rounded blob drawn in SVG with animated eyes and mouth. States: `idle` (slow float, blink every ~5 s), `happy`, `concerned`, `listening` (leans, eyes widen while the user types), `thinking` (eyes drift while streaming), `sleepy` (after 10 pm). The mouth curve is driven by the current mood value, so a check-in visibly changes Sola's face. This is the signature element; keep everything else quiet around it.
+A small cloud character. Fluffy and bright when mood is good, heavier with a light drizzle when low, silver-lined and softly glowing at night. Keeps the sleepy eyes. States: `idle` (slow float, blink every ~5 s), `happy`, `concerned`, `listening` (leans, eyes widen while the user types), `thinking` (eyes drift while streaming), `sleepy` (after 10 pm). The current mood value drives Sola's shape, color, drizzle and mouth, so a check-in visibly changes Sola. This is the signature element; keep everything else quiet around it.
 
 ### 7.5 Haptics map
 
@@ -308,6 +335,19 @@ Selection tick on mood choice and tab change; light impact on primary buttons; s
 ### 7.6 Copy
 
 Sentence case, plain verbs, warm but not syrupy. Errors say what happened and what to do ("Couldn't reach Sola. Check your connection and try again."). Empty states invite an action.
+
+### 7.7 The living sky
+
+Everything is slow and few, so it stays calm.
+
+- **Time of day:** day, dusk and night blend over about 30 minutes.
+- **Sun and moon:** the sun moves along an arc with the real time of day. The moon shows tonight's real phase, calculated on-device.
+- **Stars:** 30 to 40, twinkling slowly and out of sync. A shooting star only every 10 to 20 seconds.
+- **Clouds:** two or three layers drifting at different speeds for depth.
+- **Mood:** the sky brightens or dims with the mood.
+- **Streak:** a constellation. One star is added to the night sky per check-in day, joined through the week.
+- **Performance:** one Skia canvas. It pauses when Today isn't focused. Moving parts turn off with reduce-motion.
+- **Demo control:** a hidden long-press on the sky cycles dawn, day, dusk and night for recording.
 
 ---
 
@@ -320,12 +360,16 @@ Offline and timeout errors show within a few seconds, never after a long wait. R
 1. **Splash**: native splash in the background color, handing off to an animated Sola fade-in with the tagline; runs auth refresh and wakes the API in parallel. Max 2.5 s.
 2. **Onboarding** (4 steps, skippable after step 1): what Solace is → meet Sola (Sola waves, says hi) → pick a goal → choose reminder times (with the notification pre-prompt). Progress dots, swipe or tap Next.
 3. **Sign up / Log in**: one screen each, inline validation, password visibility toggle, 18+ checkbox, privacy notice line ("Sola's replies are generated by Google Gemini. Please avoid sharing sensitive personal details in this demo.").
-4. **Today**: date and greeting with name → Sola with "How are you arriving?" → 5-mood picker → AI suggestion card (expands after picking) → streak and level ring → today's affirmation → two actions (Talk to Sola, Breathe). Pull to refresh.
+4. **Today**: built around the sky (section 7.7), which fills the whole screen with no card sheet covering it. Date, then Sola's specific line as the headline, in one color. Sola the cloud floats in the sky.
+   - **Mood check-in:** five tappable levels along the sky, plus dragging Sola up or down, which snaps to the nearest level with a haptic tick on release. A one-time hint ("Slide me to show how you feel") with a small bob of Sola, never shown again after the first check-in.
+   - **Suggestion:** a speech bubble from Sola with one action button inside.
+   - **Streak:** the constellation in the sky. No streak or XP cards on Today; detailed stats live on the You tab.
+   - The tab bar never overlaps content.
 5. **Check-in** (sheet): mood, optional note, save → +10 XP toast, Sola reacts.
 6. **Sola tab**: history list (title, preview, time; swipe left to delete with confirm; "New conversation" button) → conversation screen (streamed replies, suggestion cards that deep-link, quick-reply chips when empty, keyboard-aware input).
 7. **Breathe** (full-screen): pick a pattern (Calm 4-4-6, Box 4-4-4-4, Sleep 4-7-8), 4 rounds, orb scales on the UI thread, phase label and countdown, haptic per phase, finish → "How do you feel now?" quick mood → +15 XP.
 8. **Assessment**: 6 short questions (sleep, energy, worry, mood, connection, stress) on a 0–3 scale, one per page, result band + AI insight + suggested next step. Labelled a wellness check, not a diagnosis.
-9. **You**: streak calendar (last 5 weeks), mood trend (simple SVG line, last 14 days), level and XP, links to reminders, privacy (personalize toggle, delete all chats, delete account), resources, theme, log out.
+9. **You**: streak calendar (last 5 weeks), mood trend (simple SVG line, last 14 days), level and XP, links to reminders, privacy (personalize toggle, delete all chats, delete account), resources, appearance (section 7.2), log out.
 10. **Reminders**: toggles and time pickers per reminder type, custom reminders (add, edit, delete), "send a test notification" button.
 11. **Resources**: 5 short guides (Mindfulness 101, Anxiety toolkit with 5-4-3-2-1 grounding, Beating the blues, Self-esteem reset, Sleep wind-down) + a Get help now page (Tele-MANAS 14416, call button) + "not a substitute for professional care" note.
 
