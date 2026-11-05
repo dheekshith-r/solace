@@ -1,7 +1,7 @@
-import { fallingPetal, sceneShapes, streamShimmer, trees, wind, blossom } from '../../../theme/sky';
+import { blossom, fallingPetal, meadow, sceneShapes, streamShimmer, treeDrop, trees, wind } from '../../../theme/sky';
 import { colors } from '../../../theme/tokens';
 import { isSleepy, moonIllumination, moonLitPath, moonPhase, wrapMinute } from '../astro';
-import { gustSway, petalPose, scenePaths, shimmerPose, streamAt, treeShape } from '../landscape';
+import { gustSway, petalPose, scenePaths, shimmerPose, streamAt, treeShape, tuftBatch } from '../landscape';
 import {
   contrastBetween,
   moonAmount,
@@ -140,10 +140,29 @@ describe('trees', () => {
     });
   });
 
+  it.each(['left', 'right'] as const)('keeps every %s limb below Fuji’s peak', (side) => {
+    trees[side].forEach((limb) => {
+      limb.points.forEach(([, y]) => {
+        expect((y as number) + treeDrop).toBeGreaterThan(sceneShapes.fuji.summitY);
+      });
+    });
+  });
+
   it('places flowers on the tree and draws a shape for every limb', () => {
     const { outline, flowers } = treeShape(trees.left, rect, 1);
     expect(outline.match(/M/g)?.length).toBe(trees.left.length);
     expect(flowers.length).toBe(trees.left.reduce((sum, limb) => sum + Math.round(limb.flowers * blossom.density), 0));
+  });
+});
+
+describe('meadow', () => {
+  it('draws tufts in every sway batch, standing on the baseline', () => {
+    for (let batch = 0; batch < meadow.swayBatches; batch += 1) {
+      const path = tuftBatch(batch, 400, 500);
+      expect(path).toContain(' 500 ');
+      const ys = path.match(/ (-?\d+(\.\d+)?) /g)?.map(Number) ?? [];
+      expect(Math.max(...ys.filter((y) => y > 400))).toBeLessThanOrEqual(500);
+    }
   });
 });
 
@@ -183,6 +202,12 @@ describe('wind and petals', () => {
     const xs = Array.from({ length: 100 }, (_, i) => pose((i / 100) * fallingPetal.life).x);
     expect(Math.max(...xs) - Math.min(...xs)).toBeGreaterThan(fallingPetal.swayDistance / 2);
     expect(pose(5).rotate).not.toBe(pose(1).rotate);
+  });
+
+  it('flutters as it falls without ever vanishing edge-on', () => {
+    const values = Array.from({ length: 200 }, (_, i) => pose((i / 200) * fallingPetal.life).flutter);
+    expect(Math.min(...values)).toBeGreaterThanOrEqual(fallingPetal.flutterMin);
+    expect(Math.max(...values) - Math.min(...values)).toBeGreaterThan(0.3);
   });
 
   it('fades out near the ground, and is gone by the end', () => {
@@ -229,8 +254,14 @@ describe('stream', () => {
     }
   });
 
-  it('moves the shimmer downstream over time', () => {
-    expect(shimmerPose(5, 0).y).toBeGreaterThan(shimmerPose(1, 0).y);
+  it('moves the highlights away from the viewer, toward the mountain', () => {
+    expect(shimmerPose(5, 3).y).toBeLessThan(shimmerPose(1, 3).y);
+  });
+
+  it('narrows into the distance with perspective', () => {
+    const near = streamAt(1).width;
+    expect(streamAt(0).width).toBeLessThan(near / 20);
+    expect(streamAt(0.5).width).toBeLessThan(near / 2.5);
   });
 });
 

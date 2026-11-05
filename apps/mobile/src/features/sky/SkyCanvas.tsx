@@ -1,5 +1,6 @@
 import {
   BlurMask,
+  BlurStyle,
   Canvas,
   Circle,
   createPicture,
@@ -12,6 +13,7 @@ import {
   Picture,
   RadialGradient,
   Rect,
+  Shader,
   Skia,
   vec,
   type SkPath,
@@ -22,8 +24,13 @@ import { useDerivedValue, type SharedValue } from 'react-native-reanimated';
 import {
   blossom,
   cloudLayers,
-  cloudPuffs,
+  cloudNight,
+  cloudShapes,
   fallingPetal,
+  meadow,
+  moon,
+  moonStreak,
+  starField,
   sceneColor,
   sceneShapes,
   skyColor,
@@ -31,18 +38,22 @@ import {
   skyStopPositions,
   sola,
   streamShimmer,
+  treeDrop,
   trees,
+  waterTint,
   wind,
   type Limb,
 } from '../../theme/sky';
-import { isSleepy, moonLitPath } from './astro';
-import { gustSway, petalPose, scenePaths, shimmerPose, treeShape, type SceneRect } from './landscape';
-import { moonAmount, nightAmount, rgbToCss, sunAmount, timeStops } from './skyColors';
+import { today } from '../../theme/tokens';
+import { isSleepy } from './astro';
+import { gustSway, petalPose, scenePaths, shimmerPose, streamAt, treeShape, tuftBatch, type SceneRect } from './landscape';
+import { hexToRgb, mixRgb, moonAmount, nightAmount, rgbToCss, sunAmount, timeStops, type Rgb } from './skyColors';
+import { starEffect } from './starShader';
 
 const TWO_PI = Math.PI * 2;
 const CLOUD_MARGIN = 100;
-const STAR_SCENE_SHARE = 0.34;
 const GROUND_SHARE = 0.86; // Just above the sheet's top edge.
+const TUFT_BASE_BELOW_SHEET = 4; // Tufts grow from just behind the sheet's edge.
 
 type Size = { width: number; height: number };
 
@@ -56,28 +67,6 @@ export type SkyBands = {
   scene: SceneRect;
 };
 
-function seeded(seed: number): number {
-  const x = Math.sin(seed * 127.1) * 43758.5453;
-  return x - Math.floor(x);
-}
-
-function Star({ x, y, r, period, phase, clock, night }: {
-  x: number;
-  y: number;
-  r: number;
-  period: number;
-  phase: number;
-  clock: SharedValue<number>;
-  night: SharedValue<number>;
-}) {
-  const opacity = useDerivedValue(() => {
-    const n = night.get();
-    if (n <= 0) return 0;
-    return n * (0.4 + 0.6 * (0.5 + 0.5 * Math.sin((TWO_PI * clock.get()) / period + phase)));
-  });
-  return <Circle cx={x} cy={y} r={r} color={skyColor.star} opacity={opacity} />;
-}
-
 function CloudLayer({ layer, y, width, clock, minute }: {
   layer: (typeof cloudLayers)[number];
   y: number;
@@ -88,36 +77,60 @@ function CloudLayer({ layer, y, width, clock, minute }: {
   const span = width + CLOUD_MARGIN * 2;
   const path = useMemo(() => {
     const builder = Skia.PathBuilder.Make();
-    [0, 0.52].forEach((at, index) => {
-      const cx = span * at;
-      const shrink = index === 0 ? 1 : 0.78;
-      cloudPuffs.forEach((puff) => {
-        builder.addCircle(cx + puff.x * layer.scale * shrink, puff.y * layer.scale * shrink, puff.r * layer.scale * shrink);
-      });
+    cloudShapes[layer.shape]?.forEach(([x, py, r]) => {
+      builder.addCircle(x * layer.scale, py * layer.scale, r * layer.scale);
     });
     return builder.build();
-  }, [layer.scale, span]);
+  }, [layer.scale, layer.shape]);
 
   const transform = useDerivedValue(() => {
     const x = ((clock.get() * layer.speed + span * layer.offset) % span) - CLOUD_MARGIN;
     return [{ translateX: x }, { translateY: y }];
   });
-  const opacity = useDerivedValue(() => {
+  // White by day. At night the body takes the sky's color and the moon lights one edge.
+  const bodyColor = useDerivedValue(() =>
+    rgbToCss(mixRgb(hexToRgb(skyColor.cloud), hexToRgb(cloudNight.body), nightAmount(minute.get()))),
+  );
+  const bodyOpacity = useDerivedValue(() => {
     const n = nightAmount(minute.get());
-    return layer.opacity * (skyColor.cloudDayOpacity + (skyColor.cloudNightOpacity - skyColor.cloudDayOpacity) * n);
+    return layer.opacity * (skyColor.cloudDayOpacity + (cloudNight.bodyOpacity - skyColor.cloudDayOpacity) * n);
   });
+  const rimOpacity = useDerivedValue(() => moonAmount(minute.get()) * cloudNight.rimOpacity * layer.opacity);
 
   return (
     <Group transform={transform}>
-      <Path path={path} color={skyColor.cloud} opacity={opacity}>
-        <BlurMask blur={5} style="normal" />
-      </Path>
-      <Group transform={[{ translateX: -span }]}>
-        <Path path={path} color={skyColor.cloud} opacity={opacity}>
-          <BlurMask blur={5} style="normal" />
+      <Group transform={[{ translateX: cloudNight.rimOffsetX }, { translateY: cloudNight.rimOffsetY }]}>
+        <Path path={path} color={skyColor.moon} opacity={rimOpacity}>
+          <BlurMask blur={cloudNight.blur * 0.7} style="normal" />
         </Path>
       </Group>
+      <Path path={path} color={bodyColor} opacity={bodyOpacity}>
+        <BlurMask blur={cloudNight.blur} style="normal" />
+      </Path>
     </Group>
+  );
+}
+
+function StarField({ size, horizon, clock, night, lite }: {
+  size: Size;
+  horizon: number;
+  clock: SharedValue<number>;
+  night: SharedValue<number>;
+  lite: boolean;
+}) {
+  const uniforms = useDerivedValue(() => ({
+    time: clock.get(),
+    night: night.get(),
+    horizon,
+    width: size.width,
+    cell: lite ? starField.cellLite : starField.cell,
+    milky: starField.milkyWay,
+  }));
+  if (!starEffect) return null;
+  return (
+    <Rect x={0} y={0} width={size.width} height={horizon}>
+      <Shader source={starEffect} uniforms={uniforms} />
+    </Rect>
   );
 }
 
@@ -132,13 +145,40 @@ function Sun({ x, y, minute }: { x: number; y: number; minute: SharedValue<numbe
   );
 }
 
-function Moon({ x, y, phase, minute }: { x: number; y: number; phase: number; minute: SharedValue<number> }) {
-  const lit = useMemo(() => Skia.Path.MakeFromSVGString(moonLitPath(phase, skyColor.moonRadius)), [phase]);
+function Moon({ x, y, minute }: { x: number; y: number; minute: SharedValue<number> }) {
+  const r = moon.radius;
+  const picture = useMemo(() => {
+    const clip = Skia.PathBuilder.Make().addCircle(0, 0, r).build();
+    const maria = Skia.PathBuilder.Make();
+    moon.maria.forEach(([mx, my, rx, ry]) => {
+      maria.addOval(Skia.XYWHRect((mx - rx) * r, (my - ry) * r, rx * 2 * r, ry * 2 * r));
+    });
+    const mariaPath = maria.build();
+    return createPicture((canvas) => {
+      const paint = Skia.Paint();
+      paint.setAntiAlias(true);
+      paint.setColor(Skia.Color(skyColor.moon));
+      canvas.drawPath(clip, paint);
+      canvas.save();
+      canvas.clipPath(clip, 1, true);
+      paint.setColor(Skia.Color(moon.mariaColor));
+      paint.setAlphaf(moon.mariaOpacity);
+      paint.setMaskFilter(Skia.MaskFilter.MakeBlur(BlurStyle.Normal, moon.mariaBlur, true));
+      canvas.drawPath(mariaPath, paint);
+      paint.setMaskFilter(null);
+      paint.setColor(Skia.Color(skyColor.cloud));
+      paint.setAlphaf(0.9);
+      canvas.drawCircle(moon.tycho.x * r, moon.tycho.y * r, moon.tycho.radius * r, paint);
+      canvas.restore();
+    });
+  }, [r]);
   const opacity = useDerivedValue(() => moonAmount(minute.get()));
   return (
     <Group transform={[{ translateX: x }, { translateY: y }]} opacity={opacity}>
-      <Circle cx={0} cy={0} r={skyColor.moonRadius} color={skyColor.moonDark} />
-      {lit ? <Path path={lit} color={skyColor.moon} /> : null}
+      <Circle cx={0} cy={0} r={r * moon.haloRadius}>
+        <RadialGradient c={vec(0, 0)} r={r * moon.haloRadius} colors={[...moon.halo]} positions={[...moon.haloStops]} />
+      </Circle>
+      <Picture picture={picture} />
     </Group>
   );
 }
@@ -177,10 +217,17 @@ function StaticScene({ rect, night }: { rect: SceneRect; night: SharedValue<numb
     const mountain = toPath(paths.mountain);
     const snow = toPath(paths.snow);
     const snowShadows = toPath(paths.snowShadows);
+    const ridges = toPath(paths.ridges);
+    const streaks = toPath(paths.streaks);
+    const slopeLines = toPath(paths.slopeLines);
+    const ticks = toPath(paths.ticks);
     const pool = toPath(paths.pool);
     const hillFar = toPath(paths.hillFar);
     const hillNear = toPath(paths.hillNear);
-    const stream = toPath(paths.stream);
+    const bank = toPath(paths.bank);
+    const hillFront = toPath(paths.hillFront);
+    const grassDark = toPath(paths.grassDark);
+    const grassLight = toPath(paths.grassLight);
 
     const pic = createPicture((canvas) => {
       const paint = Skia.Paint();
@@ -206,8 +253,38 @@ function StaticScene({ rect, night }: { rect: SceneRect; night: SharedValue<numb
         canvas.drawPath(mountain, paint);
         canvas.save();
         canvas.clipPath(mountain, 1, true);
+        // Rock texture first, then the shaded side away from the sun.
+        fill(slopeLines, sceneColor.rock, sceneColor.rockLineOpacity);
+        fill(ticks, sceneColor.rock, sceneColor.rockTickOpacity);
         fill(snow, sceneColor.snow, 1);
+        fill(streaks, sceneColor.snow, 0.9);
         fill(snowShadows, sceneColor.snowShadow, sceneColor.snowShadowOpacity);
+        fill(ridges, sceneColor.ridgeShadow, sceneColor.ridgeShadowOpacity);
+        const detail = sceneShapes.fujiDetail;
+        paint.setAlphaf(1);
+        paint.setShader(
+          Skia.Shader.MakeLinearGradient(
+            vec(0, 0),
+            vec(rect.width * detail.shadeToX, 0),
+            [Skia.Color(sceneColor.rock), Skia.Color('rgba(28,28,30,0)')],
+            null,
+            0,
+          ),
+        );
+        paint.setAlphaf(sceneColor.shadeOpacity);
+        canvas.drawPath(mountain, paint);
+        // Haze thickens toward the base because the mountain is far away.
+        paint.setAlphaf(sceneColor.hazeOpacity);
+        paint.setShader(
+          Skia.Shader.MakeLinearGradient(
+            vec(0, rect.top + rect.height * detail.hazeFromY),
+            vec(0, footY),
+            [Skia.Color('rgba(242,242,247,0)'), Skia.Color(sceneColor.haze)],
+            null,
+            0,
+          ),
+        );
+        canvas.drawPath(mountain, paint);
         canvas.restore();
       };
       drawFuji();
@@ -227,7 +304,13 @@ function StaticScene({ rect, night }: { rect: SceneRect; night: SharedValue<numb
       canvas.restore();
 
       fill(hillNear, sceneColor.hill, sceneColor.hillNearOpacity);
-      fill(stream, sceneColor.stream, sceneColor.streamOpacity);
+      fill(hillFront, meadow.near, meadow.frontOpacity);
+      fill(grassDark, meadow.near, meadow.darkBladeOpacity);
+      fill(grassLight, sceneColor.hill, meadow.lightBladeOpacity);
+      // Soft banks under the water.
+      paint.setMaskFilter(Skia.MaskFilter.MakeBlur(BlurStyle.Normal, sceneShapes.stream.bankBlur, true));
+      fill(bank, sceneColor.bank, sceneColor.bankOpacity);
+      paint.setMaskFilter(null);
     });
 
     const union = [hillFar, hillNear].reduce(
@@ -253,16 +336,82 @@ function StaticScene({ rect, night }: { rect: SceneRect; night: SharedValue<numb
 
 function Shimmer({ index, rect, clock }: { index: number; rect: SceneRect; clock: SharedValue<number> }) {
   const pose = useDerivedValue(() => shimmerPose(clock.get(), index));
-  const p1 = useDerivedValue(() => {
+  const transform = useDerivedValue(() => {
     const g = pose.get();
-    return vec((g.x - g.length / 2) * rect.width, rect.top + g.y * rect.height);
-  });
-  const p2 = useDerivedValue(() => {
-    const g = pose.get();
-    return vec((g.x + g.length / 2) * rect.width, rect.top + g.y * rect.height);
+    return [
+      { translateX: g.x * rect.width },
+      { translateY: rect.top + g.y * rect.height },
+      { scaleX: Math.max(0.5, (g.length * rect.width) / 2) },
+      { scaleY: Math.max(streamShimmer.minThickness, g.thickness * rect.width) },
+    ];
   });
   const opacity = useDerivedValue(() => pose.get().opacity);
-  return <Line p1={p1} p2={p2} color={sceneColor.shimmer} strokeWidth={1.2} strokeCap="round" opacity={opacity} />;
+  return (
+    <Group transform={transform}>
+      <Circle cx={0} cy={0} r={1} color={sceneColor.shimmer} opacity={opacity}>
+        <BlurMask blur={streamShimmer.blur} style="normal" respectCTM={false} />
+      </Circle>
+    </Group>
+  );
+}
+
+/** One batch of grass tufts at the bottom edge, leaning with the breeze and gusts. */
+function TuftBatch({ batch, width, baseY, night, clock, gust }: {
+  batch: number;
+  width: number;
+  baseY: number;
+  night: SharedValue<number>;
+  clock: SharedValue<number>;
+  gust: SharedValue<Gust>;
+}) {
+  const path = useMemo(() => Skia.Path.MakeFromSVGString(tuftBatch(batch, width, baseY)) ?? Skia.Path.Make(), [batch, baseY, width]);
+  const transform = useDerivedValue(() => {
+    const t = clock.get();
+    const breeze = Math.sin(t * meadow.swaySpeed + batch * 1.9) * meadow.swayAmount;
+    const lean = breeze + (gustSway(t - gust.get().start) / wind.swayRadians) * meadow.gustAmount;
+    return [{ translateY: baseY }, { skewX: lean }, { translateY: -baseY }];
+  });
+  const overlay = useDerivedValue(() => night.get() * sceneColor.nightOverlayOpacity);
+  return (
+    <Group transform={transform}>
+      <Path path={path} color={meadow.near} />
+      <Path path={path} color={sceneColor.nightOverlay} opacity={overlay} />
+    </Group>
+  );
+}
+
+/** The water reflects the sky: the far end shows the horizon, the near end the sky overhead. */
+function StreamWater({ rect, minute, clock }: { rect: SceneRect; minute: SharedValue<number>; clock: SharedValue<number> }) {
+  const path = useMemo(() => Skia.Path.MakeFromSVGString(scenePaths(rect).stream) ?? Skia.Path.Make(), [rect]);
+  const colors = useDerivedValue(() => {
+    const stops = timeStops(minute.get());
+    return [rgbToCss(stops[3] as Rgb), rgbToCss(stops[2] as Rgb), rgbToCss(stops[0] as Rgb)];
+  });
+  const top = rect.top + rect.height * sceneShapes.stream.topY;
+  const bottom = rect.top + rect.height * sceneShapes.stream.bottomY;
+  const moon = useDerivedValue(() => moonAmount(minute.get()) * moonStreak.opacity);
+  const streak = streamAt(moonStreak.at);
+  return (
+    <Group clip={path}>
+      <Path path={path}>
+        <LinearGradient start={vec(0, top)} end={vec(0, bottom)} colors={colors} />
+      </Path>
+      <Path path={path} color={waterTint.color} opacity={waterTint.opacity} />
+      <Oval
+        x={(streak.x - moonStreak.halfWidth) * rect.width}
+        y={rect.top + (streak.y - moonStreak.halfLength) * rect.height}
+        width={moonStreak.halfWidth * 2 * rect.width}
+        height={moonStreak.halfLength * 2 * rect.height}
+        color={skyColor.moon}
+        opacity={moon}
+      >
+        <BlurMask blur={moonStreak.blur} style="normal" />
+      </Oval>
+      {Array.from({ length: streamShimmer.count }, (_, index) => (
+        <Shimmer key={index} index={index} rect={rect} clock={clock} />
+      ))}
+    </Group>
+  );
 }
 
 /** One overhanging tree: cached once, with one overlay for night. Only its sway animates. */
@@ -310,7 +459,9 @@ function Tree({ limbs, seedBase, pivotX, pivotY, rect, night, clock, gust, swayS
       fill(flowerPath, sceneColor.flowerVeil, sceneColor.flowerVeilOpacity);
       fill(centerPath, sceneColor.flowerVeil, sceneColor.flowerCenterOpacity);
     });
-    return { picture: pic, wood: woodPath, flowerShape: flowerPath };
+    // The wood's night overlay stops at the flowers, so branches don't cut across them.
+    const bareWood = Skia.Path.MakeFromOp(woodPath, flowerPath, PathOp.Difference) ?? woodPath;
+    return { picture: pic, wood: bareWood, flowerShape: flowerPath };
   }, [limbs, rect, seedBase]);
 
   const transform = useDerivedValue(() => [{ rotate: swaySign * gustSway(clock.get() - gust.get().start) }]);
@@ -347,7 +498,13 @@ function Petal({ index, origins, groundY, clock, gust, night }: {
   });
   const transform = useDerivedValue(() => {
     const p = pose.get();
-    return [{ translateX: p.x }, { translateY: p.y }, { rotate: p.rotate }, { scale: fallingPetal.scale }];
+    return [
+      { translateX: p.x },
+      { translateY: p.y },
+      { rotate: p.rotate },
+      { scaleX: fallingPetal.scale * p.flutter },
+      { scaleY: fallingPetal.scale },
+    ];
   });
   const opacity = useDerivedValue(() => {
     const n = night.get();
@@ -415,7 +572,7 @@ function Sola({ cx, cy, size, mood, minute, night }: {
   );
 }
 
-export function SkyCanvas({ size, bands, minute, mood, clock, gust, shootingStartedAt, moonPhaseValue, lite }: {
+export function SkyCanvas({ size, bands, minute, mood, clock, gust, shootingStartedAt, lite }: {
   size: Size;
   bands: SkyBands;
   minute: SharedValue<number>;
@@ -423,7 +580,6 @@ export function SkyCanvas({ size, bands, minute, mood, clock, gust, shootingStar
   clock: SharedValue<number>;
   gust: SharedValue<Gust>;
   shootingStartedAt: SharedValue<number>;
-  moonPhaseValue: number;
   lite: boolean;
 }) {
   const colors = useDerivedValue(() => timeStops(minute.get()).map(rgbToCss));
@@ -431,26 +587,6 @@ export function SkyCanvas({ size, bands, minute, mood, clock, gust, shootingStar
   const { scene } = bands;
   const bodyX = size.width * skyColor.bodyX;
   const bodyY = bands.solaCenterY + skyColor.bodyBelowSola;
-
-  // Stars only sit where there is no text: beside Sola and in the top of the scene.
-  const stars = useMemo(() => {
-    const count = lite ? skyMotion.starCountLite : skyMotion.starCount;
-    const { starMinPeriod, starMaxPeriod, starMinRadius, starMaxRadius } = skyMotion;
-    const solaTop = bands.dateBottom;
-    const solaBand = bands.solaSize;
-    const sceneBand = scene.height * STAR_SCENE_SHARE;
-    return Array.from({ length: count }, (_, i) => {
-      const inScene = i % 3 !== 0;
-      return {
-        id: i,
-        x: seeded(i + 1) * size.width,
-        y: inScene ? scene.top + seeded(i + 41) * sceneBand : solaTop + seeded(i + 41) * solaBand,
-        r: starMinRadius + seeded(i + 83) * (starMaxRadius - starMinRadius),
-        period: starMinPeriod + seeded(i + 127) * (starMaxPeriod - starMinPeriod),
-        phase: seeded(i + 173) * TWO_PI,
-      };
-    });
-  }, [bands.dateBottom, bands.solaSize, lite, scene.height, scene.top, size.width]);
 
   // Petals only ever start from real blossoms on the two trees.
   const petalOrigins = useMemo(
@@ -464,10 +600,8 @@ export function SkyCanvas({ size, bands, minute, mood, clock, gust, shootingStar
         <LinearGradient start={vec(0, 0)} end={vec(0, size.height)} colors={colors} positions={[...skyStopPositions]} />
       </Rect>
 
-      {stars.map((s) => (
-        <Star key={s.id} x={s.x} y={s.y} r={s.r} period={s.period} phase={s.phase} clock={clock} night={night} />
-      ))}
-      <Moon x={bodyX} y={bodyY} phase={moonPhaseValue} minute={minute} />
+      <StarField size={size} horizon={scene.top + scene.height * sceneShapes.fuji.footY} clock={clock} night={night} lite={lite} />
+      <Moon x={bodyX} y={bodyY} minute={minute} />
       <Sun x={bodyX} y={bodyY} minute={minute} />
       {cloudLayers.map((layer) => (
         <CloudLayer
@@ -488,14 +622,23 @@ export function SkyCanvas({ size, bands, minute, mood, clock, gust, shootingStar
       />
 
       <StaticScene rect={scene} night={night} />
-      {Array.from({ length: streamShimmer.count }, (_, index) => (
-        <Shimmer key={index} index={index} rect={scene} clock={clock} />
+      <StreamWater rect={scene} minute={minute} clock={clock} />
+      {Array.from({ length: meadow.swayBatches }, (_, batch) => (
+        <TuftBatch
+          key={batch}
+          batch={batch}
+          width={size.width}
+          baseY={scene.top + scene.height - today.sheetOverlap + TUFT_BASE_BELOW_SHEET}
+          night={night}
+          clock={clock}
+          gust={gust}
+        />
       ))}
       <Tree
         limbs={trees.left}
         seedBase={11}
         pivotX={0}
-        pivotY={scene.top}
+        pivotY={scene.top + scene.height * treeDrop}
         rect={scene}
         night={night}
         clock={clock}
@@ -506,7 +649,7 @@ export function SkyCanvas({ size, bands, minute, mood, clock, gust, shootingStar
         limbs={trees.right}
         seedBase={503}
         pivotX={size.width}
-        pivotY={scene.top}
+        pivotY={scene.top + scene.height * treeDrop}
         rect={scene}
         night={night}
         clock={clock}

@@ -38,8 +38,6 @@ export const skyColor = {
   sun: ['#FFFFFF', '#FFCC00', 'rgba(255,141,40,0)'], // White, Yellow, Orange fading out.
   sunRadius: 30,
   moon: '#F2F2F7', // Gray 6.
-  moonDark: 'rgba(242,242,247,0.1)',
-  moonRadius: 16,
   // Clear sky to the right of Sola, between the date row and the headline.
   bodyX: 0.84,
   bodyBelowSola: 8,
@@ -50,12 +48,6 @@ export const skyColor = {
 } as const;
 
 export const skyMotion = {
-  starCount: 34,
-  starCountLite: 18,
-  starMinPeriod: 4,
-  starMaxPeriod: 9,
-  starMinRadius: 0.7,
-  starMaxRadius: 1.6,
   shootingMinGap: 10,
   shootingMaxGap: 20,
   shootingDuration: 0.9,
@@ -64,18 +56,55 @@ export const skyMotion = {
 
 // Drift in points per second. Slower layers read as further away.
 export const cloudLayers = [
-  { at: 0.1, scale: 0.6, speed: 2.2, opacity: 0.6, offset: 0.1 },
-  { at: 0.2, scale: 0.8, speed: 3.4, opacity: 0.85, offset: 0.55 },
-  { at: 0.34, scale: 1, speed: 4.8, opacity: 1, offset: 0.25 },
+  { at: 0.05, shape: 0, scale: 0.72, speed: 1.6, opacity: 0.7, offset: 0.62 },
+  { at: 0.16, shape: 1, scale: 0.92, speed: 2.6, opacity: 0.85, offset: 0.12 },
+  { at: 0.3, shape: 2, scale: 1.1, speed: 3.8, opacity: 1, offset: 0.42 },
 ] as const;
 
-export const cloudPuffs = [
-  { x: -40, y: 6, r: 16 },
-  { x: -18, y: -4, r: 22 },
-  { x: 12, y: -8, r: 26 },
-  { x: 40, y: 4, r: 17 },
-  { x: 0, y: 8, r: 22 },
+// Each cloud has its own shape: long, flat and uneven, as [x, y, radius].
+export const cloudShapes = [
+  [[-58, 7, 11], [-38, 2, 16], [-14, -5, 20], [14, -2, 17], [38, 4, 13], [60, 8, 8]],
+  [[-74, 9, 9], [-52, 5, 14], [-26, -3, 21], [4, -9, 25], [32, -2, 19], [58, 5, 14], [80, 9, 8]],
+  [[-44, 7, 13], [-22, -6, 18], [2, 2, 15], [24, -10, 21], [46, 0, 15], [70, 7, 10]],
 ] as const;
+
+export const cloudNight = {
+  body: '#001D33', // The night sky's own color, so clouds hide the stars behind them.
+  bodyOpacity: 0.82,
+  rimOpacity: 0.5,
+  rimOffsetX: 1.6, // Toward the moon, which sits up and to the right.
+  rimOffsetY: -2.4,
+  blur: 5,
+} as const;
+
+// A full moon's near side, as [x, y, xRadius, yRadius] in moon radii.
+export const moon = {
+  radius: 22,
+  maria: [
+    [-0.34, -0.36, 0.32, 0.3], // Imbrium.
+    [0.12, -0.38, 0.2, 0.18], // Serenitatis.
+    [0.32, -0.1, 0.25, 0.2], // Tranquillitatis.
+    [0.68, -0.32, 0.13, 0.12], // Crisium.
+    [0.62, 0.12, 0.16, 0.22], // Fecunditatis.
+    [-0.62, -0.02, 0.26, 0.42], // Procellarum.
+    [-0.42, 0.42, 0.14, 0.13], // Humorum.
+    [-0.12, 0.36, 0.24, 0.17], // Nubium.
+  ],
+  mariaColor: '#8E8E93', // Gray.
+  mariaOpacity: 0.5,
+  mariaBlur: 1.1,
+  tycho: { x: -0.06, y: 0.7, radius: 0.09 },
+  haloRadius: 3.6,
+  halo: ['rgba(242,242,247,0.34)', 'rgba(242,242,247,0.08)', 'rgba(242,242,247,0)'],
+  haloStops: [0.28, 0.5, 1],
+} as const;
+
+// The whole star field is one GPU shader. Fractions are of the screen height down to the horizon.
+export const starField = {
+  cell: 13, // One possible star per cell of this many points.
+  cellLite: 20,
+  milkyWay: 0.075,
+} as const;
 
 // Sola: the round, glowing orange character, drawn in a 200-point box.
 export const sola = {
@@ -102,6 +131,14 @@ export const sceneColor = {
   snow: '#FFFFFF',
   snowShadow: '#8E8E93',
   snowShadowOpacity: 0.14,
+  ridgeShadow: '#8E8E93', // Gray.
+  ridgeShadowOpacity: 0.15,
+  rock: '#1C1C1E', // Gray 6 (dark).
+  rockLineOpacity: 0.05,
+  rockTickOpacity: 0.09,
+  shadeOpacity: 0.2,
+  haze: '#F2F2F7', // Gray 6.
+  hazeOpacity: 0.62,
   snowNightOpacity: 0.3, // The snow keeps a little moonlight.
   reflectionOpacity: 0.22,
   pool: '#0088FF', // Blue.
@@ -109,8 +146,8 @@ export const sceneColor = {
   hill: '#34C759', // Green.
   hillFarOpacity: 0.26,
   hillNearOpacity: 0.42,
-  stream: '#00C3D0', // Teal.
-  streamOpacity: 0.6,
+  bank: '#956D51', // Brown, increased contrast.
+  bankOpacity: 0.34,
   branch: '#956D51', // Brown, increased contrast.
   // Soft pink: white, with a veil of HIG Pink over it. The center is Pink itself.
   flowerBase: '#FFFFFF',
@@ -180,28 +217,85 @@ export const sceneShapes = {
     [0.54, 0.2, 0.61, 0.29],
   ],
   // The water at Fuji's foot, and how far the reflection is squashed to fit it.
-  pool: { left: 0.16, right: 0.84, topY: 0.61, bottomY: 0.675, reflectionScale: 0.13 },
+  pool: { left: 0.1, right: 0.9, topY: 0.61, bottomY: 0.72, reflectionScale: 0.24 },
+  fujiDetail: {
+    ridgeCount: 11,
+    ridgeTop: 0.165,
+    ridgeMinBottom: 0.24,
+    ridgeMaxBottom: 0.4,
+    ridgeSpread: 0.28,
+    ridgeWidth: 0.006,
+    streakCount: 16,
+    streakMinLength: 0.015,
+    streakMaxLength: 0.055,
+    streakWidth: 0.008,
+    slopeCount: 26,
+    slopeTop: 0.36,
+    slopeMinBottom: 0.47,
+    slopeMaxBottom: 0.59,
+    slopeSpread: 0.48,
+    slopeWidth: 0.005,
+    tickCount: 150,
+    tickLength: 0.012,
+    hazeFromY: 0.4,
+    shadeToX: 0.5,
+  },
   // The stream: one S-curve from the water at Fuji's foot, widening as it comes toward the viewer.
   stream: {
-    topY: 0.668,
-    bottomY: 0.92,
+    topY: 0.712,
+    bottomY: 0.93,
     centerX: 0.5,
-    bendStart: 0.015,
+    bendStart: 0.008,
     bendGrowth: 0.13,
-    bends: 1.35,
-    widthStart: 0.022,
-    widthGrowth: 0.2,
-    samples: 28,
+    bends: 1.15,
+    widthStart: 0.012,
+    widthGrowth: 0.56,
+    widthPower: 1.8, // Perspective: most of the narrowing happens in the distance.
+    samples: 40,
+    bankScale: 1.28,
+    bankBlur: 3,
   },
 } as const;
 
+// Soft highlights flowing away from the viewer, toward the mountain.
 export const streamShimmer = {
-  count: 10,
-  speed: 0.045, // Fraction of the stream per second.
-  lengthRatio: 0.34,
-  minLength: 3,
-  peakOpacity: 0.6,
+  count: 14,
+  speed: 0.03, // Fraction of the stream per second.
+  lengthRatio: 0.42,
+  minLength: 0.008,
+  thicknessRatio: 0.016,
+  minThickness: 0.5,
+  blur: 1.2,
+  peakOpacity: 0.34,
 } as const;
+
+// The meadow darkens toward the viewer. Colors are HIG Green and Green (increased contrast).
+export const meadow = {
+  near: '#008932',
+  frontOpacity: 0.5,
+  bladeCount: 520,
+  bladeTop: 0.66,
+  bladeMinHeight: 0.006,
+  bladeMaxHeight: 0.035,
+  bladeWidth: 0.0028,
+  darkBladeOpacity: 0.24,
+  lightBladeOpacity: 0.3,
+  tuftCount: 14,
+  tuftBlades: 5,
+  tuftMinHeight: 11,
+  tuftMaxHeight: 22,
+  tuftSpread: 9,
+  tuftBlade: 2.2,
+  swayBatches: 4,
+  swaySpeed: 0.7,
+  swayAmount: 0.035,
+  gustAmount: 0.14,
+} as const;
+
+// The moon's soft streak on the water, as fractions of the stream.
+export const moonStreak = { at: 0.72, halfLength: 0.17, halfWidth: 0.05, opacity: 0.5, blur: 7 } as const;
+
+export const waterTint = { color: '#00C3D0', opacity: 0.2 } as const; // Teal.
 
 export type Limb = {
   points: readonly [readonly number[], readonly number[], readonly number[], readonly number[]];
@@ -229,6 +323,9 @@ export const trees: { left: readonly Limb[]; right: readonly Limb[] } = {
   ],
 };
 
+// How far the trees sit below the top of the scene, so they frame Fuji below its peak.
+export const treeDrop = 0.21;
+
 export const blossom = {
   radius: 4.2,
   petalOffset: 0.6,
@@ -243,8 +340,9 @@ export const blossom = {
 export const wind = {
   minGap: 15,
   maxGap: 30,
-  minPetals: 2,
-  maxPetals: 5,
+  minPetals: 1,
+  maxPetals: 3,
+  releaseChance: 0.45,
   swayLength: 4,
   swayPeriod: 1.7,
   swayRadians: 0.009,
@@ -258,6 +356,8 @@ export const fallingPetal = {
   swayPerSecond: 0.16,
   drift: 22,
   spinPerSecond: 0.55,
+  flutterPerSecond: 0.38, // The petal turning over as it falls.
+  flutterMin: 0.25,
   scale: 0.72,
   // Base at the bottom, broad middle, small notch at the tip.
   shape: 'M0 5 C-3.6 3 -4.6 -2 -2.2 -4.6 L0 -3.4 L2.2 -4.6 C4.6 -2 3.6 3 0 5 Z',

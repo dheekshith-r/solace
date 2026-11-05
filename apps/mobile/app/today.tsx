@@ -6,6 +6,7 @@ import { PlusJakartaSans_600SemiBold } from '@expo-google-fonts/plus-jakarta-san
 import { PlusJakartaSans_700Bold } from '@expo-google-fonts/plus-jakarta-sans/700Bold';
 import * as Device from 'expo-device';
 import { useFonts } from 'expo-font';
+import * as Haptics from 'expo-haptics';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -23,7 +24,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { scheduleOnRN } from 'react-native-worklets';
-import { minuteOfDay, moonPhase, wrapMinute } from '../src/features/sky/astro';
+import { minuteOfDay, wrapMinute } from '../src/features/sky/astro';
 import { SkyCanvas, type Gust } from '../src/features/sky/SkyCanvas';
 import { skyTextIsWhite } from '../src/features/sky/skyColors';
 import { MoodRow, Ring, TabBar } from '../src/features/today/parts';
@@ -91,7 +92,6 @@ function Today({ initialMinute, startOpen, firstGust }: {
   const [overridden, setOverridden] = useState(false);
   const [demoIndex, setDemoIndex] = useState(0);
   const [textIsWhite, setTextIsWhite] = useState(() => skyTextIsWhite(initialMinute));
-  const [moonValue] = useState(() => moonPhase(Date.now()));
   const [headlineHeight, setHeadlineHeight] = useState(ESTIMATED_HEADLINE_HEIGHT);
   const [restHeight, setRestHeight] = useState(ESTIMATED_REST_HEIGHT);
   const [statsHeight, setStatsHeight] = useState(ESTIMATED_STATS_HEIGHT);
@@ -136,8 +136,11 @@ function Today({ initialMinute, startOpen, firstGust }: {
     }
     // Mostly still. Every 15 to 30 seconds, a gust sways the branches and releases a few petals.
     if (t >= nextGustAt.get()) {
+      // Every gust sways the branches. Only some release petals, and always the first.
       const span = wind.maxPetals - wind.minPetals + 1;
-      gust.set({ start: t, count: wind.minPetals + Math.floor(Math.random() * span), seed: Math.random() });
+      const releases = gust.get().start < 0 || Math.random() < wind.releaseChance;
+      const count = releases ? wind.minPetals + Math.floor(Math.random() * span) : 0;
+      gust.set({ start: t, count, seed: Math.random() });
       nextGustAt.set(t + wind.minGap + Math.random() * (wind.maxGap - wind.minGap));
     }
   }, false);
@@ -179,6 +182,7 @@ function Today({ initialMinute, startOpen, firstGust }: {
   );
 
   const cycleSky = useCallback(() => {
+    void Haptics.selectionAsync();
     const target = demoMinutes[demoIndex % demoMinutes.length] ?? demoMinutes[0];
     const current = wrapMinute(minute.get());
     const delta = (target - current + 1440) % 1440;
@@ -231,7 +235,6 @@ function Today({ initialMinute, startOpen, firstGust }: {
         clock={clock}
         gust={gust}
         shootingStartedAt={shootingStartedAt}
-        moonPhaseValue={moonValue}
         lite={lite}
       />
 
