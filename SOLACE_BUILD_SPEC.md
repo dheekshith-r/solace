@@ -29,7 +29,7 @@ Verified against vendor pages on Nov 5, 2026. Anything marked **verify** must be
 
 **Must-have:**
 - **Sola speaks on the Today screen.** A specific line based on the user's recent mood and chats, not a static greeting.
-- **One connected loop.** Chat, check-in and breathing connect through Sola's suggestion cards, so each activity leads naturally to the next.
+- **One connected loop.** Chat, the mood check-in and breathing connect through Sola's suggestion cards, so each activity leads naturally to the next.
 - **Before and after mood.** After an activity, show the mood before and after it.
 - **Notifications in Sola's voice.** Written using the user's context, not generic reminders.
 
@@ -148,7 +148,7 @@ SSE event types: `delta {text}`, `meta {mood, suggestedAction, title}`, `crisis 
 - Scheduling: daily repeating triggers at the user's chosen times. These are inexact on Android, which is fine for reminders; do not request the exact-alarm permission.
 - Each notification carries `data.url` (for example `solace://checkin`). Tap handling uses `addNotificationResponseReceivedListener` while running and `getLastNotificationResponseAsync()` on cold start, then routes with expo-router after auth is ready.
 - Settings changes reschedule everything (cancel all, schedule enabled ones). Settings are stored in MMKV and synced to `PUT /me/settings`.
-- Copy is gentle and varied; the daily affirmation notification uses the day's cached affirmation text.
+- Copy is gentle and varied, and uses the product names consistently: "mood check-in" for the quick one on Today, "Reflect" for the hub. The daily affirmation notification uses the day's cached affirmation text.
 
 ---
 
@@ -162,7 +162,7 @@ All ids are `uuid` (default `gen_random_uuid()`), all timestamps `timestamptz` d
 
 **mood_checkins**: id, user_id → users (cascade), mood (smallint 1–5), note (text, nullable, max 280), source (`home` \| `post_breathe` \| `chat`), created_at. Index on (user_id, created_at desc).
 
-**assessments**: id, user_id → users (cascade), kind (`mood` \| `anxiety` \| `self_talk`), answers (jsonb), score (smallint), band (`steady` \| `stretched` \| `strained`), moves (jsonb), created_at. Stores results from the Check-ins hub.
+**assessments**: id, user_id → users (cascade), kind (`mood` \| `anxiety` \| `self_talk`), answers (jsonb), score (smallint), band (`steady` \| `stretched` \| `strained`), moves (jsonb), created_at. Stores results from Reflect. The `kind` and `moves` columns arrive with a migration in Phase 5.
 
 **conversations**: id, user_id → users (cascade), title (text, nullable), summary (text, nullable), last_message_at, message_count (int), created_at. Index on (user_id, last_message_at desc).
 
@@ -237,7 +237,7 @@ System prompt rules (Opus writes the final prompt in `apps/api/src/ai/prompts.ts
 
 - Daily affirmation: generated once per user per day from goal + recent mood; fallback list of 30 handwritten ones.
 - Check-in suggestion: after a mood check-in, one sentence suggestion + action.
-- Check-in moves: three wellness moves for this user from their result, recent moods and chats, each mapped to an activity.
+- Reflect moves: three wellness moves for this user from their result, recent moods and chats, each mapped to an activity.
 - Conversation summary: max 80 words, facts and feelings only.
 
 ### 5.4 Evaluation before demo
@@ -262,7 +262,7 @@ apps/mobile/
     (tabs)/you.tsx            progress, streak calendar, settings entry
     breathe.tsx               full-screen modal
     checkin.tsx               form-sheet modal (mood + note)
-    check-ins/                hub, one question at a time in the sky, results
+    reflect/                  hub, one question at a time in the sky, results
     resources/index.tsx, resources/[slug].tsx
     settings/reminders.tsx, settings/privacy.tsx
   src/
@@ -279,7 +279,7 @@ packages/shared/
 ### 6.1 Navigation
 
 - Three tabs in a floating pill bar: **Today**, **Sola** (chat), **You** (progress and settings). The pill slides between tabs with a spring.
-- Breathe and Check-in open as modals over the tabs from anywhere (Today, a chat suggestion card, a notification).
+- Breathe and the mood check-in open as modals over the tabs from anywhere (Today, a chat suggestion card, a notification).
 - Deep links: `solace://today`, `solace://checkin`, `solace://breathe`, `solace://sola/new`, `solace://sola/:id`.
 - Android back button: closes modals first, then pops stacks, then exits from Today. Never traps the user.
 
@@ -345,7 +345,7 @@ Everything is slow and few, so it stays calm.
 - **Stars:** 30 to 40, twinkling slowly and out of sync. A shooting star only every 10 to 20 seconds.
 - **Clouds:** two or three layers drifting at different speeds for depth.
 - **Mood:** the sky brightens or dims with the mood.
-- **Streak:** a constellation. One star is added to the night sky per check-in day, joined through the week.
+- **Streak:** a constellation. One star is added to the night sky per day with any activity, whatever the user does that day, joined through the week.
 - **Performance:** one Skia canvas. It pauses when Today isn't focused. Moving parts turn off with reduce-motion.
 - **Demo control:** a hidden long-press on the sky cycles dawn, day, dusk and night for recording.
 
@@ -365,13 +365,15 @@ Offline and timeout errors show within a few seconds, never after a long wait. R
    - **Suggestion:** a speech bubble from Sola with one action button inside.
    - **Streak:** the constellation in the sky. No streak or XP cards on Today; detailed stats live on the You tab.
    - The tab bar never overlaps content.
-5. **Check-in** (sheet): mood, optional note, save → +10 XP toast, Sola reacts.
+5. **Mood check-in** (sheet): mood, optional note, save → +10 XP toast, Sola reacts.
 6. **Sola tab**: history list (title, preview, time; swipe left to delete with confirm; "New conversation" button) → conversation screen (streamed replies, suggestion cards that deep-link, quick-reply chips when empty, keyboard-aware input).
 7. **Breathe** (full-screen): pick a pattern (Calm 4-4-6, Box 4-4-4-4, Sleep 4-7-8), 4 rounds, orb scales on the UI thread, phase label and countdown, haptic per phase, finish → "How do you feel now?" quick mood → +15 XP.
-8. **Check-ins hub**: three short screenings of 4 questions each, labelled "friendly check-ins, not diagnoses": Mood (PHQ-4 style), Anxiety (GAD style) and Self-talk. Keeps the sky design, not a saturated card stack.
-   - **Questions:** Sola asks each one at a time in the sky, conversationally, with soft tappable answers on a 0–3 scale. Not a form.
+8. **Reflect**: three short screenings of 4 questions each, labelled "friendly check-ins, not diagnoses": Mood (PHQ-4 style), Anxiety (GAD style) and Self-talk. Keeps the sky design, not a saturated card stack.
+   - **Questions:** Sola asks each one at a time in the sky, conversationally, with soft tappable answers on a 0–3 scale. Not a form. Before shipping, verify PHQ-4 and GAD wording and usage terms from official sources, and phrase questions in our own words where needed.
    - **Results:** a gentle score band with a kind name, a "not a diagnosis" note, a Tele-MANAS 14416 call button, and three wellness moves written by the AI for this user from their recent moods and chats (only when `personalize` is on). Each move is tappable and opens the matching activity.
-   - **Streak:** completing a check-in adds a star to the constellation.
+   - **Safety:** all typed text in Reflect goes through the crisis pre-check. The lowest band shows a prominent, warm prompt, "Want to talk to someone right now?", with the Tele-MANAS 14416 call button and an option to talk to Sola.
+   - **Streak:** counts toward the day's constellation star (section 7.7).
+   - **Colors:** Apple HIG tokens only (section 7.2).
 9. **You**: streak calendar (last 5 weeks), mood trend (simple SVG line, last 14 days), level and XP, links to reminders, privacy (personalize toggle, delete all chats, delete account), resources, appearance (section 7.2), log out.
 10. **Reminders**: toggles and time pickers per reminder type, custom reminders (add, edit, delete), "send a test notification" button.
 11. **Resources**: 5 short guides (Mindfulness 101, Anxiety toolkit with 5-4-3-2-1 grounding, Beating the blues, Self-esteem reset, Sleep wind-down) + a Get help now page (Tele-MANAS 14416, call button) + "not a substitute for professional care" note.
@@ -432,12 +434,12 @@ Each phase ends with its acceptance check passing on the phone. No phase starts 
 | 2. Auth + onboarding | Fri | Splash, onboarding, sign up, log in, refresh, logout | Full auth tests pass; kill and reopen stays logged in |
 | 3. Today + check-ins + XP | Fri–Sat | `/today`, check-ins, suggestion card, streak/level ring, affirmation | Check-in updates Sola, ring, streak, and survives restart |
 | 4. Sola chat | Sat | Conversations, streaming, safety, classification, cards, history, delete, summaries | 12-message AI eval reads well; delete is real; crisis path shows the helpline |
-| 5. Breathe + check-ins hub | Sun | Breathing patterns, post-session mood, three check-ins with AI moves | 60 fps on the orb; XP awarded once per session; each move opens its activity |
+| 5. Breathe + Reflect | Sun | Breathing patterns, post-session mood, Reflect's three check-ins with AI moves, `assessments` migration (`kind`, `moves`) | 60 fps on the orb; XP awarded once per session; each move opens its activity; crisis pre-check and lowest-band prompt work; question wording and usage terms verified |
 | 6. Notifications + settings | Sun | Channels, schedules, custom reminders, deep links, privacy controls | Notification fires with the app killed and opens the right screen |
 | 7. Polish + perf | Mon morning | Empty/error states, budget check, accessibility pass, copy pass | Performance budget met; Maestro flow green |
 | 8. Ship | Mon | Release APK, fresh-install test, demo video | Submitted Monday night; Tuesday morning is buffer only |
 
-Cut order if time runs short (last cut first): check-ins hub → custom reminders → mood trend chart → resources detail pages. Never cut: auth, chat + history, breathing, notifications, Today.
+Cut order if time runs short (last cut first): Reflect → custom reminders → mood trend chart → resources detail pages. Never cut: auth, chat + history, breathing, notifications, Today.
 
 ---
 

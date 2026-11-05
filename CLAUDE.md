@@ -24,6 +24,7 @@ Fewer screens, done extremely well, beat many screens done badly.
 
 ## Design and motion rules
 - Every color, size, radius, spacing value and spring config comes from `src/theme/`. Never hardcode them in components.
+- The Apple HIG palette (spec section 7.2) is locked as the design system. Use only its tokens for every new screen and component. Don't introduce new colors; if something needs one, ask Ddk first.
 - Animate only `transform` and `opacity`, on the UI thread. One shared spring, one shared easing.
 - One hero moment per screen. Sola the mascot is the signature element; keep everything around it quiet.
 - Every screen has loading (skeleton), empty, error and offline states.
@@ -33,7 +34,8 @@ Fewer screens, done extremely well, beat many screens done badly.
 
 ## AI and safety rules
 - Sola reflects what the user actually said. No generic motivation.
-- Crisis language triggers the server-side pre-check and the helpline card (Tele-MANAS 14416). Never give method details.
+- Crisis language triggers the server-side pre-check and the helpline card (Tele-MANAS 14416). Never give method details. All typed text in Reflect goes through the same pre-check.
+- Names: "mood check-in" is the quick one on Today; "Reflect" is the hub. Use them consistently in the UI, spec and notification copy.
 - 18+ confirmation at signup. Gemini data notice at signup. "Not a substitute for professional help" in the crisis flow, resources and settings.
 - Personal history is used only when the user's personalize toggle is on.
 
