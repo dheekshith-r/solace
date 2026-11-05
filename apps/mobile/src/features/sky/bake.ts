@@ -4,6 +4,7 @@
 import { Skia, type SkCanvas, type SkImage, type SkPath } from '@shopify/react-native-skia';
 import { cloudLayers, moon, sceneColor, sceneShapes, type Limb } from '../../theme/sky';
 import { petalOutline, treeShape, type SceneRect } from './landscape';
+import { perfSettings } from './perf';
 import { landscapeEffect } from './landscapeShader';
 import { barkEffect, cloudEffect, moonEffect } from './paintShaders';
 import { hexToRgb, mixRgb, type Rgb } from './skyColors';
@@ -44,13 +45,18 @@ function landscapeColors(light: Light) {
 function bakeInto(width: number, height: number, scale: number, draw: (canvas: SkCanvas) => void): SkImage | null {
   const w = Math.ceil(width * scale);
   const h = Math.ceil(height * scale);
-  const surface = Skia.Surface.MakeOffscreen(w, h) ?? Skia.Surface.Make(w, h);
+  const surface = perfSettings.rasterBake ? Skia.Surface.Make(w, h) : (Skia.Surface.MakeOffscreen(w, h) ?? Skia.Surface.Make(w, h));
   if (!surface) return null;
   const canvas = surface.getCanvas();
   canvas.scale(scale, scale);
   draw(canvas);
   surface.flush();
-  return surface.makeImageSnapshot().makeNonTextureImage();
+  const snapshot = surface.makeImageSnapshot();
+  const image = snapshot.makeNonTextureImage();
+  // Free these right away rather than waiting for garbage collection.
+  snapshot.dispose();
+  surface.dispose();
+  return image;
 }
 
 export function bakeLandscape(rect: SceneRect, light: Light): SkImage | null {

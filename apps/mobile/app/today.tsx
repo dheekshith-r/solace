@@ -1,5 +1,5 @@
 // Today: the mood check-in and suggestion in a sheet, with the scene behind them (spec sections 7.7 and 8). Copy and
-// numbers are sample data until Phase 3 connects the API. The m, gust and v params only
+// numbers are sample data until Phase 3 connects the API. The m, gust, v, perf and raster params only
 // exist for screenshots.
 import { PlusJakartaSans_400Regular } from '@expo-google-fonts/plus-jakarta-sans/400Regular';
 import { PlusJakartaSans_600SemiBold } from '@expo-google-fonts/plus-jakarta-sans/600SemiBold';
@@ -19,12 +19,14 @@ import Animated, {
   useSharedValue,
   withSpring,
   withTiming,
+  type SharedValue,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { scheduleOnRN } from 'react-native-worklets';
 import { minuteOfDay, wrapMinute } from '../src/features/sky/astro';
 import { SkyCanvas, type Gust } from '../src/features/sky/SkyCanvas';
-import { skyTextIsWhite } from '../src/features/sky/skyColors';
+import { addFrame, configurePerf, describeWindow, emptyFrameWindow, logPerf, type FrameWindow } from '../src/features/sky/perf';
+import { nightAmount, skyTextIsWhite } from '../src/features/sky/skyColors';
 import { MoodRow, TabBar } from '../src/features/today/parts';
 import { duration, easing, spring } from '../src/theme/motion';
 import { demoMinutes, moodNeutral, skyMotion, skyTimes, sola, wind } from '../src/theme/sky';
@@ -46,6 +48,7 @@ const MINUTE_MS = 60_000;
 const LONG_PRESS_MS = 700;
 const ESTIMATED_REST_HEIGHT = 290;
 const DATE_LINE_HEIGHT = 18;
+const PERF_WINDOW_S = 5;
 
 const copy = {
   day: {
@@ -65,10 +68,10 @@ function formatDate(date: Date): string {
   return date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
 }
 
-function Chrome({ palette, words, selected, onSelect, headerTop, clearance, tabBottom, onSheetHeight, hidden }: {
+function Chrome({ palette, words, level, onSelect, headerTop, clearance, tabBottom, onSheetHeight, hidden }: {
   palette: Palette;
   words: { suggestion: string };
-  selected: number;
+  level: SharedValue<number>;
   onSelect: (mood: number) => void;
   headerTop: number;
   clearance: number;
@@ -84,7 +87,7 @@ function Chrome({ palette, words, selected, onSelect, headerTop, clearance, tabB
       <View style={[styles.sheet, { backgroundColor: palette.surface }]}>
         <View onLayout={onSheetHeight} style={styles.sheetBlock}>
           <Text style={[styles.heading, { color: palette.ink }]}>How are you arriving?</Text>
-          <MoodRow mood={selected} palette={palette} onSelect={onSelect} />
+          <MoodRow level={level} palette={palette} onSelect={onSelect} />
           <View style={[styles.separator, { backgroundColor: palette.separator }]} />
           <View style={[styles.suggestion, { backgroundColor: palette.tint }]}>
             <Text style={[styles.body, styles.flex, { color: palette.ink }]}>{words.suggestion}</Text>
@@ -100,9 +103,10 @@ function Chrome({ palette, words, selected, onSelect, headerTop, clearance, tabB
   );
 }
 
-function Today({ initialMinute, firstGust }: {
+function Today({ initialMinute, firstGust, perf }: {
   initialMinute: number;
   firstGust: number;
+  perf: boolean;
 }) {
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
@@ -111,15 +115,19 @@ function Today({ initialMinute, firstGust }: {
   const lite = (Device.totalMemory ?? LITE_MODE_BYTES) < LITE_MODE_BYTES;
   const moving = !reducedMotion && !lite;
 
-  const [selected, setSelected] = useState<number>(moodNeutral);
   const [displayMinute, setDisplayMinute] = useState(initialMinute);
   const [overridden, setOverridden] = useState(false);
   const [demoIndex, setDemoIndex] = useState(0);
   const [textIsWhite, setTextIsWhite] = useState(() => skyTextIsWhite(initialMinute));
-  const [restHeight, setRestHeight] = useState(ESTIMATED_REST_HEIGHT);
+  const [restHeight, setRestHeight] = useState<number | null>(null);
+  // The light/dark fade: a second copy of the controls exists only while it runs.
+  const [fadingFrom, setFadingFrom] = useState<Palette | null>(null);
 
   const minute = useSharedValue(initialMinute);
   const mood = useSharedValue<number>(moodNeutral);
+  const level = useSharedValue<number>(moodNeutral);
+  const chromeFade = useSharedValue(0);
+  const frameWindow = useSharedValue<FrameWindow>(emptyFrameWindow(0));
   const clock = useSharedValue(0);
   const shootingStartedAt = useSharedValue(-100);
   const nextShootingAt = useSharedValue<number>(skyMotion.shootingMinGap);
@@ -132,9 +140,12 @@ function Today({ initialMinute, firstGust }: {
   // Sola sits low enough that its glow clears the date.
   const solaCenterY = dateBottom + solaSize * sola.glowRatio + spacing.sm;
   const clearance = tabBarHeight + insets.bottom + spacing.md + spacing.md;
-  const restVisible = restHeight + clearance;
+  const restVisible = (restHeight ?? ESTIMATED_REST_HEIGHT) + clearance;
   const sceneTop = solaCenterY + solaSize * sola.sceneOverlap;
   const sceneBottom = height - restVisible + today.sheetOverlap;
+
+  const [startsAtNight] = useState(() => nightAmount(initialMinute) > 0.5);
+  const reportFrames = useCallback((w: FrameWindow) => logPerf(describeWindow(w)), []);
 
   const bands = useMemo(
     () => ({
@@ -150,6 +161,15 @@ function Today({ initialMinute, firstGust }: {
     // Continuous time: it only ever adds up, so loops never restart, even after a pause.
     const t = clock.get() + (info.timeSincePreviousFrame ?? 0) / 1000;
     clock.set(t);
+    if (perf && info.timeSincePreviousFrame !== null) {
+      const w = addFrame(frameWindow.get(), info.timeSincePreviousFrame);
+      if (t - w.started >= PERF_WINDOW_S) {
+        scheduleOnRN(reportFrames, w);
+        frameWindow.set(emptyFrameWindow(t));
+      } else {
+        frameWindow.set(w);
+      }
+    }
     if (t >= nextShootingAt.get()) {
       shootingStartedAt.set(t);
       const gap = skyMotion.shootingMaxGap - skyMotion.shootingMinGap;
@@ -187,17 +207,31 @@ function Today({ initialMinute, firstGust }: {
     return () => clearInterval(timer);
   }, [minute, overridden]);
 
+  const clearFade = useCallback(() => setFadingFrom(null), []);
+  const changeScheme = useCallback(
+    (white: boolean) => {
+      setFadingFrom(white ? colors.light : colors.dark);
+      setTextIsWhite(white);
+      chromeFade.set(1);
+      chromeFade.set(
+        withTiming(0, { duration: duration.entrance, easing }, (finished) => {
+          if (finished) scheduleOnRN(clearFade);
+        }),
+      );
+    },
+    [chromeFade, clearFade],
+  );
   useAnimatedReaction(
     () => skyTextIsWhite(minute.get()),
     (white, previous) => {
-      if (white !== previous) scheduleOnRN(setTextIsWhite, white);
+      if (previous !== null && white !== previous) scheduleOnRN(changeScheme, white);
     },
   );
 
+  // No React state here: a tap doesn't re-render this screen or redraw the scene from scratch.
   const pickMood = useCallback(
-    (level: number) => {
-      mood.set(withSpring(level, spring));
-      setSelected(level);
+    (next: number) => {
+      mood.set(withSpring(next, spring));
     },
     [mood],
   );
@@ -213,15 +247,12 @@ function Today({ initialMinute, firstGust }: {
     setDisplayMinute(target);
   }, [demoIndex, minute]);
 
-  const darkness = useSharedValue(textIsWhite ? 1 : 0);
-  useEffect(() => {
-    darkness.set(withTiming(textIsWhite ? 1 : 0, { duration: duration.entrance, easing }));
-  }, [darkness, textIsWhite]);
-  const lightStyle = useAnimatedStyle(() => ({ opacity: 1 - darkness.get() }));
-  const darkStyle = useAnimatedStyle(() => ({ opacity: darkness.get() }));
-
-  const measure = (setter: (value: number) => void) => (event: LayoutChangeEvent) =>
-    setter(Math.ceil(event.nativeEvent.layout.height));
+  const fadeStyle = useAnimatedStyle(() => ({ opacity: chromeFade.get() }));
+  // Measured once: the scene is baked to this size, and baking twice wastes memory and time.
+  const onSheetHeight = useCallback((event: LayoutChangeEvent) => {
+    const measured = Math.ceil(event.nativeEvent.layout.height);
+    setRestHeight((current) => current ?? measured);
+  }, []);
 
   const words = isNightCopy(displayMinute) ? copy.night : copy.day;
 
@@ -231,6 +262,8 @@ function Today({ initialMinute, firstGust }: {
       <SkyCanvas
         size={size}
         bands={bands}
+        sceneReady={restHeight !== null}
+        startsAtNight={startsAtNight}
         minute={minute}
         mood={mood}
         clock={clock}
@@ -241,24 +274,25 @@ function Today({ initialMinute, firstGust }: {
 
       <Pressable style={StyleSheet.absoluteFill} onLongPress={cycleSky} delayLongPress={LONG_PRESS_MS} accessible={false} />
 
-      {/* One set of controls per scheme, cross-faded, so nothing snaps between light and dark. */}
-      <Animated.View style={[StyleSheet.absoluteFill, lightStyle]} pointerEvents={textIsWhite ? 'none' : 'box-none'}>
-        <Chrome palette={colors.light} words={words} selected={selected} onSelect={pickMood} headerTop={headerTop} clearance={clearance} tabBottom={insets.bottom + spacing.md} onSheetHeight={measure(setRestHeight)} hidden={textIsWhite} />
-      </Animated.View>
-      <Animated.View style={[StyleSheet.absoluteFill, darkStyle]} pointerEvents={textIsWhite ? 'box-none' : 'none'}>
-        <Chrome palette={colors.dark} words={words} selected={selected} onSelect={pickMood} headerTop={headerTop} clearance={clearance} tabBottom={insets.bottom + spacing.md} hidden={!textIsWhite} />
-      </Animated.View>
+      <Chrome palette={textIsWhite ? colors.dark : colors.light} words={words} level={level} onSelect={pickMood} headerTop={headerTop} clearance={clearance} tabBottom={insets.bottom + spacing.md} onSheetHeight={onSheetHeight} hidden={false} />
+      {fadingFrom ? (
+        <Animated.View style={[StyleSheet.absoluteFill, fadeStyle]} pointerEvents="none">
+          <Chrome palette={fadingFrom} words={words} level={level} onSelect={pickMood} headerTop={headerTop} clearance={clearance} tabBottom={insets.bottom + spacing.md} hidden />
+        </Animated.View>
+      ) : null}
     </View>
   );
 }
 
 export default function TodayScreen() {
-  const params = useLocalSearchParams<{ m?: string; v?: string; gust?: string }>();
+  const params = useLocalSearchParams<{ m?: string; v?: string; gust?: string; perf?: string; raster?: string }>();
   const [loaded] = useFonts({
     PlusJakartaSans_400Regular,
     PlusJakartaSans_600SemiBold,
     PlusJakartaSans_700Bold,
   });
+  // Baking waits for the first frame, so this runs in time to measure it.
+  useEffect(() => configurePerf(params.perf === '1', params.raster === '1'), [params.perf, params.raster]);
   if (!loaded) return null;
 
   const fromParam = Number(params.m);
@@ -270,6 +304,7 @@ export default function TodayScreen() {
       key={`${params.m ?? ''}-${params.v ?? ''}`}
       initialMinute={initialMinute}
       firstGust={gustParam > 0 ? gustParam : wind.minGap}
+      perf={params.perf === '1'}
     />
   );
 }

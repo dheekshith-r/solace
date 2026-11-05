@@ -1,6 +1,7 @@
 import { blossom, fallingPetal, goldenHour, meadow, sceneShapes, skyColor, treeDrop, trees, wind } from '../../../theme/sky';
 import { colors } from '../../../theme/tokens';
 import { isSleepy, moonIllumination, moonLitPath, moonPhase, moonProgress, sideArc, sleepyAmount, sunProgress, wrapMinute } from '../astro';
+import { addFrame, describeWindow, emptyFrameWindow } from '../perf';
 import { gustSway, petalOutline, petalPose, streamAt, treeShape, tuftBatch, twigsOf } from '../landscape';
 import {
   contrastBetween,
@@ -201,6 +202,17 @@ describe('trees', () => {
     const p = petalOutline(0, 0, 0, 10);
     expect(p.notch.x).toBeLessThan(p.tipLeft.x);
     expect(p.tipLeft.y).toBeCloseTo(-p.tipRight.y);
+  });
+});
+
+describe('frame timer', () => {
+  it('counts each frame into every bucket it exceeds and keeps the worst gap', () => {
+    let w = emptyFrameWindow(0);
+    [8, 12, 20, 40].forEach((gap) => {
+      w = addFrame(w, gap);
+    });
+    expect(w).toMatchObject({ frames: 4, total: 80, over9: 3, over17: 2, over34: 1, worst: 40 });
+    expect(describeWindow(w)).toContain('fps=50.0');
   });
 });
 

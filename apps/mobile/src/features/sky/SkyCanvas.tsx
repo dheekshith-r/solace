@@ -12,10 +12,12 @@ import {
   Shader,
   Skia,
   vec,
+  type SkImage,
 } from '@shopify/react-native-skia';
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { StyleSheet } from 'react-native';
-import { useDerivedValue, type SharedValue } from 'react-native-reanimated';
+import { useDerivedValue, useSharedValue, withTiming, type SharedValue } from 'react-native-reanimated';
+import { duration, easing } from '../../theme/motion';
 import {
   cloudLayers,
   fallingPetal,
@@ -33,14 +35,13 @@ import {
   trees,
   water,
   wind,
-  type Limb,
 } from '../../theme/sky';
 import { today } from '../../theme/tokens';
 import { moonProgress, sideArc, sleepyAmount, sunProgress } from './astro';
-import { bakeCloud, bakeLandscape, bakeMoon, bakeTree } from './bake';
 import { gustSway, petalPose, treeShape, tuftBatch, type SceneRect } from './landscape';
 import { goldenAmount, hexToRgb, moonAmount, nightAmount, rgbToCss, sunAmount, timeStops, type Rgb } from './skyColors';
 import { starEffect } from './starShader';
+import { useSceneImages, type SceneImages } from './useSceneImages';
 import { splashEffect, waterEffect } from './waterShader';
 
 const TWO_PI = Math.PI * 2;
@@ -60,15 +61,18 @@ export type SkyBands = {
   scene: SceneRect;
 };
 
-function CloudLayer({ layer, y, width, clock, night }: {
+function CloudLayer({ layer, index, images, y, width, clock, night }: {
   layer: (typeof cloudLayers)[number];
+  index: number;
+  images: SceneImages;
   y: number;
   width: number;
   clock: SharedValue<number>;
   night: SharedValue<number>;
 }) {
   const span = width + layer.width + CLOUD_MARGIN;
-  const images = useMemo(() => ({ day: bakeCloud(layer, 'day'), night: bakeCloud(layer, 'night') }), [layer]);
+  const dayImage = images[`cloud.${index}.day`];
+  const nightImage = images[`cloud.${index}.night`];
   const dayOpacity = useDerivedValue(() => 1 - night.get());
   const transform = useDerivedValue(() => {
     const x = ((clock.get() * layer.speed + span * layer.offset) % span) - layer.width - CLOUD_MARGIN / 2;
@@ -76,8 +80,8 @@ function CloudLayer({ layer, y, width, clock, night }: {
   });
   return (
     <Group transform={transform}>
-      {images.day ? <SkiaImage image={images.day} x={0} y={0} width={layer.width} height={layer.height} fit="fill" opacity={dayOpacity} /> : null}
-      {images.night ? <SkiaImage image={images.night} x={0} y={0} width={layer.width} height={layer.height} fit="fill" opacity={night} /> : null}
+      {dayImage ? <SkiaImage image={dayImage} x={0} y={0} width={layer.width} height={layer.height} fit="fill" opacity={dayOpacity} /> : null}
+      {nightImage ? <SkiaImage image={nightImage} x={0} y={0} width={layer.width} height={layer.height} fit="fill" opacity={night} /> : null}
     </Group>
   );
 }
@@ -120,9 +124,8 @@ function Sun({ width, apexY, endY, minute }: { width: number; apexY: number; end
   );
 }
 
-function Moon({ width, apexY, endY, minute }: { width: number; apexY: number; endY: number; minute: SharedValue<number> }) {
+function Moon({ image, width, apexY, endY, minute }: { image: SkImage | null | undefined; width: number; apexY: number; endY: number; minute: SharedValue<number> }) {
   const r = moon.radius;
-  const image = useMemo(() => bakeMoon(), []);
   const opacity = useDerivedValue(() => moonAmount(minute.get()));
   const transform = useDerivedValue(() => {
     const p = sideArc(moonProgress(minute.get()), width, apexY, endY, skyColor.moonEdgeX, skyColor.moonReachX);
@@ -165,18 +168,17 @@ function ShootingStar({ clock, startedAt, startX, startY, night }: {
 }
 
 /** The landscape: painted once for day, golden hour and night, cross-faded with the time of day. */
-function StaticScene({ rect, night, minute }: { rect: SceneRect; night: SharedValue<number>; minute: SharedValue<number> }) {
-  const images = useMemo(
-    () => ({ day: bakeLandscape(rect, 'day'), golden: bakeLandscape(rect, 'golden'), night: bakeLandscape(rect, 'night') }),
-    [rect],
-  );
+function StaticScene({ images, rect, night, minute }: { images: SceneImages; rect: SceneRect; night: SharedValue<number>; minute: SharedValue<number> }) {
+  const dayImage = images['landscape.day'];
+  const goldenImage = images['landscape.golden'];
+  const nightImage = images['landscape.night'];
   const golden = useDerivedValue(() => goldenAmount(minute.get()));
   const place = { x: 0, y: rect.top, width: rect.width, height: rect.height, fit: 'fill' as const };
   return (
     <>
-      {images.day ? <SkiaImage image={images.day} {...place} /> : null}
-      {images.golden ? <SkiaImage image={images.golden} {...place} opacity={golden} /> : null}
-      {images.night ? <SkiaImage image={images.night} {...place} opacity={night} /> : null}
+      {dayImage ? <SkiaImage image={dayImage} {...place} /> : null}
+      {goldenImage ? <SkiaImage image={goldenImage} {...place} opacity={golden} /> : null}
+      {nightImage ? <SkiaImage image={nightImage} {...place} opacity={night} /> : null}
     </>
   );
 }
@@ -268,9 +270,9 @@ function StreamWater({ rect, minute, clock }: { rect: SceneRect; minute: SharedV
 }
 
 /** One overhanging tree: baked once for day and night. Only its sway animates. */
-function Tree({ limbs, seedBase, regionX, regionWidth, pivotX, pivotY, rect, night, clock, gust, swaySign }: {
-  limbs: readonly Limb[];
-  seedBase: number;
+function Tree({ dayImage, nightImage, regionX, regionWidth, pivotX, pivotY, rect, night, clock, gust, swaySign }: {
+  dayImage: SkImage | null | undefined;
+  nightImage: SkImage | null | undefined;
   regionX: number;
   regionWidth: number;
   pivotX: number;
@@ -281,18 +283,11 @@ function Tree({ limbs, seedBase, regionX, regionWidth, pivotX, pivotY, rect, nig
   gust: SharedValue<Gust>;
   swaySign: number;
 }) {
-  const images = useMemo(
-    () => ({
-      day: bakeTree(limbs, rect, seedBase, regionX, regionWidth, 'day'),
-      night: bakeTree(limbs, rect, seedBase, regionX, regionWidth, 'night'),
-    }),
-    [limbs, rect, regionWidth, regionX, seedBase],
-  );
   const transform = useDerivedValue(() => [{ rotate: swaySign * gustSway(clock.get() - gust.get().start) }]);
   return (
     <Group transform={transform} origin={vec(pivotX, pivotY)}>
-      {images.day ? <SkiaImage image={images.day} x={regionX} y={rect.top} width={regionWidth} height={rect.height} fit="fill" /> : null}
-      {images.night ? <SkiaImage image={images.night} x={regionX} y={rect.top} width={regionWidth} height={rect.height} fit="fill" opacity={night} /> : null}
+      {dayImage ? <SkiaImage image={dayImage} x={regionX} y={rect.top} width={regionWidth} height={rect.height} fit="fill" /> : null}
+      {nightImage ? <SkiaImage image={nightImage} x={regionX} y={rect.top} width={regionWidth} height={rect.height} fit="fill" opacity={night} /> : null}
     </Group>
   );
 }
@@ -404,9 +399,11 @@ function Sola({ cx, cy, size, mood, minute, night, clock }: {
   );
 }
 
-export function SkyCanvas({ size, bands, minute, mood, clock, gust, shootingStartedAt, lite }: {
+export function SkyCanvas({ size, bands, sceneReady, startsAtNight, minute, mood, clock, gust, shootingStartedAt, lite }: {
   size: Size;
   bands: SkyBands;
+  sceneReady: boolean;
+  startsAtNight: boolean;
   minute: SharedValue<number>;
   mood: SharedValue<number>;
   clock: SharedValue<number>;
@@ -417,6 +414,12 @@ export function SkyCanvas({ size, bands, minute, mood, clock, gust, shootingStar
   const colors = useDerivedValue(() => timeStops(minute.get()).map(rgbToCss));
   const night = useDerivedValue(() => nightAmount(minute.get()));
   const { scene } = bands;
+  const images = useSceneImages(scene, size.width, sceneReady, startsAtNight);
+  const hasScene = Boolean(images[startsAtNight ? 'landscape.night' : 'landscape.day']);
+  const sceneOpacity = useSharedValue(0);
+  useEffect(() => {
+    if (hasScene) sceneOpacity.set(withTiming(1, { duration: duration.entrance, easing }));
+  }, [hasScene, sceneOpacity]);
   const arcApexY = bands.dateBottom + skyColor.arcApexBelowDate;
   const arcEndY = bands.solaCenterY + bands.solaSize * skyColor.arcEndBelowSola;
 
@@ -433,10 +436,11 @@ export function SkyCanvas({ size, bands, minute, mood, clock, gust, shootingStar
       </Rect>
 
       <StarField size={size} horizon={scene.top + scene.height * sceneShapes.fuji.footY} clock={clock} night={night} lite={lite} />
-      <Moon width={size.width} apexY={arcApexY} endY={arcEndY} minute={minute} />
+      <Moon image={images.moon} width={size.width} apexY={arcApexY} endY={arcEndY} minute={minute} />
       <Sun width={size.width} apexY={arcApexY} endY={arcEndY} minute={minute} />
-      {cloudLayers.map((layer) => (
-        <CloudLayer key={layer.seed} layer={layer} y={scene.top + scene.height * layer.at} width={size.width} clock={clock} night={night} />
+      <Group opacity={sceneOpacity}>
+      {cloudLayers.map((layer, index) => (
+        <CloudLayer key={layer.seed} layer={layer} index={index} images={images} y={scene.top + scene.height * layer.at} width={size.width} clock={clock} night={night} />
       ))}
       <ShootingStar
         clock={clock}
@@ -446,7 +450,7 @@ export function SkyCanvas({ size, bands, minute, mood, clock, gust, shootingStar
         night={night}
       />
 
-      <StaticScene rect={scene} night={night} minute={minute} />
+      <StaticScene images={images} rect={scene} night={night} minute={minute} />
       <StreamWater rect={scene} minute={minute} clock={clock} />
       <StreamMouth rect={scene} clock={clock} night={night} />
       {Array.from({ length: meadow.swayBatches }, (_, batch) => (
@@ -461,8 +465,8 @@ export function SkyCanvas({ size, bands, minute, mood, clock, gust, shootingStar
         />
       ))}
       <Tree
-        limbs={trees.left}
-        seedBase={11}
+        dayImage={images['tree.left.day']}
+        nightImage={images['tree.left.night']}
         regionX={0}
         regionWidth={size.width / 2}
         pivotX={0}
@@ -474,8 +478,8 @@ export function SkyCanvas({ size, bands, minute, mood, clock, gust, shootingStar
         swaySign={1}
       />
       <Tree
-        limbs={trees.right}
-        seedBase={503}
+        dayImage={images['tree.right.day']}
+        nightImage={images['tree.right.night']}
         regionX={size.width / 2}
         regionWidth={size.width / 2}
         pivotX={size.width}
@@ -497,6 +501,7 @@ export function SkyCanvas({ size, bands, minute, mood, clock, gust, shootingStar
           night={night}
         />
       ))}
+      </Group>
       <Sola cx={size.width / 2} cy={bands.solaCenterY} size={bands.solaSize} mood={mood} minute={minute} night={night} clock={clock} />
     </Canvas>
   );

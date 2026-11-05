@@ -1,7 +1,7 @@
 import * as Haptics from 'expo-haptics';
-import { useEffect } from 'react';
+import { memo, useCallback, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring, type SharedValue } from 'react-native-reanimated';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { pressScale, spring } from '../../theme/motion';
 import { moodLabels, moodLevels } from '../../theme/sky';
@@ -9,7 +9,7 @@ import { font, fontSize, radius, spacing, tabBarHeight, today, type Palette } fr
 
 const MOODS = Array.from({ length: moodLevels }, (_, i) => i + 1);
 
-function MoodFace({ mood, color }: { mood: number; color: string }) {
+const MoodFace = memo(function MoodFace({ mood, color }: { mood: number; color: string }) {
   const edge = 18 - (mood - 3);
   const control = 18 + (mood - 3) * 3;
   return (
@@ -19,9 +19,9 @@ function MoodFace({ mood, color }: { mood: number; color: string }) {
       <Path d={`M9 ${edge} Q15 ${control} 21 ${edge}`} stroke={color} strokeWidth={2} strokeLinecap="round" fill="none" />
     </Svg>
   );
-}
+});
 
-function MoodButton({ mood, selected, palette, onSelect }: {
+const MoodButton = memo(function MoodButton({ mood, selected, palette, onSelect }: {
   mood: number;
   selected: boolean;
   palette: Palette;
@@ -69,9 +69,9 @@ function MoodButton({ mood, selected, palette, onSelect }: {
       </Animated.View>
     </Pressable>
   );
-}
+});
 
-function MoodLabel({ mood, selected, palette }: { mood: number; selected: boolean; palette: Palette }) {
+const MoodLabel = memo(function MoodLabel({ mood, selected, palette }: { mood: number; selected: boolean; palette: Palette }) {
   const on = useSharedValue(selected ? 1 : 0);
   useEffect(() => {
     on.set(withSpring(selected ? 1 : 0, spring));
@@ -86,14 +86,24 @@ function MoodLabel({ mood, selected, palette }: { mood: number; selected: boolea
       {moodLabels[mood - 1]}
     </Animated.Text>
   );
-}
+});
 
-export function MoodRow({ mood, palette, onSelect }: { mood: number; palette: Palette; onSelect: (mood: number) => void }) {
+/** Holds the selected mood itself, so a tap re-renders only the two buttons that change. */
+export function MoodRow({ level, palette, onSelect }: { level: SharedValue<number>; palette: Palette; onSelect: (mood: number) => void }) {
+  const [mood, setMood] = useState(() => level.get());
+  const pick = useCallback(
+    (next: number) => {
+      level.set(next);
+      setMood(next);
+      onSelect(next);
+    },
+    [level, onSelect],
+  );
   return (
     <View style={styles.moodBlock}>
       <View style={styles.moodRow}>
         {MOODS.map((value) => (
-          <MoodButton key={value} mood={value} selected={value === mood} palette={palette} onSelect={onSelect} />
+          <MoodButton key={value} mood={value} selected={value === mood} palette={palette} onSelect={pick} />
         ))}
       </View>
       <View style={styles.moodLabelStack}>
