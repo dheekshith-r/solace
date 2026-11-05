@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+
+# Secrets: only .env.example files are committed
+.env
+.env.*
+!.env.example
+
+# Build output
+dist/
+build/
+*.tsbuildinfo
+
+# Expo
+.expo/
+expo-env.d.ts
+web-build/
+
+# Generated native projects (continuous native generation)
+apps/mobile/android/
+apps/mobile/ios/
+
+# Signing material: back up outside the repo
+*.jks
+*.keystore
+*.p8
+*.p12
+*.pem
+
+# Build artifacts
+*.apk
+*.aab
+
+# Local design references: read in Phase 1, never committed
+design/refs/
+
+# Logs and test output
+*.log
+coverage/
+
+# OS and editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

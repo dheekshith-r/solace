@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: solace-api
+    runtime: node
+    plan: free
+    # Installs only the API and shared workspaces, so Render never downloads the Expo tree.
+    buildCommand: npm ci --include=dev -w @solace/api -w @solace/shared && npm run build -w @solace/api
+    startCommand: npm run start -w @solace/api
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: 22.13.0
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
