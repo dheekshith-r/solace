@@ -13,15 +13,10 @@ export function logPerf(message: string) {
 
 export type FrameWindow = { frames: number; total: number; over9: number; over17: number; over34: number; worst: number; started: number };
 
-export const emptyFrameWindow = (started: number): FrameWindow => ({
-  frames: 0,
-  total: 0,
-  over9: 0,
-  over17: 0,
-  over34: 0,
-  worst: 0,
-  started,
-});
+export function emptyFrameWindow(started: number): FrameWindow {
+  'worklet';
+  return { frames: 0, total: 0, over9: 0, over17: 0, over34: 0, worst: 0, started };
+}
 
 /** Adds one frame gap, in ms, to a window. Pure, so it can run on the UI thread and in tests. */
 export function addFrame(w: FrameWindow, gap: number): FrameWindow {
