@@ -1,4 +1,5 @@
 import { BlurMask, Canvas, Circle } from '@shopify/react-native-skia';
+import { Link } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, useColorScheme, View } from 'react-native';
 import Animated, {
@@ -67,7 +68,7 @@ export default function PhaseZeroCheck() {
     <View style={[styles.screen, { backgroundColor: palette.background }]}>
       <Animated.View style={[styles.glow, glowStyle]}>
         <Canvas style={styles.glow}>
-          <Circle cx={GLOW_SIZE / 2} cy={GLOW_SIZE / 2} r={GLOW_SIZE / 2 - GLOW_BLUR} color={palette.mascot}>
+          <Circle cx={GLOW_SIZE / 2} cy={GLOW_SIZE / 2} r={GLOW_SIZE / 2 - GLOW_BLUR} color={palette.accent}>
             <BlurMask blur={GLOW_BLUR} style="normal" />
           </Circle>
         </Canvas>
@@ -80,6 +81,10 @@ export default function PhaseZeroCheck() {
       <Pressable onPress={retry} hitSlop={spacing.md}>
         <Text style={[styles.retry, { color: palette.accent }]}>Check again</Text>
       </Pressable>
+
+      <Link href="/today" style={[styles.retry, { color: palette.accent }]}>
+        Open Today
+      </Link>
     </View>
   );
 }

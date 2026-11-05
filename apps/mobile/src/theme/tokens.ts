@@ -1,31 +1,30 @@
-// Design tokens from spec section 7.2. Phase 1 extends this file; components never hardcode values.
+// Design tokens from spec section 7.2: Apple HIG system colors. Components never hardcode values.
 
 export const colors = {
   light: {
-    background: '#EEF0F8',
+    background: '#F2F2F7',
     surface: '#FFFFFF',
-    ink: '#25233A',
-    muted: '#77758C',
-    accent: '#6F63E8',
-    accentTint: '#E3E0FB',
-    petal: '#FFE1D8',
-    sea: '#D8F1E8',
-    mascot: '#B7ADFF',
+    tint: '#F2F2F7',
+    ink: '#000000',
+    muted: '#6C6C70',
+    separator: '#D1D1D6',
+    accent: '#1E6EF4',
+    onAccent: '#FFFFFF',
   },
   dark: {
-    background: '#12111C',
-    surface: '#1C1B2B',
-    ink: '#F0EEFA',
-    muted: '#9C99B2',
-    accent: '#A99DFF',
-    accentTint: '#2A2746',
-    petal: '#3B2A33',
-    sea: '#1F3329',
-    mascot: '#8D80F2',
+    background: '#000000',
+    surface: '#1C1C1E',
+    tint: '#2C2C2E',
+    ink: '#FFFFFF',
+    muted: '#AEAEB2',
+    separator: '#3A3A3C',
+    accent: '#5CB8FF',
+    onAccent: '#000000',
   },
 } as const;
 
 export type ColorScheme = keyof typeof colors;
+export type Palette = (typeof colors)[ColorScheme];
 
 export const fontSize = {
   largeTitle: 34,
@@ -37,6 +36,20 @@ export const fontSize = {
   caption: 11.5,
 } as const;
 
+export const lineHeightRatio = { title: 1.28, body: 1.42 } as const;
+export const titleTracking = -0.02;
+
+export const font = {
+  regular: 'PlusJakartaSans_400Regular',
+  semibold: 'PlusJakartaSans_600SemiBold',
+  bold: 'PlusJakartaSans_700Bold',
+} as const;
+
 export const spacing = { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 24, xxxl: 32, huge: 40 } as const;
 
 export const screenPadding = 22;
+
+export const radius = { card: 22, button: 18, chip: 16, full: 999 } as const;
+
+export const touchTarget = 44;
+export const tabBarHeight = 58;
