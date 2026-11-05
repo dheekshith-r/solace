@@ -29,6 +29,8 @@ Fewer screens, done extremely well, beat many screens done badly.
 - One hero moment per screen. Sola the mascot is the signature element; keep everything around it quiet.
 - Every screen has loading (skeleton), empty, error and offline states.
 - Respect reduce-motion and lite mode (RAM under ~4 GB).
+- Today is locked as the main page. Don't add features or clutter to it. New features go on other pages, reached from the tabs (Today, Sola, You) or from cards on those pages.
+- Quality bar for all illustration and motion: Apple-level realistic 2D, like the animated backgrounds in Apple's Weather app. No outlines; soft gradients and light; one consistent light source (sun by day, moon at night) with rim light on edges facing it; atmospheric depth (far = lighter, bluer, softer; near = sharper, richer). For every visual element, study real photos and Apple Weather first, then compare the result side by side on Ddk's phone and fix it until it holds up.
 - Before designing any screen, look at every image in `design/refs` and note what makes each one feel premium. Borrow principles, never copy a layout, illustration or asset.
 - After building a screen, screenshot Ddk's phone with adb, compare against the refs and spec tokens, fix what is off, then show him.
 
@@ -49,6 +51,9 @@ Fewer screens, done extremely well, beat many screens done badly.
 - At the start of every session, summarize what is done and what is next.
 - Do not add features, packages or screens that are not in the spec without asking.
 - Never log in to accounts, enter secrets or accept terms on Ddk's behalf. Ask him to do those steps.
+- Judge speed and smoothness only on a release build. Tell Ddk when something he's seeing is caused by the dev build or Expo's dev menu (the gear button).
+- Never fake progress: don't call something done without a phone screenshot or measurement that shows it.
+- Unfinished work goes on a branch, never on main. Commit and push after each accepted item.
 
 ## Definition of done
 A flow is done when it works end to end on a real Android phone in a release build: UI, API, database, and (where relevant) notification and deep link.

@@ -28,7 +28,7 @@ Verified against vendor pages on Nov 5, 2026. Anything marked **verify** must be
 ## 0.1 Product concept
 
 **Must-have:**
-- **Sola speaks on the Today screen.** A specific line based on the user's recent mood and chats, not a static greeting.
+- **Sola's daily personal line.** A specific line based on the user's recent mood and chats, not a static greeting, at the top of the Sola tab. Today stays quiet.
 - **One connected loop.** Chat, the mood check-in and breathing connect through Sola's suggestion cards, so each activity leads naturally to the next.
 - **Before and after mood.** After an activity, show the mood before and after it.
 - **Notifications in Sola's voice.** Written using the user's context, not generic reminders.
@@ -289,7 +289,7 @@ packages/shared/
 
 ### 7.1 Direction
 
-Calm, soft, airy, a little playful because of Sola. The app is built around a living sky that follows the real time of day. Apple HIG system colors, one accent, generous space. Avoid the generic AI app look: no round mascot over a card stack, no emoji faces.
+Calm, soft, airy, a little playful because of Sola. Today sits in front of a living scene that follows the real time of day. Apple HIG system colors, one accent, generous space.
 
 ### 7.2 Tokens (match the approved web preview)
 
@@ -326,7 +326,7 @@ Sky colors are derived from HIG blue, cyan, teal, indigo and orange (section 7.7
 
 ### 7.4 Sola the mascot
 
-A small cloud character. Fluffy and bright when mood is good, heavier with a light drizzle when low, silver-lined and softly glowing at night. Keeps the sleepy eyes. States: `idle` (slow float, blink every ~5 s), `happy`, `concerned`, `listening` (leans, eyes widen while the user types), `thinking` (eyes drift while streaming), `sleepy` (after 10 pm). The current mood value drives Sola's shape, color, drizzle and mouth, so a check-in visibly changes Sola. This is the signature element; keep everything else quiet around it.
+A round, glowing orange character with blush. States: `idle` (blink every ~5 s), `happy`, `concerned`, `listening` (leans, eyes widen while the user types), `thinking` (eyes drift while streaming), `sleepy` (after 10 pm). The mouth curve is driven by the current mood value, so a mood check-in visibly changes Sola's face. This is the signature element; keep everything else quiet around it.
 
 ### 7.5 Haptics map
 
@@ -336,17 +336,19 @@ Selection tick on mood choice and tab change; light impact on primary buttons; s
 
 Sentence case, plain verbs, warm but not syrupy. Errors say what happened and what to do ("Couldn't reach Sola. Check your connection and try again."). Empty states invite an action.
 
-### 7.7 The living sky
+### 7.7 The scene behind Today
 
-Everything is slow and few, so it stays calm.
+Everything is slow and few, so it stays calm. No buildings.
 
 - **Time of day:** day, dusk and night blend over about 30 minutes.
-- **Sun and moon:** the sun moves along an arc with the real time of day. The moon shows tonight's real phase, calculated on-device.
-- **Stars:** 30 to 40, twinkling slowly and out of sync. A shooting star only every 10 to 20 seconds.
-- **Clouds:** two or three layers drifting at different speeds for depth.
-- **Mood:** the sky brightens or dims with the mood.
-- **Streak:** a constellation. One star is added to the night sky per day with any activity, whatever the user does that day, joined through the week.
-- **Performance:** one Skia canvas. It pauses when Today isn't focused. Moving parts turn off with reduce-motion.
+- **Landscape:** Mount Fuji in the center: a broad symmetric cone with concave slopes, a flat summit, a jagged snow line, blue-grey haze, and a soft reflection where the stream meets it. A wide stream winds from the foreground toward it, with a subtle moving shimmer. The landscape fills the space between the headline and the sheet.
+- **Trees:** branches overhang from the top left and top right corners, with natural forks, tapering and pink blossoms.
+- **Wind and petals:** mostly still. Every 15 to 30 seconds a gentle gust sways the branches slightly and releases 2 to 5 soft pink sakura petals from the blossoms. They drift down with sideways sway and slow rotation, then fade near the ground.
+- **Sun and moon:** in clear sky, never behind UI. The sun shows only between sunrise and sunset and the moon only at night, never both. The sun stays on the right and the moon on the left, each sliding slowly leftward on a gentle arc, matched to the real clock. The sun is a full white disc with a soft white glow. The moon is full, with subtle maria and a soft halo, and it lights the clouds' edges and the water.
+- **Day:** slowly drifting clouds. **Night:** a few unique clouds with moonlit edges. Stars spread across the whole sky: many faint, few bright, denser toward the top, fading near the horizon, with a very faint Milky Way, each twinkling at its own pace. A shooting star only every 10 to 20 seconds.
+- **Meadow:** layered and rolling, darker near the viewer, with subtle texture and a few tufts at the bottom edge moving in the wind.
+- **Owl:** night only, once per visit, after a random 20 to 90 seconds. It flies in low from the side with a few strong wingbeats then a silent glide, lands on a branch, settles, slowly turns its head to look at the user, blinks, and flies off to the side. It must come from a commercially licensed animation; no hand-drawn owl.
+- **Performance:** one Skia canvas. Static layers are drawn once into cached pictures. Only petals, water, stars, clouds, the branch sway, the rare shooting star and the owl animate. It pauses when Today isn't focused. Moving parts turn off with reduce-motion.
 - **Demo control:** a hidden long-press on the sky cycles dawn, day, dusk and night for recording.
 
 ---
@@ -360,10 +362,8 @@ Offline and timeout errors show within a few seconds, never after a long wait. R
 1. **Splash**: native splash in the background color, handing off to an animated Sola fade-in with the tagline; runs auth refresh and wakes the API in parallel. Max 2.5 s.
 2. **Onboarding** (4 steps, skippable after step 1): what Solace is → meet Sola (Sola waves, says hi) → pick a goal → choose reminder times (with the notification pre-prompt). Progress dots, swipe or tap Next.
 3. **Sign up / Log in**: one screen each, inline validation, password visibility toggle, 18+ checkbox, privacy notice line ("Sola's replies are generated by Google Gemini. Please avoid sharing sensitive personal details in this demo.").
-4. **Today**: built around the sky (section 7.7), which fills the whole screen with no card sheet covering it. Date, then Sola's specific line as the headline, in one color. Sola the cloud floats in the sky.
-   - **Mood check-in:** five tappable levels along the sky, plus dragging Sola up or down, which snaps to the nearest level with a haptic tick on release. A one-time hint ("Slide me to show how you feel") with a small bob of Sola, never shown again after the first check-in.
-   - **Suggestion:** a speech bubble from Sola with one action button inside.
-   - **Streak:** the constellation in the sky. No streak or XP cards on Today; detailed stats live on the You tab.
+4. **Today** (locked, see section 8.1): the scene (section 7.7) fills the screen behind the date and Sola. No headline.
+   - **Sheet:** the mood check-in ("How are you arriving?" with five mood faces) and the suggestion card with its Breathe button. Nothing else; the streak lives on the You tab.
    - The tab bar never overlaps content.
 5. **Mood check-in** (sheet): mood, optional note, save → +10 XP toast, Sola reacts.
 6. **Sola tab**: history list (title, preview, time; swipe left to delete with confirm; "New conversation" button) → conversation screen (streamed replies, suggestion cards that deep-link, quick-reply chips when empty, keyboard-aware input).
@@ -372,11 +372,22 @@ Offline and timeout errors show within a few seconds, never after a long wait. R
    - **Questions:** Sola asks each one at a time in the sky, conversationally, with soft tappable answers on a 0–3 scale. Not a form. Before shipping, verify PHQ-4 and GAD wording and usage terms from official sources, and phrase questions in our own words where needed.
    - **Results:** a gentle score band with a kind name, a "not a diagnosis" note, a Tele-MANAS 14416 call button, and three wellness moves written by the AI for this user from their recent moods and chats (only when `personalize` is on). Each move is tappable and opens the matching activity.
    - **Safety:** all typed text in Reflect goes through the crisis pre-check. The lowest band shows a prominent, warm prompt, "Want to talk to someone right now?", with the Tele-MANAS 14416 call button and an option to talk to Sola.
-   - **Streak:** counts toward the day's constellation star (section 7.7).
+   - **Streak:** counts as activity for the day. One streak day per day, whatever the user does that day.
    - **Colors:** Apple HIG tokens only (section 7.2).
 9. **You**: streak calendar (last 5 weeks), mood trend (simple SVG line, last 14 days), level and XP, links to reminders, privacy (personalize toggle, delete all chats, delete account), resources, appearance (section 7.2), log out.
 10. **Reminders**: toggles and time pickers per reminder type, custom reminders (add, edit, delete), "send a test notification" button.
 11. **Resources**: 5 short guides (Mindfulness 101, Anxiety toolkit with 5-4-3-2-1 grounding, Beating the blues, Self-esteem reset, Sleep wind-down) + a Get help now page (Tele-MANAS 14416, call button) + "not a substitute for professional care" note.
+
+---
+
+### 8.1 Final screen map
+
+Built per the phase plan, not all at once.
+
+- **Before sign-in:** Splash; Onboarding (4 steps: what Solace is, meet Sola, pick goal, reminder times); Sign up; Log in.
+- **Tabs:** Today (locked: sky, Sola, mood check-in, suggestion, nothing else); Sola (Sola's daily personal line at the top, conversation history, New conversation); Conversation; You (constellation, mood trend, streak and level, plus cards to Breathe, Reflect, Resources and settings).
+- **From cards:** Breathe; Reflect (Mood, Anxiety relief, Self-talk); Reflect questions; Reflect results; Resources; Guide detail including Get help now (Tele-MANAS 14416); Reminders; Privacy and data; Appearance (Sky, Follow system, Light, Dark).
+- **Stretch:** What Sola remembers; Weekly letter.
 
 ---
 
