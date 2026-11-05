@@ -54,6 +54,8 @@ export const radius = { sheet: 32, card: 22, button: 18, chip: 16, full: 999 } a
 export const today = {
   moodButton: 54,
   moodFace: 30,
+  moodFillFrom: 0.82,
+  moodLabelHeight: 18,
   ring: 56,
   ringStroke: 6,
   sheetHandleWidth: 36,

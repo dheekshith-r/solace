@@ -39,6 +39,16 @@ export function wrapMinute(minute: number): number {
   return ((minute % 1440) + 1440) % 1440;
 }
 
+/** 0 awake, 1 asleep, easing over a few minutes at each end so Sola's eyes never snap. */
+export function sleepyAmount(minute: number): number {
+  'worklet';
+  const m = wrapMinute(minute);
+  const ramp = skyTimes.sleepyRamp;
+  if (m >= skyTimes.sleepyFrom) return Math.min(1, (m - skyTimes.sleepyFrom) / ramp);
+  if (m < skyTimes.sleepyUntil) return Math.min(1, (skyTimes.sleepyUntil - m) / ramp);
+  return 0;
+}
+
 export function isSleepy(minute: number): boolean {
   'worklet';
   const m = wrapMinute(minute);

@@ -1,6 +1,6 @@
 import { blossom, fallingPetal, meadow, sceneShapes, streamShimmer, treeDrop, trees, wind } from '../../../theme/sky';
 import { colors } from '../../../theme/tokens';
-import { isSleepy, moonIllumination, moonLitPath, moonPhase, wrapMinute } from '../astro';
+import { isSleepy, moonIllumination, moonLitPath, moonPhase, sleepyAmount, wrapMinute } from '../astro';
 import { gustSway, petalPose, scenePaths, shimmerPose, streamAt, treeShape, tuftBatch } from '../landscape';
 import {
   contrastBetween,
@@ -53,6 +53,15 @@ describe('time of day', () => {
     expect(isSleepy(1320)).toBe(true);
     expect(isSleepy(120)).toBe(true);
     expect(isSleepy(720)).toBe(false);
+  });
+
+  it('eases Sola into sleep over a few minutes, never snapping', () => {
+    expect(sleepyAmount(720)).toBe(0);
+    expect(sleepyAmount(1320)).toBe(0);
+    expect(sleepyAmount(1324)).toBeCloseTo(0.5);
+    expect(sleepyAmount(1380)).toBe(1);
+    expect(sleepyAmount(296)).toBeCloseTo(0.5);
+    expect(sleepyAmount(300)).toBe(0);
   });
 
   it('reaches full day and full night', () => {

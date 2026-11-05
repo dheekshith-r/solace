@@ -24,6 +24,7 @@ export const skyTimes = {
   nightStart: 1110,
   sleepyFrom: 1320, // 10 pm, spec section 7.4.
   sleepyUntil: 300,
+  sleepyRamp: 8,
 } as const;
 
 // The hidden long-press cycles these, for recording the demo.
@@ -115,7 +116,14 @@ export const sola = {
   body: ['#FFE3C8', '#FFAE66', '#FF8D28'], // Orange and its tints.
   bodyStops: [0, 0.5, 1],
   cheek: '#FF383C', // Red.
-  cheekOpacity: 0.5,
+  blushLow: 0.3,
+  blushHigh: 0.58,
+  eyeY: 104,
+  eyeLow: 0.78,
+  mouthCurve: 11,
+  floatDistance: 2.5,
+  floatPeriod: 5,
+  sceneOverlap: 0.32,
   ink: '#3A1E08',
   glowRatio: 1.05,
   glowDay: ['rgba(255,255,255,0.72)', 'rgba(255,255,255,0)'],

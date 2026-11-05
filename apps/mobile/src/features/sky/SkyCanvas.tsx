@@ -45,7 +45,7 @@ import {
   type Limb,
 } from '../../theme/sky';
 import { today } from '../../theme/tokens';
-import { isSleepy } from './astro';
+import { sleepyAmount } from './astro';
 import { gustSway, petalPose, scenePaths, shimmerPose, streamAt, treeShape, tuftBatch, type SceneRect } from './landscape';
 import { hexToRgb, mixRgb, moonAmount, nightAmount, rgbToCss, sunAmount, timeStops, type Rgb } from './skyColors';
 import { starEffect } from './starShader';
@@ -519,26 +519,38 @@ function Petal({ index, origins, groundY, clock, gust, night }: {
   );
 }
 
-function Sola({ cx, cy, size, mood, minute, night }: {
+function Sola({ cx, cy, size, mood, minute, night, clock }: {
   cx: number;
   cy: number;
   size: number;
   mood: SharedValue<number>;
   minute: SharedValue<number>;
   night: SharedValue<number>;
+  clock: SharedValue<number>;
 }) {
   const scale = size / sola.viewBox;
   const glowRadius = size * sola.glowRatio;
   const dayGlow = useDerivedValue(() => 1 - night.get());
-  const awake = useDerivedValue(() => (isSleepy(minute.get()) ? 0 : 1));
-  const sleeping = useDerivedValue(() => (isSleepy(minute.get()) ? 1 : 0));
+  const sleeping = useDerivedValue(() => sleepyAmount(minute.get()));
+  const awake = useDerivedValue(() => 1 - sleeping.get());
+  const float = useDerivedValue(() => [
+    { translateX: cx },
+    { translateY: cy + Math.sin((TWO_PI * clock.get()) / sola.floatPeriod) * sola.floatDistance },
+  ]);
+  // Everything on the face follows the same mood value, so it all eases together.
+  const eyes = useDerivedValue(() => [
+    { translateY: sola.eyeY },
+    { scaleY: sola.eyeLow + ((1 - sola.eyeLow) * (mood.get() - 1)) / 4 },
+    { translateY: -sola.eyeY },
+  ]);
+  const blush = useDerivedValue(() => sola.blushLow + ((sola.blushHigh - sola.blushLow) * (mood.get() - 1)) / 4);
   const mouth = useDerivedValue(() => {
-    const y = 132 + (mood.get() - 3) * 9;
+    const y = 132 + (mood.get() - 3) * sola.mouthCurve;
     return Skia.Path.MakeFromSVGString(`M86 130 Q100 ${y} 114 130`) ?? Skia.Path.Make();
   });
 
   return (
-    <Group transform={[{ translateX: cx }, { translateY: cy }]}>
+    <Group transform={float}>
       <Circle cx={0} cy={0} r={glowRadius} opacity={dayGlow}>
         <RadialGradient c={vec(0, 0)} r={glowRadius} colors={[...sola.glowDay]} />
       </Circle>
@@ -550,9 +562,9 @@ function Sola({ cx, cy, size, mood, minute, night }: {
           <RadialGradient c={vec(76, 60)} r={156} colors={[...sola.body]} positions={[...sola.bodyStops]} />
         </Path>
         <Path path="M101 32 C92 18 99 6 113 5 C117 18 112 28 101 32 Z" color={sola.body[2]} />
-        <Oval x={45} y={116} width={26} height={16} color={sola.cheek} opacity={sola.cheekOpacity} />
-        <Oval x={129} y={116} width={26} height={16} color={sola.cheek} opacity={sola.cheekOpacity} />
-        <Group opacity={awake}>
+        <Oval x={45} y={116} width={26} height={16} color={sola.cheek} opacity={blush} />
+        <Oval x={129} y={116} width={26} height={16} color={sola.cheek} opacity={blush} />
+        <Group opacity={awake} transform={eyes}>
           <Oval x={67} y={94} width={16} height={20} color={sola.ink} />
           <Oval x={117} y={94} width={16} height={20} color={sola.ink} />
           <Circle cx={78} cy={100} r={2.8} color={sola.body[0]} />
@@ -667,7 +679,7 @@ export function SkyCanvas({ size, bands, minute, mood, clock, gust, shootingStar
           night={night}
         />
       ))}
-      <Sola cx={size.width / 2} cy={bands.solaCenterY} size={bands.solaSize} mood={mood} minute={minute} night={night} />
+      <Sola cx={size.width / 2} cy={bands.solaCenterY} size={bands.solaSize} mood={mood} minute={minute} night={night} clock={clock} />
     </Canvas>
   );
 }

@@ -39,7 +39,6 @@ import {
   screenPadding,
   spacing,
   tabBarHeight,
-  titleTracking,
   today,
 } from '../src/theme/tokens';
 
@@ -48,19 +47,16 @@ const MINUTE_MS = 60_000;
 const LONG_PRESS_MS = 700;
 const SAMPLE_STREAK_DAYS = 6;
 const SAMPLE_STREAK_PROGRESS = 0.6;
-const ESTIMATED_HEADLINE_HEIGHT = 100;
 const ESTIMATED_REST_HEIGHT = 290;
 const ESTIMATED_STATS_HEIGHT = 170;
 const DATE_LINE_HEIGHT = 18;
 
 const copy = {
   day: {
-    line: "You said the exam felt heavy yesterday. How's it sitting this morning?",
     suggestion: 'Your chest felt tight earlier, so a slow exhale could help.',
     affirmation: 'You showed up yesterday, even when it was hard.',
   },
   night: {
-    line: "The exam's been loud in your head all day. Want to set it down for tonight?",
     suggestion: 'Sleep breathing could slow things down before bed.',
     affirmation: 'Tomorrow can wait until tomorrow.',
   },
@@ -92,7 +88,6 @@ function Today({ initialMinute, startOpen, firstGust }: {
   const [overridden, setOverridden] = useState(false);
   const [demoIndex, setDemoIndex] = useState(0);
   const [textIsWhite, setTextIsWhite] = useState(() => skyTextIsWhite(initialMinute));
-  const [headlineHeight, setHeadlineHeight] = useState(ESTIMATED_HEADLINE_HEIGHT);
   const [restHeight, setRestHeight] = useState(ESTIMATED_REST_HEIGHT);
   const [statsHeight, setStatsHeight] = useState(ESTIMATED_STATS_HEIGHT);
 
@@ -109,25 +104,26 @@ function Today({ initialMinute, startOpen, firstGust }: {
   const solaSize = Math.min(sola.maxSize, Math.max(sola.minSize, height * sola.screenRatio));
   const headerTop = insets.top + spacing.lg;
   const dateBottom = headerTop + DATE_LINE_HEIGHT;
-  const solaTop = dateBottom + spacing.sm;
-  const headlineBottom = solaTop + solaSize + spacing.sm + headlineHeight;
+  // Sola sits low enough that its glow clears the date.
+  const solaCenterY = dateBottom + solaSize * sola.glowRatio + spacing.sm;
   const clearance = tabBarHeight + insets.bottom + spacing.md + spacing.md;
   const restVisible = restHeight + clearance;
-  const sceneTop = headlineBottom + spacing.xs;
+  const sceneTop = solaCenterY + solaSize * sola.sceneOverlap;
   const sceneBottom = height - restVisible + today.sheetOverlap;
 
   const bands = useMemo(
     () => ({
       dateBottom,
-      solaCenterY: solaTop + solaSize / 2,
+      solaCenterY,
       solaSize,
       scene: { width, top: sceneTop, height: Math.max(0, sceneBottom - sceneTop) },
     }),
-    [dateBottom, sceneBottom, sceneTop, solaSize, solaTop, width],
+    [dateBottom, sceneBottom, sceneTop, solaCenterY, solaSize, width],
   );
 
   const frame = useFrameCallback((info) => {
-    const t = info.timeSinceFirstFrame / 1000;
+    // Continuous time: it only ever adds up, so loops never restart, even after a pause.
+    const t = clock.get() + (info.timeSincePreviousFrame ?? 0) / 1000;
     clock.set(t);
     if (t >= nextShootingAt.get()) {
       shootingStartedAt.set(t);
@@ -242,14 +238,6 @@ function Today({ initialMinute, startOpen, firstGust }: {
 
       <View style={[styles.header, { paddingTop: headerTop }]} pointerEvents="none">
         <Text style={[styles.date, { color: skyText }]}>{formatDate(new Date())}</Text>
-        <View style={{ height: solaSize, marginVertical: spacing.sm }} />
-        <Text
-          style={[styles.line, { color: skyText }]}
-          accessibilityRole="header"
-          onLayout={measure(setHeadlineHeight)}
-        >
-          {words.line}
-        </Text>
       </View>
 
       <GestureDetector gesture={pan}>
@@ -315,12 +303,6 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   header: { paddingHorizontal: screenPadding },
   date: { fontFamily: font.semibold, fontSize: fontSize.footnote, lineHeight: DATE_LINE_HEIGHT },
-  line: {
-    fontFamily: font.bold,
-    fontSize: fontSize.title,
-    lineHeight: fontSize.title * lineHeightRatio.title,
-    letterSpacing: fontSize.title * titleTracking,
-  },
   sheet: {
     position: 'absolute',
     left: 0,
