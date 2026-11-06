@@ -13,3 +13,17 @@ jest.mock('react-native-reanimated', () => require('react-native-reanimated/mock
 
 // Keyboard handling is native; the library ships its own mock for tests.
 jest.mock('react-native-keyboard-controller', () => require('react-native-keyboard-controller/jest'));
+
+// Notifications are native; tests only need the calls to resolve.
+jest.mock('expo-notifications', () => ({
+  AndroidImportance: { DEFAULT: 3, HIGH: 4 },
+  SchedulableTriggerInputTypes: { DAILY: 'daily', TIME_INTERVAL: 'timeInterval' },
+  cancelAllScheduledNotificationsAsync: jest.fn(async () => undefined),
+  getPermissionsAsync: jest.fn(async () => ({ granted: true })),
+  requestPermissionsAsync: jest.fn(async () => ({ granted: true })),
+  scheduleNotificationAsync: jest.fn(async () => 'id'),
+  setNotificationChannelAsync: jest.fn(async () => null),
+  setNotificationHandler: jest.fn(),
+  addNotificationResponseReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
+  getLastNotificationResponseAsync: jest.fn(async () => null),
+}));

@@ -7,6 +7,7 @@ import {
   type SignupRequest,
   type User,
 } from '@solace/shared';
+import { cancelAllScheduledNotificationsAsync } from 'expo-notifications';
 import * as SecureStore from 'expo-secure-store';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
@@ -100,6 +101,7 @@ export async function loadMe(): Promise<void> {
 /** Everything on the phone about this user goes: tokens, MMKV and in-memory stores. */
 async function clearLocal() {
   await SecureStore.deleteItemAsync(REFRESH_KEY);
+  await cancelAllScheduledNotificationsAsync().catch(() => undefined);
   storage.clearAll();
   queryClient.clear();
   useSession.setState({ user: null, accessToken: null });

@@ -5,6 +5,7 @@ import { Button, Card, Checkbox, Entrance, Screen, Text, TextField } from '../..
 import { ApiError, OFFLINE_MESSAGE, withQuietRetry } from '../../lib/http';
 import { spacing } from '../../theme/tokens';
 import { useOnboarding } from '../onboarding/store';
+import { saveReminders, syncReminders } from '../notifications/reminders';
 import { logIn, signUp } from './session';
 
 type Field = ComponentRef<typeof TextInput>;
@@ -79,6 +80,7 @@ export function SignUpScreen() {
           }),
         () => setBanner(STILL_TRYING),
       );
+      void saveReminders(reminders);
       router.replace('/today');
     } catch (error) {
       if (error instanceof ApiError && error.status === 409) setServerEmailError('An account with this email already exists. Log in instead.');
@@ -137,6 +139,7 @@ export function LogInScreen() {
     try {
       await withQuietRetry(() => logIn({ email: email.trim(), password }), () => setBanner(STILL_TRYING));
       useOnboarding.getState().finish(true);
+      void syncReminders();
       router.replace('/today');
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) setWrong("That email and password don't match. Try again.");

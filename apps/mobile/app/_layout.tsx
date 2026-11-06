@@ -11,6 +11,7 @@ import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { ThemeProvider, ToastProvider } from '../src/components';
 import { persistOptions, queryClient } from '../src/lib/queryClient';
+import { NotificationRouter } from '../src/features/notifications/NotificationRouter';
 
 // Keep the native splash up until fonts are ready, so the first drawn frame is the real splash.
 void SplashScreen.preventAutoHideAsync();
@@ -27,6 +28,7 @@ export default function RootLayout() {
       <KeyboardProvider>
         <ThemeProvider>
           <ToastProvider>
+            <NotificationRouter />
             <Stack screenOptions={{ headerShown: false }}>
               <Stack.Screen name="index" options={{ animation: 'fade' }} />
               <Stack.Screen name="onboarding" options={{ animation: 'fade' }} />
