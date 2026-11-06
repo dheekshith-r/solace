@@ -12,12 +12,14 @@ import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client
 import { ThemeProvider, ToastProvider } from '../src/components';
 import { persistOptions, queryClient } from '../src/lib/queryClient';
 import { NotificationRouter } from '../src/features/notifications/NotificationRouter';
+import { useResolvedScheme } from '../src/features/appearance';
 
 // Keep the native splash up until fonts are ready, so the first drawn frame is the real splash.
 void SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const [loaded] = useFonts({ PlusJakartaSans_400Regular, PlusJakartaSans_600SemiBold, PlusJakartaSans_700Bold });
+  const scheme = useResolvedScheme();
   const onLayout = useCallback(() => {
     void SplashScreen.hideAsync();
   }, []);
@@ -26,7 +28,7 @@ export default function RootLayout() {
     <GestureHandlerRootView style={styles.root} onLayout={onLayout}>
       <PersistQueryClientProvider client={queryClient} persistOptions={persistOptions}>
       <KeyboardProvider>
-        <ThemeProvider>
+        <ThemeProvider scheme={scheme}>
           <ToastProvider>
             <NotificationRouter />
             <Stack screenOptions={{ headerShown: false }}>

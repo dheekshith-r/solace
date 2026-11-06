@@ -2,6 +2,7 @@
 export { Button, type ButtonVariant } from './Button';
 export { Card } from './Card';
 export { ChatBubble, Composer, HelplineCard, TypingBubble } from './Chat';
+export { Constellation, MoodTrend } from './Charts';
 export { Checkbox } from './Checkbox';
 export { Chip } from './Chip';
 export { EmptyState } from './EmptyState';

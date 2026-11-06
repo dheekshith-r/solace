@@ -2,12 +2,9 @@ import { Canvas, LinearGradient, Rect, vec } from '@shopify/react-native-skia';
 import { StyleSheet, useWindowDimensions } from 'react-native';
 import { skyStopPositions } from '../../theme/sky';
 import { minuteOfDay } from './astro';
-import { rgbToCss, skyTextIsWhite, timeStops } from './skyColors';
+import { rgbToCss, timeStops } from './skyColors';
 
-/** Whether text on the sky should be white right now. Screens on the backdrop pick their scheme from it. */
-export function skySchemeNow(minute?: number): 'light' | 'dark' {
-  return skyTextIsWhite(minute ?? minuteOfDay(new Date())) ? 'dark' : 'light';
-}
+export { skySchemeNow } from './skyScheme';
 
 /** The sky's gradient for the current time of day, drawn once and static. Behind onboarding and Reflect. */
 export function SkyBackdrop({ minute }: { minute?: number }) {

@@ -27,3 +27,16 @@ jest.mock('expo-notifications', () => ({
   addNotificationResponseReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
   getLastNotificationResponseAsync: jest.fn(async () => null),
 }));
+
+// MMKV is native; tests get an in-memory store with the same calls.
+jest.mock('react-native-mmkv', () => {
+  const data = new Map();
+  return {
+    createMMKV: () => ({
+      getString: (k) => data.get(k),
+      set: (k, v) => data.set(k, v),
+      remove: (k) => data.delete(k),
+      clearAll: () => data.clear(),
+    }),
+  };
+});

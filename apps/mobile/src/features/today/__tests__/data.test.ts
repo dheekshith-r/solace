@@ -1,3 +1,5 @@
+import { queueMood } from '../data';
+
 const sent: unknown[] = [];
 jest.mock('../../auth/session', () => ({
   useSession: { getState: () => ({ user: { id: 'u1' } }) },
@@ -21,8 +23,6 @@ jest.mock('react-native-mmkv', () => {
 describe('mood saving on Today', () => {
   it('sends one check-in with the last of several quick taps', async () => {
     jest.useFakeTimers();
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { queueMood } = require('../data') as typeof import('../data');
     queueMood(2);
     await jest.advanceTimersByTimeAsync(500);
     queueMood(4);
