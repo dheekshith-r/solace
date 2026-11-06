@@ -6,8 +6,9 @@ const envSchema = z.object({
   GEMINI_API_KEY: z.string().min(1),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().positive().default(3000),
-  // Proxies in front of the API whose X-Forwarded-For entries are trusted (Render: 1).
-  TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(1),
+  // Proxies in front of the API whose X-Forwarded-For entries are trusted. Render: 2, because requests
+  // pass through Cloudflare and then Render's load balancer (measured: with 1, the key was the edge IP).
+  TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(2),
 });
 
 export type Env = z.infer<typeof envSchema>;
