@@ -23,6 +23,7 @@ export function Button({
   loading = false,
   disabled = false,
   wide = false,
+  align = 'start',
   accessibilityHint,
 }: {
   label: string;
@@ -32,6 +33,8 @@ export function Button({
   loading?: boolean;
   disabled?: boolean;
   wide?: boolean;
+  /** Where a non-wide button sits in a column. The touch area always hugs the button. */
+  align?: 'start' | 'center';
   accessibilityHint?: string;
 }) {
   const { palette } = useTheme();
@@ -45,7 +48,7 @@ export function Button({
         onPress();
       }}
       disabled={inactive}
-      outerStyle={wide ? styles.wide : styles.hug}
+      outerStyle={wide ? styles.wide : align === 'center' ? styles.hugCenter : styles.hug}
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityHint={accessibilityHint}
@@ -57,7 +60,7 @@ export function Button({
       ]}
     >
       <View style={[styles.content, loading ? styles.hidden : null]}>
-        {Icon ? <Icon size={kit.iconSmall} color={color} strokeWidth={2.2} /> : null}
+        {Icon ? <Icon size={kit.iconSmall} color={color} strokeWidth={kit.iconStrokeBold} /> : null}
         <Text variant="calloutStrong" tone={tone} numberOfLines={1}>
           {label}
         </Text>
@@ -78,6 +81,7 @@ const styles = StyleSheet.create({
   textButton: { paddingHorizontal: spacing.md, minHeight: kit.chipHeight + spacing.sm },
   wide: { alignSelf: 'stretch' },
   hug: { alignSelf: 'flex-start' },
+  hugCenter: { alignSelf: 'center' },
   content: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   hidden: { opacity: 0 },
 });

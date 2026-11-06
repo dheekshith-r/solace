@@ -18,22 +18,24 @@ export function useTheme(): Theme {
   return useContext(ThemeContext);
 }
 
-// In light mode, `tint` and `background` are the same gray, so a fill must know what it sits on:
-// on the page background it uses `surface`; on a card, sheet or grouped list it uses `tint`.
-const RaisedContext = createContext(false);
+// In light mode, `tint` and `background` are the same gray, so a fill must know what it sits on.
+// Levels alternate: on the page (0) fills are `surface`; inside a card, sheet or list (1) they are
+// `tint`; inside a card nested in that (2), `surface` again, and so on.
+const LevelContext = createContext(0);
 
-/** Wraps the content of anything that draws a `surface` (cards, sheets, list groups). */
+/** Wraps the content of anything that draws a fill (cards, sheets, list groups). */
 export function Raised({ children }: { children: ReactNode }) {
-  return <RaisedContext.Provider value>{children}</RaisedContext.Provider>;
+  const level = useContext(LevelContext);
+  return <LevelContext.Provider value={level + 1}>{children}</LevelContext.Provider>;
 }
 
-/** The fill for secondary buttons, chips, fields, wells and skeletons, wherever they sit. */
+/** The fill for cards, secondary buttons, chips, fields, wells and skeletons, wherever they sit. */
 export function useFill(): string {
   const { palette } = useTheme();
-  return useContext(RaisedContext) ? palette.tint : palette.surface;
+  return useContext(LevelContext) % 2 === 0 ? palette.surface : palette.tint;
 }
 
 /** True inside a card, sheet or grouped list. */
 export function useIsRaised(): boolean {
-  return useContext(RaisedContext);
+  return useContext(LevelContext) % 2 === 1;
 }

@@ -15,7 +15,7 @@ export default function KitSheet() {
         </Text>
         <View style={styles.actions}>
           <Button label="Save" onPress={() => router.back()} wide />
-          <Button label="Not now" variant="text" onPress={() => router.back()} />
+          <Button label="Not now" variant="text" align="center" onPress={() => router.back()} />
         </View>
       </Sheet>
     </ThemeProvider>

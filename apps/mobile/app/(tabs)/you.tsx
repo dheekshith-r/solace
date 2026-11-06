@@ -7,7 +7,7 @@ export default function YouTab() {
     <Screen title="You" tabs>
       <Entrance>
         <Card>
-          <EmptyState icon={Sparkles} title="Your constellation" body="Every day you check in adds a star. Your progress and settings will live here." />
+          <EmptyState icon={Sparkles} title="Your constellation" body="Each day you check in adds a star. Your progress and settings live here." />
         </Card>
       </Entrance>
     </Screen>

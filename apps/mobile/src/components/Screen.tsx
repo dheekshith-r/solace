@@ -13,6 +13,7 @@ import Animated, {
   type SharedValue,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { header } from '../theme/motion';
 import { kit, screenPadding, spacing, tabBarHeight } from '../theme/tokens';
 import { PressScale } from './PressScale';
 import { Text } from './Text';
@@ -29,9 +30,9 @@ export function Header({ title, scrollY, back, action }: { title: string; scroll
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const barTitle = useAnimatedStyle(() => ({
-    opacity: interpolate(scrollY.get(), [kit.headerCollapse * 0.6, kit.headerCollapse], [0, 1], Extrapolation.CLAMP),
+    opacity: interpolate(scrollY.get(), [kit.headerCollapse * header.barTitleFrom, kit.headerCollapse], [0, 1], Extrapolation.CLAMP),
     transform: [
-      { translateY: interpolate(scrollY.get(), [kit.headerCollapse * 0.6, kit.headerCollapse], [spacing.xs, 0], Extrapolation.CLAMP) },
+      { translateY: interpolate(scrollY.get(), [kit.headerCollapse * header.barTitleFrom, kit.headerCollapse], [spacing.xs, 0], Extrapolation.CLAMP) },
     ],
   }));
   const barFill = useAnimatedStyle(() => ({
@@ -53,7 +54,7 @@ export function Header({ title, scrollY, back, action }: { title: string; scroll
               hitSlop={spacing.sm}
               style={styles.iconButton}
             >
-              <ChevronLeft size={kit.icon + spacing.xs} color={palette.accent} strokeWidth={2.2} />
+              <ChevronLeft size={kit.icon + spacing.xs} color={palette.accent} strokeWidth={kit.iconStrokeBold} />
             </PressScale>
           ) : null}
         </View>
@@ -71,7 +72,7 @@ export function Header({ title, scrollY, back, action }: { title: string; scroll
               hitSlop={spacing.sm}
               style={styles.iconButton}
             >
-              <action.icon size={kit.icon} color={palette.accent} strokeWidth={2.2} />
+              <action.icon size={kit.icon} color={palette.accent} strokeWidth={kit.iconStrokeBold} />
             </PressScale>
           ) : null}
         </View>
@@ -84,9 +85,9 @@ function LargeTitle({ title, scrollY }: { title: string; scrollY: SharedValue<nu
   const style = useAnimatedStyle(() => {
     const y = scrollY.get();
     return {
-      opacity: interpolate(y, [0, kit.headerCollapse * 0.7], [1, 0], Extrapolation.CLAMP),
+      opacity: interpolate(y, [0, kit.headerCollapse * header.largeTitleGone], [1, 0], Extrapolation.CLAMP),
       // Pulling down past the top grows the title a little, like iOS.
-      transform: [{ scale: interpolate(y, [-kit.headerCollapse * 2, 0], [1.08, 1], Extrapolation.CLAMP) }],
+      transform: [{ scale: interpolate(y, [-kit.headerCollapse * 2, 0], [header.pullGrow, 1], Extrapolation.CLAMP) }],
     };
   });
   return (

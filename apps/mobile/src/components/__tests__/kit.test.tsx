@@ -6,6 +6,11 @@ import { ThemeProvider, useTheme } from '../ThemeProvider';
 import { ToastProvider, useToast } from '../Toast';
 import { colors } from '../../theme/tokens';
 
+// Screen's native dependencies, replaced for unit tests.
+jest.mock('expo-router', () => ({ useRouter: () => ({ back: jest.fn() }), useFocusEffect: jest.fn() }));
+jest.mock('expo-status-bar', () => ({ setStatusBarStyle: jest.fn() }));
+jest.mock('react-native-keyboard-controller', () => ({ KeyboardAwareScrollView: jest.requireActual('react-native').ScrollView }));
+
 jest.mock('expo-haptics', () => ({
   selectionAsync: jest.fn(),
   impactAsync: jest.fn(),
@@ -91,6 +96,9 @@ describe('Toast', () => {
       </ToastProvider>,
     );
     await fireEvent.press(screen.getByRole('button', { name: 'Show Saved' }));
+    await act(async () => {
+      jest.advanceTimersByTime(900);
+    });
     expect(screen.getByText('Saved')).toBeTruthy();
     await act(async () => {
       jest.advanceTimersByTime(5000);
@@ -100,12 +108,44 @@ describe('Toast', () => {
   });
 });
 
-describe('TabBar', () => {
-  it('places the lit pill one tab width plus a gap per tab', () => {
-    const { pillOffset } = jest.requireActual('../TabBar') as typeof import('../TabBar');
-    const { kit, spacing } = jest.requireActual('../../theme/tokens') as typeof import('../../theme/tokens');
-    expect(pillOffset(0)).toBe(0);
-    expect(pillOffset(1)).toBe(kit.tabWidth + spacing.xs);
-    expect(pillOffset(2)).toBe(2 * (kit.tabWidth + spacing.xs));
+describe('TabBar pill', () => {
+  const { pillGeometry } = jest.requireActual('../TabBar') as typeof import('../TabBar');
+  const slots = [
+    { x: 6, width: 100 },
+    { x: 110, width: 80 },
+    { x: 194, width: 70 },
+  ];
+
+  it('sits exactly on a tab, and blends position and width between tabs', () => {
+    expect(pillGeometry(1, slots)).toEqual({ x: 110, width: 80 });
+    expect(pillGeometry(0.5, slots)).toEqual({ x: 58, width: 90 });
+  });
+
+  it('never overshoots past the first or last tab, even when the spring does', () => {
+    expect(pillGeometry(-0.1, slots)).toEqual(slots[0]);
+    expect(pillGeometry(2.1, slots)).toEqual(slots[2]);
+  });
+});
+
+describe('Screen header', () => {
+  it('shows the large title as a header, and draws a bar title that screen readers skip', async () => {
+    const { Screen } = jest.requireActual('../Screen') as typeof import('../Screen');
+    await render(
+      <Screen title="Reminders">
+        <RNText>Body</RNText>
+      </Screen>,
+    );
+    expect(screen.getByRole('header', { name: 'Reminders' })).toBeTruthy();
+    // Both titles are drawn, but screen readers hear only the large one, never twice.
+    expect(screen.getAllByText('Reminders', { includeHiddenElements: true })).toHaveLength(2);
+    expect(screen.getAllByText('Reminders')).toHaveLength(1);
+  });
+});
+describe('native splash colors', () => {
+  it('match the HIG tokens, so the native splash hands off seamlessly', () => {
+    const config = jest.requireActual('../../../app.config') as { SPLASH_LIGHT: string; SPLASH_DARK: string; ACCENT: string };
+    expect(config.SPLASH_LIGHT).toBe(colors.light.background);
+    expect(config.SPLASH_DARK).toBe(colors.dark.background);
+    expect(config.ACCENT).toBe(colors.light.accent);
   });
 });

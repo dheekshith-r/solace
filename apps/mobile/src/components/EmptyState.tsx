@@ -22,7 +22,7 @@ export function EmptyState({
   return (
     <View style={styles.block}>
       <View style={[styles.well, { backgroundColor: fill }]}>
-        <Icon size={kit.icon + spacing.sm} color={palette.accent} strokeWidth={1.8} />
+        <Icon size={kit.icon + spacing.sm} color={palette.accent} strokeWidth={kit.iconStrokeLight} />
       </View>
       <View style={styles.words}>
         <Text variant="heading" center accessibilityRole="header">

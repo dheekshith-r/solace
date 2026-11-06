@@ -19,3 +19,7 @@ export const duration = {
 export const entrance = { rise: 18, stagger: 80 } as const;
 
 export const pressScale = 0.95;
+export const pressScaleGentle = 0.98; // Large surfaces (cards, rows) move less than buttons.
+
+// The collapsing header: fractions of the collapse distance, and how much the title grows on pull-down.
+export const header = { barTitleFrom: 0.6, largeTitleGone: 0.7, pullGrow: 1.08 } as const;

@@ -186,11 +186,15 @@ function Today({ initialMinute, firstGust, perf }: {
   }, false);
 
   // Tab screens stay mounted, so the status bar and tab bar scheme are set on focus, not on mount.
+  // The tab bar's scheme starts from the sky this screen opened with; changeScheme fades it after that.
+  useEffect(() => {
+    todayChromeDarkness.set(skyTextIsWhite(initialMinute) ? 1 : 0);
+  }, [initialMinute]);
+  // On focus, only the status bar is set (from the tab bar's current scheme), so a running fade is never cut short.
   useFocusEffect(
     useCallback(() => {
-      setStatusBarStyle(textIsWhite ? 'light' : 'dark');
-      todayChromeDarkness.set(textIsWhite ? 1 : 0);
-    }, [textIsWhite]),
+      setStatusBarStyle(todayChromeDarkness.get() > 0.5 ? 'light' : 'dark');
+    }, []),
   );
 
   // Only animates while Today is focused and motion is allowed.
@@ -221,6 +225,7 @@ function Today({ initialMinute, firstGust, perf }: {
       setTextIsWhite(white);
       // The tab bar lives in the tabs layout; it follows the same fade.
       todayChromeDarkness.set(withTiming(white ? 1 : 0, { duration: duration.entrance, easing }));
+      setStatusBarStyle(white ? 'light' : 'dark');
       chromeFade.set(1);
       chromeFade.set(
         withTiming(0, { duration: duration.entrance, easing }, (finished) => {

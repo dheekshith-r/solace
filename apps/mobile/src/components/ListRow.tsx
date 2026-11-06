@@ -1,13 +1,11 @@
 import { ChevronRight, type LucideIcon } from 'lucide-react-native';
 import { Children, isValidElement, type ReactNode } from 'react';
 import { StyleSheet, Switch, View } from 'react-native';
-import { haptics } from '../theme/haptics';
-import { kit, radius, spacing } from '../theme/tokens';
+import { pressScaleGentle } from '../theme/motion';
+import { kit, radius, separatorInset, spacing } from '../theme/tokens';
 import { PressScale } from './PressScale';
 import { Text } from './Text';
 import { Raised, useFill, useTheme } from './ThemeProvider';
-
-const ROW_PRESS = 0.98;
 
 type Trailing = { kind: 'chevron' } | { kind: 'value'; value: string } | { kind: 'switch'; on: boolean; onChange: (on: boolean) => void } | { kind: 'none' };
 
@@ -34,7 +32,7 @@ export function ListRow({
     <View style={styles.row}>
       {Icon ? (
         <View style={[styles.iconWell, { backgroundColor: fill }]}>
-          <Icon size={kit.iconSmall} color={destructive ? palette.accent : palette.ink} strokeWidth={2} />
+          <Icon size={kit.iconSmall} color={destructive ? palette.accent : palette.ink} strokeWidth={kit.iconStroke} />
         </View>
       ) : null}
       <View style={styles.words}>
@@ -55,10 +53,7 @@ export function ListRow({
       {trailing.kind === 'switch' ? (
         <Switch
           value={trailing.on}
-          onValueChange={(next) => {
-            haptics.selection();
-            trailing.onChange(next);
-          }}
+          onValueChange={trailing.onChange}
           trackColor={{ false: palette.separator, true: palette.accent }}
           thumbColor={palette.surface}
           accessibilityLabel={title}
@@ -70,9 +65,10 @@ export function ListRow({
     </View>
   );
 
+  const label = [title, subtitle, trailing.kind === 'value' ? trailing.value : undefined].filter(Boolean).join(', ');
   if (!onPress || trailing.kind === 'switch') {
     return (
-      <View accessible={trailing.kind !== 'switch'} accessibilityLabel={subtitle ? `${title}, ${subtitle}` : title}>
+      <View accessible={trailing.kind !== 'switch'} accessibilityLabel={label}>
         {content}
       </View>
     );
@@ -80,9 +76,9 @@ export function ListRow({
   return (
     <PressScale
       onPress={onPress}
-      scaleTo={ROW_PRESS}
+      scaleTo={pressScaleGentle}
       accessibilityRole="button"
-      accessibilityLabel={subtitle ? `${title}, ${subtitle}` : title}
+      accessibilityLabel={label}
     >
       {content}
     </PressScale>
@@ -125,8 +121,8 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
   },
   iconWell: {
-    width: kit.icon + spacing.sm + spacing.xs,
-    height: kit.icon + spacing.sm + spacing.xs,
+    width: kit.iconWell,
+    height: kit.iconWell,
     borderRadius: radius.field - spacing.xs,
     alignItems: 'center',
     justifyContent: 'center',
@@ -135,5 +131,5 @@ const styles = StyleSheet.create({
   groupBlock: { gap: spacing.sm },
   groupHeader: { paddingHorizontal: spacing.lg },
   group: { borderRadius: radius.card, overflow: 'hidden' },
-  separator: { height: StyleSheet.hairlineWidth, marginLeft: kit.separatorInset },
+  separator: { height: StyleSheet.hairlineWidth, marginLeft: separatorInset },
 });

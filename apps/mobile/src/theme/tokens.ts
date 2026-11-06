@@ -65,14 +65,27 @@ export const kit = {
   headerCollapse: 44, // Scroll distance over which the large title hands off to the bar title.
   grabberWidth: 36,
   grabberHeight: 5,
-  separatorInset: 54, // Row separators start after the leading icon.
+  iconWell: 34, // The soft square behind a list row's icon.
+  iconStroke: 2,
+  iconStrokeBold: 2.2,
+  iconStrokeLight: 1.8,
+  elevation: 10, // Tab bar only (spec 7.2: only the tab bar and floating sheets get elevation).
   toastTop: 8,
   focusBorder: 2,
-  tabWidth: 88, // Equal tabs, so the lit pill slides without changing size.
+  dashWidth: 28, // Onboarding progress segments.
+  dashHeight: 4,
+  heroSola: 132, // Sola on onboarding and splash.
+  pageMaxText: 340, // Readable line length for centered page copy.
   shadowOpacity: 0.18,
 } as const;
 
+// Row separators start where the row's title starts: row padding, icon well, gap.
+export const separatorInset = spacing.lg + kit.iconWell + spacing.md;
+
 export const opacity = { disabled: 0.4, skeletonLow: 0.45, skeletonHigh: 0.9 } as const;
+
+// Text in fixed-height chrome (the tab bar) stops growing at 1.3x, so it never clips.
+export const type = { maxScale: 1.3 } as const;
 
 export const today = {
   moodButton: 54,

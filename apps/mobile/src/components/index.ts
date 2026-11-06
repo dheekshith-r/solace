@@ -6,6 +6,7 @@ export { EmptyState } from './EmptyState';
 export { Entrance } from './Entrance';
 export { ListGroup, ListRow } from './ListRow';
 export { PressScale } from './PressScale';
+export { ProgressDashes } from './ProgressDashes';
 export { Header, Screen } from './Screen';
 export { Sheet } from './Sheet';
 export { SkeletonBlock, SkeletonCard, SkeletonRow } from './Skeleton';

@@ -1,6 +1,7 @@
 import { useEffect, type ReactNode } from 'react';
 import type { StyleProp, ViewStyle } from 'react-native';
 import Animated, {
+  ReduceMotion,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
@@ -19,8 +20,9 @@ export function Entrance({ index = 0, children, style }: { index?: number; child
   const shown = useSharedValue(isLite ? 1 : 0);
   useEffect(() => {
     if (isLite) return;
-    shown.set(withDelay(index * entrance.stagger, withTiming(1, { duration: duration.entrance, easing })));
+    shown.set(withDelay(index * entrance.stagger, withTiming(1, { duration: duration.entrance, easing, reduceMotion: ReduceMotion.Never })));
   }, [index, shown]);
+  // With reduce motion the content still fades in (spec 7.3), it just doesn't rise.
   const animated = useAnimatedStyle(() => ({
     opacity: shown.get(),
     transform: [{ translateY: reduced ? 0 : entrance.rise * (1 - shown.get()) }],

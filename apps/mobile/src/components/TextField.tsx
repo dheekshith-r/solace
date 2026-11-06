@@ -3,7 +3,7 @@ import { useState, type ComponentRef, type Ref } from 'react';
 import { StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { duration, easing } from '../theme/motion';
-import { font, fontSize, kit, radius, spacing } from '../theme/tokens';
+import { font, fontSize, kit, radius, spacing, touchTarget } from '../theme/tokens';
 import { PressScale } from './PressScale';
 import { Text } from './Text';
 import { useFill, useTheme } from './ThemeProvider';
@@ -27,20 +27,19 @@ export function TextField({ ref, label, error, helper, secure = false, onFocus, 
 
   return (
     <View style={styles.block}>
-      <Text variant="footnoteStrong" tone="muted" nativeID={`${label}-label`}>
+      <Text variant="footnoteStrong" tone="muted" importantForAccessibility="no">
         {label}
       </Text>
       <View style={[styles.field, { backgroundColor: fill }]}>
         <Animated.View
           pointerEvents="none"
-          style={[styles.ring, { borderColor: error ? palette.ink : palette.accent }, error ? null : ring]}
+          style={[styles.ring, { borderColor: error ? palette.muted : palette.accent }, error ? null : ring]}
         />
         <TextInput
           ref={ref}
           {...rest}
           secureTextEntry={hidden}
           accessibilityLabel={label}
-          accessibilityLabelledBy={`${label}-label`}
           accessibilityHint={error}
           placeholderTextColor={palette.muted}
           selectionColor={palette.accent}
@@ -90,7 +89,7 @@ const styles = StyleSheet.create({
   },
   ring: { ...StyleSheet.absoluteFill, borderRadius: radius.field, borderWidth: kit.focusBorder },
   input: { flex: 1, fontFamily: font.regular, fontSize: fontSize.body, paddingVertical: spacing.md },
-  eye: { padding: spacing.xs },
+  eye: { width: touchTarget, height: touchTarget, alignItems: 'center', justifyContent: 'center', marginRight: -spacing.md },
   message: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs + spacing.xs / 2 },
   flex: { flex: 1 },
 });

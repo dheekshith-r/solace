@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { haptics } from '../theme/haptics';
 import { spring } from '../theme/motion';
-import { kit, radius, spacing } from '../theme/tokens';
+import { kit, radius, spacing, touchTarget } from '../theme/tokens';
 import { PressScale } from './PressScale';
 import { Text } from './Text';
 import { useFill, useTheme } from './ThemeProvider';
@@ -22,9 +22,10 @@ export function Chip({ label, selected = false, onPress }: { label: string; sele
   return (
     <PressScale
       onPress={() => {
-        haptics.selection();
+        if (!selected) haptics.selection();
         onPress();
       }}
+      hitSlop={(touchTarget - kit.chipHeight) / 2}
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityState={{ selected }}

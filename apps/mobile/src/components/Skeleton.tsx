@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { StyleSheet, View, type DimensionValue } from 'react-native';
 import Animated, {
+  cancelAnimation,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
@@ -17,7 +18,11 @@ export function SkeletonBlock({ width = '100%', height = fontSize.callout, round
   const reduced = useReducedMotion();
   const level = useSharedValue<number>(opacity.skeletonHigh);
   useEffect(() => {
-    if (reduced) return;
+    if (reduced) {
+      cancelAnimation(level);
+      level.set(opacity.skeletonHigh);
+      return;
+    }
     level.set(withRepeat(withTiming(opacity.skeletonLow, { duration: duration.pulse, easing }), -1, true));
   }, [level, reduced]);
   const style = useAnimatedStyle(() => ({ opacity: level.get() }));

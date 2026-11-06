@@ -1,10 +1,9 @@
 import type { ReactNode } from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { pressScaleGentle } from '../theme/motion';
 import { radius, spacing } from '../theme/tokens';
 import { PressScale } from './PressScale';
 import { Raised, useFill } from './ThemeProvider';
-
-const GENTLE_PRESS = 0.98; // Large surfaces move less than buttons.
 
 /**
  * A surface: white on the page (dark gray in dark mode), a soft tint when nested inside another surface. `hero` uses the petal shape (one tighter corner) for the one card a
@@ -30,7 +29,7 @@ export function Card({
   return (
     <PressScale
       onPress={onPress}
-      scaleTo={GENTLE_PRESS}
+      scaleTo={pressScaleGentle}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       style={surface}

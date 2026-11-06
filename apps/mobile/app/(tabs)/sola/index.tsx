@@ -7,7 +7,7 @@ export default function SolaTab() {
     <Screen title="Sola" tabs>
       <Entrance>
         <Card>
-          <EmptyState icon={MessageCircle} title="Your talks with Sola" body="Conversations with Sola will live here, ready to pick up where you left off." />
+          <EmptyState icon={MessageCircle} title="Your talks with Sola" body="Your conversations with Sola will live here, ready to pick up again." />
         </Card>
       </Entrance>
     </Screen>

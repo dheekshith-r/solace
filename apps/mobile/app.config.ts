@@ -1,8 +1,10 @@
 import type { ExpoConfig } from 'expo/config';
 
-const SPLASH_LIGHT = '#EEF0F8';
-const SPLASH_DARK = '#12111C';
-const ACCENT = '#6F63E8';
+// Native splash and notification colors: the HIG tokens (spec 7.2), so the hand-off to the animated splash
+// is seamless. Expo's config loader can't import src/theme, so a unit test keeps these equal to the tokens.
+export const SPLASH_LIGHT = '#F2F2F7'; // colors.light.background
+export const SPLASH_DARK = '#000000'; // colors.dark.background
+export const ACCENT = '#1E6EF4'; // colors.light.accent
 
 // Native build paths exceed Windows' 260-character limit, and the default CMake's Ninja cannot
 // handle that. Windows only: Linux build servers do not have this CMake version installed.
@@ -36,9 +38,10 @@ const config: ExpoConfig = {
       'expo-splash-screen',
       {
         backgroundColor: SPLASH_LIGHT,
+        // Sola, captured from the app's own art (app/kit-sola.tsx); the glow fades to the background at the edges.
         image: './assets/splash-icon.png',
-        imageWidth: 200,
-        dark: { backgroundColor: SPLASH_DARK, image: './assets/splash-icon.png' },
+        imageWidth: 288,
+        dark: { backgroundColor: SPLASH_DARK, image: './assets/splash-icon-dark.png' },
       },
     ],
     ['expo-notifications', { color: ACCENT }],
