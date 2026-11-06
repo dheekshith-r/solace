@@ -28,8 +28,8 @@ function confirmDelete(item: ConversationListItem) {
 function DeleteAction({ item }: { item: ConversationListItem }) {
   const { palette } = useTheme();
   return (
-    <PressScale onPress={() => confirmDelete(item)} accessibilityRole="button" accessibilityLabel="Delete conversation" style={[styles.delete, { backgroundColor: palette.ink }]}>
-      <Trash2 size={kit.icon} color={palette.background} />
+    <PressScale onPress={() => confirmDelete(item)} accessibilityRole="button" accessibilityLabel="Delete conversation" style={[styles.delete, { backgroundColor: palette.destructive }]}>
+      <Trash2 size={kit.icon} color={palette.surface} />
     </PressScale>
   );
 }

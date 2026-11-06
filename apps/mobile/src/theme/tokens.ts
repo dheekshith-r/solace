@@ -10,6 +10,7 @@ export const colors = {
     separator: '#D1D1D6',
     accent: '#1E6EF4',
     onAccent: '#FFFFFF',
+    destructive: '#FF383C', // HIG system red (2025). Destructive actions only (Ddk, Nov 6).
   },
   dark: {
     background: '#000000',
@@ -20,6 +21,7 @@ export const colors = {
     separator: '#3A3A3C',
     accent: '#5CB8FF',
     onAccent: '#000000',
+    destructive: '#FF4245', // HIG system red, dark (2025).
   },
 } as const;
 

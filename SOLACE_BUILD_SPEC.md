@@ -305,6 +305,7 @@ Colors come from Apple's HIG Color page (values updated June 2025) and its iOS s
 | separator | `#D1D1D6` | `#3A3A3C` | Gray 4 |
 | accent | `#1E6EF4` | `#5CB8FF` | Blue, increased contrast |
 | onAccent | `#FFFFFF` | `#000000` | White / black |
+| destructive | `#FF383C` | `#FF4245` | System red (2025). Destructive actions only (Ddk, Nov 6) |
 
 Sky colors are derived from HIG blue, cyan, teal, indigo and orange (section 7.7). Text on the sky is pure black or white, whichever passes AA across the sky behind it.
 

@@ -3,7 +3,7 @@ import { font, fontSize, lineHeightRatio, titleTracking, type Palette } from '..
 import { useTheme } from './ThemeProvider';
 
 export type TextVariant = keyof typeof variants;
-export type TextTone = 'ink' | 'muted' | 'accent' | 'onAccent';
+export type TextTone = 'ink' | 'muted' | 'accent' | 'onAccent' | 'destructive';
 
 const title = (size: number) => ({
   fontFamily: font.bold,

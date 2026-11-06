@@ -18,5 +18,3 @@ Pure polish found by reviewers or measurements. Nothing here breaks a flow, the 
 ## Kit (from the review of tickets 01 and 02)
 - TabBar: the press scale has no visible effect (it scales an invisible touch layer). Tapping the current Sola tab could pop its stack back to the list.
 - Today calls expo-haptics directly (demo cycle, MoodButton) and keeps raw layout constants (DATE_LINE_HEIGHT, ESTIMATED_REST_HEIGHT, LONG_PRESS_MS). Today is locked, so move these into haptics.ts and the tokens only when Ddk okays touching it.
-- Chip selection tick: spec 7.5 lists ticks only for mood choice and tab change. Ask Ddk whether goal chips may tick too. It now ticks only when selecting.
-- Destructive rows use the accent color because there is no red token. Ask Ddk about HIG red.

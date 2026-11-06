@@ -27,12 +27,12 @@ export function ListRow({
 }) {
   const { palette } = useTheme();
   const fill = useFill();
-  const tone = destructive ? 'accent' : 'ink';
+  const tone = destructive ? 'destructive' : 'ink';
   const content = (
     <View style={styles.row}>
       {Icon ? (
         <View style={[styles.iconWell, { backgroundColor: fill }]}>
-          <Icon size={kit.iconSmall} color={destructive ? palette.accent : palette.ink} strokeWidth={kit.iconStroke} />
+          <Icon size={kit.iconSmall} color={destructive ? palette.destructive : palette.ink} strokeWidth={kit.iconStroke} />
         </View>
       ) : null}
       <View style={styles.words}>
