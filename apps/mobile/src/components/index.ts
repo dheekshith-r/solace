@@ -1,6 +1,7 @@
 // The component kit. Every screen builds from these and the tokens in src/theme, nothing else.
 export { Button, type ButtonVariant } from './Button';
 export { Card } from './Card';
+export { ChatBubble, Composer, HelplineCard, TypingBubble } from './Chat';
 export { Checkbox } from './Checkbox';
 export { Chip } from './Chip';
 export { EmptyState } from './EmptyState';

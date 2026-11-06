@@ -76,6 +76,10 @@ export const kit = {
   dashHeight: 4,
   heroSola: 132, // Sola on onboarding and splash.
   checkbox: 24,
+  messageMax: 2000, // Same limit as the API.
+  composerMax: 140, // The message box grows to about five lines, then scrolls.
+  sendDisabled: 0.4,
+  solaInline: 56, // Small Sola beside the daily line and in conversations.
   checkFrom: 0.6, // The checkbox fill grows from 60%.
   pageMaxText: 340, // Readable line length for centered page copy.
   shadowOpacity: 0.18,
