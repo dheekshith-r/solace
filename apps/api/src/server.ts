@@ -1,10 +1,18 @@
-import { buildApp } from './app';
+import { buildApp, loggerOptions, trustProxyHops } from './app';
 import { createDb } from './db/client';
 import { loadEnv } from './env';
 
 const env = loadEnv();
 const database = createDb(env.DATABASE_URL);
-const app = buildApp({ pingDb: database.ping, logger: true });
+const app = buildApp({
+  pingDb: database.ping,
+  db: database.db,
+  jwtSecret: env.JWT_SECRET,
+  logger: loggerOptions(),
+  // A fixed hop count, not `true`: only the address appended by Render's proxy is trusted, so a
+  // client cannot pick its own IP (and rate-limit bucket) by sending X-Forwarded-For.
+  trustProxy: trustProxyHops(env.TRUST_PROXY_HOPS),
+});
 
 async function shutdown() {
   await app.close();
