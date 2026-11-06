@@ -1,0 +1,176 @@
+import { useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import { ChevronLeft, type LucideIcon } from 'lucide-react-native';
+import type { ReactNode } from 'react';
+import { StyleSheet, View } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
+import Animated, {
+  Extrapolation,
+  interpolate,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useSharedValue,
+  type SharedValue,
+} from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { kit, screenPadding, spacing, tabBarHeight } from '../theme/tokens';
+import { PressScale } from './PressScale';
+import { Text } from './Text';
+import { useTheme } from './ThemeProvider';
+
+type Action = { icon: LucideIcon; label: string; onPress: () => void };
+
+/**
+ * The large title collapses into the bar as the page scrolls. The big title slides up and fades;
+ * the bar's title and hairline fade in. Only transform and opacity animate.
+ */
+export function Header({ title, scrollY, back, action }: { title: string; scrollY: SharedValue<number>; back?: boolean; action?: Action }) {
+  const { palette } = useTheme();
+  const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const barTitle = useAnimatedStyle(() => ({
+    opacity: interpolate(scrollY.get(), [kit.headerCollapse * 0.6, kit.headerCollapse], [0, 1], Extrapolation.CLAMP),
+    transform: [
+      { translateY: interpolate(scrollY.get(), [kit.headerCollapse * 0.6, kit.headerCollapse], [spacing.xs, 0], Extrapolation.CLAMP) },
+    ],
+  }));
+  const barFill = useAnimatedStyle(() => ({
+    opacity: interpolate(scrollY.get(), [0, kit.headerCollapse], [0, 1], Extrapolation.CLAMP),
+  }));
+
+  return (
+    <View style={[styles.bar, { paddingTop: insets.top, height: insets.top + kit.headerBar }]} pointerEvents="box-none">
+      <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: palette.background }, barFill]}>
+        <View style={[styles.hairline, { backgroundColor: palette.separator }]} />
+      </Animated.View>
+      <View style={styles.barRow} pointerEvents="box-none">
+        <View style={styles.side}>
+          {back ? (
+            <PressScale
+              onPress={() => router.back()}
+              accessibilityRole="button"
+              accessibilityLabel="Back"
+              hitSlop={spacing.sm}
+              style={styles.iconButton}
+            >
+              <ChevronLeft size={kit.icon + spacing.xs} color={palette.accent} strokeWidth={2.2} />
+            </PressScale>
+          ) : null}
+        </View>
+        <Animated.View style={[styles.barTitle, barTitle]} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+          <Text variant="bodyStrong" numberOfLines={1}>
+            {title}
+          </Text>
+        </Animated.View>
+        <View style={[styles.side, styles.sideEnd]}>
+          {action ? (
+            <PressScale
+              onPress={action.onPress}
+              accessibilityRole="button"
+              accessibilityLabel={action.label}
+              hitSlop={spacing.sm}
+              style={styles.iconButton}
+            >
+              <action.icon size={kit.icon} color={palette.accent} strokeWidth={2.2} />
+            </PressScale>
+          ) : null}
+        </View>
+      </View>
+    </View>
+  );
+}
+
+function LargeTitle({ title, scrollY }: { title: string; scrollY: SharedValue<number> }) {
+  const style = useAnimatedStyle(() => {
+    const y = scrollY.get();
+    return {
+      opacity: interpolate(y, [0, kit.headerCollapse * 0.7], [1, 0], Extrapolation.CLAMP),
+      // Pulling down past the top grows the title a little, like iOS.
+      transform: [{ scale: interpolate(y, [-kit.headerCollapse * 2, 0], [1.08, 1], Extrapolation.CLAMP) }],
+    };
+  });
+  return (
+    <Animated.View style={[styles.largeTitle, style]}>
+      <Text variant="largeTitle" accessibilityRole="header">
+        {title}
+      </Text>
+    </Animated.View>
+  );
+}
+
+/**
+ * Every screen's frame: background, safe areas, status bar, and an optional large title that
+ * collapses on scroll. `keyboard` keeps the focused field above the keyboard. `tabs` leaves room
+ * for the floating tab bar.
+ */
+export function Screen({
+  title,
+  back = false,
+  action,
+  keyboard = false,
+  tabs = false,
+  scroll = true,
+  children,
+}: {
+  title?: string;
+  back?: boolean;
+  action?: Action;
+  keyboard?: boolean;
+  tabs?: boolean;
+  scroll?: boolean;
+  children: ReactNode;
+}) {
+  const { palette, scheme } = useTheme();
+  const insets = useSafeAreaInsets();
+  const scrollY = useSharedValue(0);
+  const onScroll = useAnimatedScrollHandler((event) => {
+    scrollY.set(event.contentOffset.y);
+  });
+  const top = insets.top + kit.headerBar;
+  const bottom = insets.bottom + spacing.xxxl + (tabs ? tabBarHeight + spacing.lg : 0);
+  const content = (
+    <>
+      {title ? <LargeTitle title={title} scrollY={scrollY} /> : null}
+      <View style={styles.body}>{children}</View>
+    </>
+  );
+  const contentStyle = { paddingTop: top, paddingBottom: bottom, paddingHorizontal: screenPadding };
+
+  return (
+    <View style={[styles.screen, { backgroundColor: palette.background }]}>
+      <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
+      {!scroll ? (
+        <View style={[styles.screen, contentStyle]}>{content}</View>
+      ) : keyboard ? (
+        // Built on Reanimated's ScrollView, so the animated scroll handler works here too.
+        <KeyboardAwareScrollView
+          onScroll={onScroll}
+          scrollEventThrottle={16}
+          bottomOffset={spacing.xxl}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={contentStyle}
+        >
+          {content}
+        </KeyboardAwareScrollView>
+      ) : (
+        <Animated.ScrollView onScroll={onScroll} scrollEventThrottle={16} contentContainerStyle={contentStyle} keyboardShouldPersistTaps="handled">
+          {content}
+        </Animated.ScrollView>
+      )}
+      {title || back || action ? <Header title={title ?? ''} scrollY={scrollY} back={back} action={action} /> : null}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  screen: { flex: 1 },
+  bar: { position: 'absolute', top: 0, left: 0, right: 0 },
+  hairline: { position: 'absolute', left: 0, right: 0, bottom: 0, height: StyleSheet.hairlineWidth },
+  barRow: { flex: 1, flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.sm },
+  side: { width: kit.rowMinHeight, alignItems: 'flex-start' },
+  sideEnd: { alignItems: 'flex-end' },
+  barTitle: { flex: 1, alignItems: 'center' },
+  iconButton: { width: kit.rowMinHeight - spacing.sm, height: kit.rowMinHeight - spacing.sm, alignItems: 'center', justifyContent: 'center' },
+  largeTitle: { paddingBottom: spacing.lg, transformOrigin: 'left' },
+  body: { gap: spacing.xxl },
+});

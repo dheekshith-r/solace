@@ -49,7 +49,30 @@ export const spacing = { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 24, xxxl: 32
 
 export const screenPadding = 22;
 
-export const radius = { sheet: 32, card: 22, button: 18, chip: 16, full: 999 } as const;
+// Hero cards use the petal shape: hero on three corners, petal on one.
+export const radius = { sheet: 32, hero: 34, card: 22, button: 18, chip: 16, field: 14, petal: 12, full: 999 } as const;
+
+// Component sizes for the kit (src/components). Built on the 4/8 grid.
+export const kit = {
+  buttonHeight: 52,
+  chipHeight: 36,
+  fieldHeight: 52,
+  rowMinHeight: 52,
+  icon: 22,
+  iconSmall: 18,
+  emptyIcon: 64,
+  headerBar: 52, // Collapsed header, below the status bar.
+  headerCollapse: 44, // Scroll distance over which the large title hands off to the bar title.
+  grabberWidth: 36,
+  grabberHeight: 5,
+  separatorInset: 54, // Row separators start after the leading icon.
+  toastTop: 8,
+  focusBorder: 2,
+  tabWidth: 104, // Equal tabs, so the lit pill slides without changing size.
+  shadowOpacity: 0.18,
+} as const;
+
+export const opacity = { disabled: 0.4, skeletonLow: 0.45, skeletonHigh: 0.9 } as const;
 
 export const today = {
   moodButton: 54,
