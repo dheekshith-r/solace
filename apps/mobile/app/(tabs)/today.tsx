@@ -28,6 +28,7 @@ import { SkyCanvas, type Gust } from '../../src/features/sky/SkyCanvas';
 import { addFrame, configurePerf, describeWindow, emptyFrameWindow, logPerf, type FrameWindow } from '../../src/features/sky/perf';
 import { nightAmount, skyTextIsWhite } from '../../src/features/sky/skyColors';
 import { todayChromeDarkness } from '../../src/features/today/chrome';
+import { actionLabel, flushPendingMood, queueMood, useToday } from '../../src/features/today/data';
 import { MoodRow } from '../../src/features/today/parts';
 import { duration, easing, spring } from '../../src/theme/motion';
 import { demoMinutes, moodNeutral, skyMotion, skyTimes, sola, wind } from '../../src/theme/sky';
@@ -71,7 +72,7 @@ function formatDate(date: Date): string {
 
 function Chrome({ palette, words, level, onSelect, headerTop, clearance, onSheetHeight, hidden }: {
   palette: Palette;
-  words: { suggestion: string };
+  words: { suggestion: string; action: string };
   level: SharedValue<number>;
   onSelect: (mood: number) => void;
   headerTop: number;
@@ -92,7 +93,7 @@ function Chrome({ palette, words, level, onSelect, headerTop, clearance, onSheet
           <View style={[styles.suggestion, { backgroundColor: palette.tint }]}>
             <Text style={[styles.body, styles.flex, { color: palette.ink }]}>{words.suggestion}</Text>
             <Pressable style={[styles.pill, { backgroundColor: palette.accent }]} accessibilityRole="button">
-              <Text style={[styles.pillText, { color: palette.onAccent }]}>Breathe</Text>
+              <Text style={[styles.pillText, { color: palette.onAccent }]}>{words.action}</Text>
             </Pressable>
           </View>
         </View>
@@ -186,6 +187,10 @@ function Today({ initialMinute, firstGust, perf }: {
   }, false);
 
   // Tab screens stay mounted, so the status bar and tab bar scheme are set on focus, not on mount.
+  // A mood tapped while offline is sent the next time Today opens.
+  useEffect(() => {
+    void flushPendingMood();
+  }, []);
   // The tab bar's scheme starts from the sky this screen opened with; changeScheme fades it after that.
   useEffect(() => {
     todayChromeDarkness.set(skyTextIsWhite(initialMinute) ? 1 : 0);
@@ -246,6 +251,7 @@ function Today({ initialMinute, firstGust, perf }: {
   const pickMood = useCallback(
     (next: number) => {
       mood.set(withSpring(next, spring));
+      queueMood(next);
     },
     [mood],
   );
@@ -268,7 +274,12 @@ function Today({ initialMinute, firstGust, perf }: {
     setRestHeight((current) => current ?? measured);
   }, []);
 
-  const words = isNightCopy(displayMinute) ? copy.night : copy.day;
+  // Sample copy until the API answers; then Sola's real suggestion (ticket 06).
+  const todayData = useToday().data;
+  const fallback = isNightCopy(displayMinute) ? copy.night : copy.day;
+  const words = todayData
+    ? { suggestion: todayData.suggestion.text, action: actionLabel[todayData.suggestion.action] }
+    : { suggestion: fallback.suggestion, action: actionLabel.breathe };
 
   return (
     <View style={styles.flex}>
