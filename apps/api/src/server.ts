@@ -9,7 +9,7 @@ const app = buildApp({
   db: database.db,
   jwtSecret: env.JWT_SECRET,
   logger: loggerOptions(),
-  // A fixed hop count, not `true`: only the addresses appended by Cloudflare and Render are trusted, so a
+  // A fixed hop count, not `true`: only the addresses added by Render's sidecar, load balancer and Cloudflare are trusted, so a
   // client cannot pick its own IP (and rate-limit bucket) by sending X-Forwarded-For.
   trustProxy: trustProxyHops(env.TRUST_PROXY_HOPS),
 });
