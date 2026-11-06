@@ -3,6 +3,7 @@ import {
   Circle,
   Group,
   Image as SkiaImage,
+  interpolatePaths,
   Line,
   LinearGradient,
   Oval,
@@ -334,6 +335,11 @@ function Petal({ index, origins, groundY, clock, gust, night }: {
   );
 }
 
+const MOUTH_LEVELS = [1, 2, 3, 4, 5];
+const MOUTHS = MOUTH_LEVELS.map(
+  (level) => Skia.Path.MakeFromSVGString(`M86 130 Q100 ${132 + (level - 3) * sola.mouthCurve} 114 130`) ?? Skia.Path.Make(),
+);
+
 function Sola({ cx, cy, size, mood, minute, night, clock }: {
   cx: number;
   cy: number;
@@ -359,10 +365,8 @@ function Sola({ cx, cy, size, mood, minute, night, clock }: {
     { translateY: -sola.eyeY },
   ]);
   const blush = useDerivedValue(() => sola.blushLow + ((sola.blushHigh - sola.blushLow) * (mood.get() - 1)) / 4);
-  const mouth = useDerivedValue(() => {
-    const y = 132 + (mood.get() - 3) * sola.mouthCurve;
-    return Skia.Path.MakeFromSVGString(`M86 130 Q100 ${y} 114 130`) ?? Skia.Path.Make();
-  });
+  // The five mouths are built once; a mood change only blends between them.
+  const mouth = useDerivedValue(() => interpolatePaths(mood.get(), MOUTH_LEVELS, MOUTHS, 'clamp'));
 
   return (
     <Group transform={float}>

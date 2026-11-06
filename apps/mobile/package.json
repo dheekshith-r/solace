@@ -62,5 +62,10 @@
     "preset": "jest-expo",
     "testPathIgnorePatterns": ["/node_modules/", "/android/", "/.expo/"]
   },
+  "reanimated": {
+    "staticFeatureFlags": {
+      "ANDROID_SYNCHRONOUSLY_UPDATE_UI_PROPS": true
+    }
+  },
   "private": true
 }
