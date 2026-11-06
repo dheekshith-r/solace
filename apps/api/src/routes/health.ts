@@ -16,4 +16,12 @@ export function registerHealthRoute(app: FastifyInstance, pingDb: () => Promise<
       return { error: { code: 'database_unavailable', message: 'Database is unreachable.' } };
     }
   });
+
+  // TEMPORARY (remove after measuring Render's proxy chain): shows the caller only their own address chain.
+  app.get('/health/ip', async (request) => ({
+    ip: request.ip,
+    ips: request.ips ?? [],
+    xff: request.headers['x-forwarded-for'] ?? null,
+    socket: request.socket.remoteAddress ?? null,
+  }));
 }
