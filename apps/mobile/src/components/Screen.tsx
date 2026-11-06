@@ -1,7 +1,7 @@
-import { useRouter } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { setStatusBarStyle } from 'expo-status-bar';
 import { ChevronLeft, type LucideIcon } from 'lucide-react-native';
-import type { ReactNode } from 'react';
+import { useCallback, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import Animated, {
@@ -123,6 +123,12 @@ export function Screen({
   const { palette, scheme } = useTheme();
   const insets = useSafeAreaInsets();
   const scrollY = useSharedValue(0);
+  // Tab screens stay mounted, so the status bar is set whenever this screen gains focus.
+  useFocusEffect(
+    useCallback(() => {
+      setStatusBarStyle(scheme === 'dark' ? 'light' : 'dark');
+    }, [scheme]),
+  );
   const onScroll = useAnimatedScrollHandler((event) => {
     scrollY.set(event.contentOffset.y);
   });
@@ -138,7 +144,6 @@ export function Screen({
 
   return (
     <View style={[styles.screen, { backgroundColor: palette.background }]}>
-      <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
       {!scroll ? (
         <View style={[styles.screen, contentStyle]}>{content}</View>
       ) : keyboard ? (

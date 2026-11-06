@@ -1,11 +1,11 @@
 import * as Haptics from 'expo-haptics';
 import { memo, useCallback, useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring, type SharedValue } from 'react-native-reanimated';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { pressScale, spring } from '../../theme/motion';
 import { moodLabels, moodLevels } from '../../theme/sky';
-import { font, fontSize, radius, spacing, tabBarHeight, today, type Palette } from '../../theme/tokens';
+import { font, fontSize, radius, spacing, today, type Palette } from '../../theme/tokens';
 
 const MOODS = Array.from({ length: moodLevels }, (_, i) => i + 1);
 
@@ -115,20 +115,6 @@ export function MoodRow({ level, palette, onSelect }: { level: SharedValue<numbe
   );
 }
 
-const TABS = ['Today', 'Sola', 'You'] as const;
-
-export function TabBar({ palette, bottom }: { palette: Palette; bottom: number }) {
-  return (
-    <View style={[styles.tabBar, { backgroundColor: palette.tint, bottom, shadowColor: palette.ink }]}>
-      {TABS.map((tab, index) => (
-        <View key={tab} style={[styles.tab, index === 0 ? { backgroundColor: palette.accent } : undefined]}>
-          <Text style={[styles.tabText, { color: index === 0 ? palette.onAccent : palette.muted }]}>{tab}</Text>
-        </View>
-      ))}
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   moodBlock: { gap: spacing.sm },
   moodRow: { flexDirection: 'row', justifyContent: 'space-between' },
@@ -144,19 +130,4 @@ const styles = StyleSheet.create({
   moodLabel: { fontFamily: font.regular, fontSize: fontSize.footnote, textAlign: 'center' },
   moodLabelStack: { height: today.moodLabelHeight },
   moodLabelLayer: { ...StyleSheet.absoluteFill },
-  tabBar: {
-    position: 'absolute',
-    alignSelf: 'center',
-    flexDirection: 'row',
-    height: tabBarHeight,
-    padding: spacing.xs + spacing.xs / 2,
-    gap: spacing.xs,
-    borderRadius: radius.full,
-    elevation: 10,
-    shadowOpacity: 0.18,
-    shadowRadius: spacing.lg,
-    shadowOffset: { width: 0, height: spacing.sm },
-  },
-  tab: { paddingHorizontal: spacing.xxl, borderRadius: radius.full, alignItems: 'center', justifyContent: 'center' },
-  tabText: { fontFamily: font.semibold, fontSize: fontSize.callout },
 });

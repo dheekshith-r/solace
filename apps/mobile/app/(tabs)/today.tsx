@@ -8,7 +8,7 @@ import * as Device from 'expo-device';
 import { useFonts } from 'expo-font';
 import * as Haptics from 'expo-haptics';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
+import { setStatusBarStyle } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions, type LayoutChangeEvent } from 'react-native';
 import Animated, {
@@ -23,13 +23,14 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { scheduleOnRN } from 'react-native-worklets';
-import { minuteOfDay, wrapMinute } from '../src/features/sky/astro';
-import { SkyCanvas, type Gust } from '../src/features/sky/SkyCanvas';
-import { addFrame, configurePerf, describeWindow, emptyFrameWindow, logPerf, type FrameWindow } from '../src/features/sky/perf';
-import { nightAmount, skyTextIsWhite } from '../src/features/sky/skyColors';
-import { MoodRow, TabBar } from '../src/features/today/parts';
-import { duration, easing, spring } from '../src/theme/motion';
-import { demoMinutes, moodNeutral, skyMotion, skyTimes, sola, wind } from '../src/theme/sky';
+import { minuteOfDay, wrapMinute } from '../../src/features/sky/astro';
+import { SkyCanvas, type Gust } from '../../src/features/sky/SkyCanvas';
+import { addFrame, configurePerf, describeWindow, emptyFrameWindow, logPerf, type FrameWindow } from '../../src/features/sky/perf';
+import { nightAmount, skyTextIsWhite } from '../../src/features/sky/skyColors';
+import { todayChromeDarkness } from '../../src/features/today/chrome';
+import { MoodRow } from '../../src/features/today/parts';
+import { duration, easing, spring } from '../../src/theme/motion';
+import { demoMinutes, moodNeutral, skyMotion, skyTimes, sola, wind } from '../../src/theme/sky';
 import {
   colors,
   font,
@@ -41,7 +42,7 @@ import {
   tabBarHeight,
   today,
   type Palette,
-} from '../src/theme/tokens';
+} from '../../src/theme/tokens';
 
 const LITE_MODE_BYTES = 4 * 1024 ** 3;
 const MINUTE_MS = 60_000;
@@ -68,14 +69,13 @@ function formatDate(date: Date): string {
   return date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
 }
 
-function Chrome({ palette, words, level, onSelect, headerTop, clearance, tabBottom, onSheetHeight, hidden }: {
+function Chrome({ palette, words, level, onSelect, headerTop, clearance, onSheetHeight, hidden }: {
   palette: Palette;
   words: { suggestion: string };
   level: SharedValue<number>;
   onSelect: (mood: number) => void;
   headerTop: number;
   clearance: number;
-  tabBottom: number;
   onSheetHeight?: (event: LayoutChangeEvent) => void;
   hidden: boolean;
 }) {
@@ -98,7 +98,6 @@ function Chrome({ palette, words, level, onSelect, headerTop, clearance, tabBott
         </View>
         <View style={{ height: clearance }} />
       </View>
-      <TabBar palette={palette} bottom={tabBottom} />
     </View>
   );
 }
@@ -186,6 +185,14 @@ function Today({ initialMinute, firstGust, perf }: {
     }
   }, false);
 
+  // Tab screens stay mounted, so the status bar and tab bar scheme are set on focus, not on mount.
+  useFocusEffect(
+    useCallback(() => {
+      setStatusBarStyle(textIsWhite ? 'light' : 'dark');
+      todayChromeDarkness.set(textIsWhite ? 1 : 0);
+    }, [textIsWhite]),
+  );
+
   // Only animates while Today is focused and motion is allowed.
   useFocusEffect(
     useCallback(() => {
@@ -212,6 +219,8 @@ function Today({ initialMinute, firstGust, perf }: {
     (white: boolean) => {
       setFadingFrom(white ? colors.light : colors.dark);
       setTextIsWhite(white);
+      // The tab bar lives in the tabs layout; it follows the same fade.
+      todayChromeDarkness.set(withTiming(white ? 1 : 0, { duration: duration.entrance, easing }));
       chromeFade.set(1);
       chromeFade.set(
         withTiming(0, { duration: duration.entrance, easing }, (finished) => {
@@ -258,7 +267,6 @@ function Today({ initialMinute, firstGust, perf }: {
 
   return (
     <View style={styles.flex}>
-      <StatusBar style={textIsWhite ? 'light' : 'dark'} />
       <SkyCanvas
         size={size}
         bands={bands}
@@ -274,10 +282,10 @@ function Today({ initialMinute, firstGust, perf }: {
 
       <Pressable style={StyleSheet.absoluteFill} onLongPress={cycleSky} delayLongPress={LONG_PRESS_MS} accessible={false} />
 
-      <Chrome palette={textIsWhite ? colors.dark : colors.light} words={words} level={level} onSelect={pickMood} headerTop={headerTop} clearance={clearance} tabBottom={insets.bottom + spacing.md} onSheetHeight={onSheetHeight} hidden={false} />
+      <Chrome palette={textIsWhite ? colors.dark : colors.light} words={words} level={level} onSelect={pickMood} headerTop={headerTop} clearance={clearance} onSheetHeight={onSheetHeight} hidden={false} />
       {fadingFrom ? (
         <Animated.View style={[StyleSheet.absoluteFill, fadeStyle]} pointerEvents="none">
-          <Chrome palette={fadingFrom} words={words} level={level} onSelect={pickMood} headerTop={headerTop} clearance={clearance} tabBottom={insets.bottom + spacing.md} hidden />
+          <Chrome palette={fadingFrom} words={words} level={level} onSelect={pickMood} headerTop={headerTop} clearance={clearance} hidden />
         </Animated.View>
       ) : null}
     </View>

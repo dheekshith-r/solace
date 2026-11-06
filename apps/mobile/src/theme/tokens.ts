@@ -68,7 +68,7 @@ export const kit = {
   separatorInset: 54, // Row separators start after the leading icon.
   toastTop: 8,
   focusBorder: 2,
-  tabWidth: 104, // Equal tabs, so the lit pill slides without changing size.
+  tabWidth: 88, // Equal tabs, so the lit pill slides without changing size.
   shadowOpacity: 0.18,
 } as const;
 

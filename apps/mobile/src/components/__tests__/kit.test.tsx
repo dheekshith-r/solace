@@ -99,3 +99,13 @@ describe('Toast', () => {
     jest.useRealTimers();
   });
 });
+
+describe('TabBar', () => {
+  it('places the lit pill one tab width plus a gap per tab', () => {
+    const { pillOffset } = jest.requireActual('../TabBar') as typeof import('../TabBar');
+    const { kit, spacing } = jest.requireActual('../../theme/tokens') as typeof import('../../theme/tokens');
+    expect(pillOffset(0)).toBe(0);
+    expect(pillOffset(1)).toBe(kit.tabWidth + spacing.xs);
+    expect(pillOffset(2)).toBe(2 * (kit.tabWidth + spacing.xs));
+  });
+});
