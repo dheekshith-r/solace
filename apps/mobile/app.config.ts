@@ -38,7 +38,8 @@ const config: ExpoConfig = {
       'expo-splash-screen',
       {
         backgroundColor: SPLASH_LIGHT,
-        // Sola, captured from the app's own art (app/kit-sola.tsx); the glow fades to the background at the edges.
+        // Sola, captured from the app's own art (app/kit-sola.tsx), padded so Sola and its whole glow sit in the
+        // middle 2/3 that Android 12+ shows (it clips the outer third).
         image: './assets/splash-icon.png',
         imageWidth: 288,
         dark: { backgroundColor: SPLASH_DARK, image: './assets/splash-icon-dark.png' },

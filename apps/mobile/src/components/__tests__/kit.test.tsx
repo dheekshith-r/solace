@@ -9,7 +9,6 @@ import { colors } from '../../theme/tokens';
 // Screen's native dependencies, replaced for unit tests.
 jest.mock('expo-router', () => ({ useRouter: () => ({ back: jest.fn() }), useFocusEffect: jest.fn() }));
 jest.mock('expo-status-bar', () => ({ setStatusBarStyle: jest.fn() }));
-jest.mock('react-native-keyboard-controller', () => ({ KeyboardAwareScrollView: jest.requireActual('react-native').ScrollView }));
 
 jest.mock('expo-haptics', () => ({
   selectionAsync: jest.fn(),

@@ -10,3 +10,6 @@ jest.mock('react-native-reanimated/src/css/native/proxy', () => ({
 }));
 
 jest.mock('react-native-reanimated', () => require('react-native-reanimated/mock'));
+
+// Keyboard handling is native; the library ships its own mock for tests.
+jest.mock('react-native-keyboard-controller', () => require('react-native-keyboard-controller/jest'));

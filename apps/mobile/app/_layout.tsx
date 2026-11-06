@@ -8,7 +8,9 @@ import { useCallback } from 'react';
 import { StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { ThemeProvider, ToastProvider } from '../src/components';
+import { persistOptions, queryClient } from '../src/lib/queryClient';
 
 // Keep the native splash up until fonts are ready, so the first drawn frame is the real splash.
 void SplashScreen.preventAutoHideAsync();
@@ -21,6 +23,7 @@ export default function RootLayout() {
   if (!loaded) return null;
   return (
     <GestureHandlerRootView style={styles.root} onLayout={onLayout}>
+      <PersistQueryClientProvider client={queryClient} persistOptions={persistOptions}>
       <KeyboardProvider>
         <ThemeProvider>
           <ToastProvider>
@@ -33,6 +36,7 @@ export default function RootLayout() {
           </ToastProvider>
         </ThemeProvider>
       </KeyboardProvider>
+      </PersistQueryClientProvider>
     </GestureHandlerRootView>
   );
 }

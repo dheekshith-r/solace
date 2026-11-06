@@ -75,6 +75,8 @@ export const kit = {
   dashWidth: 28, // Onboarding progress segments.
   dashHeight: 4,
   heroSola: 132, // Sola on onboarding and splash.
+  checkbox: 24,
+  checkFrom: 0.6, // The checkbox fill grows from 60%.
   pageMaxText: 340, // Readable line length for centered page copy.
   shadowOpacity: 0.18,
 } as const;
