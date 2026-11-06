@@ -16,3 +16,10 @@
 - Appearance: each option changes the other screens immediately and survives a restart. Today is unaffected.
 - Screenshots of You, Resources, a guide, Get help now, Privacy and Appearance, light and dark. The You tab is also shown empty for a brand-new user.
 - Maestro full flow (spec section 10) passes on the phone.
+
+## Memory (every ticket)
+On the release build, using `dumpsys meminfo com.ddk.solace`:
+- Record PSS (and its native, graphics and java parts) right before opening each new screen.
+- Record it again after 2 minutes of normal use on that screen, and once more after leaving it.
+- Report the screen's cost (the change in PSS) and whether it is released on leaving.
+- Repeat the screen's main interaction 20 times: PSS must reach a plateau with no upward trend.

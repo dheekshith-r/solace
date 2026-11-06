@@ -14,3 +14,10 @@
 - History: the conversation appears with its title. Continue it. Swipe delete, then confirm: it's gone after a restart too.
 - The keyboard never covers the input. Back closes the keyboard, then the conversation.
 - Screenshots of Sola tab (loading, empty, list) and conversation (empty with chips, streaming, suggestion, crisis, error), light and dark.
+
+## Memory (every ticket)
+On the release build, using `dumpsys meminfo com.ddk.solace`:
+- Record PSS (and its native, graphics and java parts) right before opening each new screen.
+- Record it again after 2 minutes of normal use on that screen, and once more after leaving it.
+- Report the screen's cost (the change in PSS) and whether it is released on leaving.
+- Repeat the screen's main interaction 20 times: PSS must reach a plateau with no upward trend.

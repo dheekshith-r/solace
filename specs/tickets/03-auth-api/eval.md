@@ -27,3 +27,10 @@
 
 ## Live (after deploy)
 `curl` against `https://solace-api-dvjz.onrender.com`: signup, me, refresh, logout, using a throwaway test email that is deleted afterwards with `DELETE /me`.
+
+## Memory (every ticket)
+On the release build, using `dumpsys meminfo com.ddk.solace`:
+- Record PSS (and its native, graphics and java parts) right before opening each new screen.
+- Record it again after 2 minutes of normal use on that screen, and once more after leaving it.
+- Report the screen's cost (the change in PSS) and whether it is released on leaving.
+- Repeat the screen's main interaction 20 times: PSS must reach a plateau with no upward trend.

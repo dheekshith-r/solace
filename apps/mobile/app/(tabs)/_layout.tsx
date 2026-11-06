@@ -28,14 +28,10 @@ function AppTabBar({ state, navigateToTab, insets }: TabBarProps) {
   );
 }
 
-/**
- * Today, Sola and You. Back from Sola or You returns to Today; back on Today leaves the app.
- * Tab switches are instant, like iOS: a fade turned each screen into a retained full-screen GPU layer
- * (about 13 MB each). The lit pill's slide and each page's own entrance carry the motion.
- */
+/** Today, Sola and You. Back from Sola or You returns to Today; back on Today leaves the app. Tabs cross-fade. */
 export default function TabsLayout() {
   return (
-    <Tabs backBehavior="initialRoute" screenOptions={{ headerShown: false, animation: 'none' }} tabBar={(props) => <AppTabBar {...props} />}>
+    <Tabs backBehavior="initialRoute" screenOptions={{ headerShown: false, animation: 'fade' }} tabBar={(props) => <AppTabBar {...props} />}>
       <Tabs.Screen name="today" />
       <Tabs.Screen name="sola" />
       <Tabs.Screen name="you" />

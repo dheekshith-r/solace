@@ -37,4 +37,4 @@ At most one parallel worker: a backend-only ticket may run in one background sub
 - **Android back**, with both gesture and 3-button navigation: sheets close first, then the stack pops, then the app exits from Today. The user is never trapped.
 - **Screen reader:** every control has a role and a label.
 - **Smoothness:** the in-app frame timer reads at least 110 fps during the screen's main interaction, with no gap over 34 ms.
-- **Memory:** no growth trend over 2 minutes on the screen.
+- **Memory:** every eval ends with a memory step that reports each new screen's cost (PSS before, during, after) and checks for a plateau with no upward trend.
