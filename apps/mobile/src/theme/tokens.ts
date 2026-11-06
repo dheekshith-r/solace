@@ -80,6 +80,10 @@ export const kit = {
   composerMax: 140, // The message box grows to about five lines, then scrolls.
   sendDisabled: 0.4,
   solaInline: 56, // Small Sola beside the daily line and in conversations.
+  orb: 260, // The breathing orb at full size.
+  orbSmall: 0.55, // Its size after breathing out.
+  moodButton: 54,
+  moodFace: 30,
   checkFrom: 0.6, // The checkbox fill grows from 60%.
   pageMaxText: 340, // Readable line length for centered page copy.
   shadowOpacity: 0.18,

@@ -7,7 +7,7 @@ import { PlusJakartaSans_700Bold } from '@expo-google-fonts/plus-jakarta-sans/70
 import * as Device from 'expo-device';
 import { useFonts } from 'expo-font';
 import * as Haptics from 'expo-haptics';
-import { useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { setStatusBarStyle } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions, type LayoutChangeEvent } from 'react-native';
@@ -71,8 +71,9 @@ function formatDate(date: Date): string {
 }
 
 function Chrome({ palette, words, level, onSelect, headerTop, clearance, onSheetHeight, hidden }: {
+
   palette: Palette;
-  words: { suggestion: string; action: string };
+  words: { suggestion: string; action: string; href: '/breathe' | '/reflect' };
   level: SharedValue<number>;
   onSelect: (mood: number) => void;
   headerTop: number;
@@ -80,6 +81,7 @@ function Chrome({ palette, words, level, onSelect, headerTop, clearance, onSheet
   onSheetHeight?: (event: LayoutChangeEvent) => void;
   hidden: boolean;
 }) {
+  const router = useRouter();
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none" importantForAccessibility={hidden ? 'no-hide-descendants' : 'auto'} accessibilityElementsHidden={hidden}>
       <View style={[styles.header, { paddingTop: headerTop }]} pointerEvents="none">
@@ -92,7 +94,7 @@ function Chrome({ palette, words, level, onSelect, headerTop, clearance, onSheet
           <View style={[styles.separator, { backgroundColor: palette.separator }]} />
           <View style={[styles.suggestion, { backgroundColor: palette.tint }]}>
             <Text style={[styles.body, styles.flex, { color: palette.ink }]}>{words.suggestion}</Text>
-            <Pressable style={[styles.pill, { backgroundColor: palette.accent }]} accessibilityRole="button">
+            <Pressable style={[styles.pill, { backgroundColor: palette.accent }]} accessibilityRole="button" onPress={() => router.push(words.href)}>
               <Text style={[styles.pillText, { color: palette.onAccent }]}>{words.action}</Text>
             </Pressable>
           </View>
@@ -278,8 +280,8 @@ function Today({ initialMinute, firstGust, perf }: {
   const todayData = useToday().data;
   const fallback = isNightCopy(displayMinute) ? copy.night : copy.day;
   const words = todayData
-    ? { suggestion: todayData.suggestion.text, action: actionLabel[todayData.suggestion.action] }
-    : { suggestion: fallback.suggestion, action: actionLabel.breathe };
+    ? { suggestion: todayData.suggestion.text, action: actionLabel[todayData.suggestion.action], href: todayData.suggestion.action === 'reflect' ? ('/reflect' as const) : ('/breathe' as const) }
+    : { suggestion: fallback.suggestion, action: actionLabel.breathe, href: '/breathe' as const };
 
   return (
     <View style={styles.flex}>

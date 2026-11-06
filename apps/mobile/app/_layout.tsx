@@ -31,6 +31,7 @@ export default function RootLayout() {
               <Stack.Screen name="index" options={{ animation: 'fade' }} />
               <Stack.Screen name="onboarding" options={{ animation: 'fade' }} />
               <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
+              <Stack.Screen name="breathe" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
               <Stack.Screen name="kit-sheet" options={{ presentation: 'formSheet', sheetAllowedDetents: 'fitToContents', contentStyle: { backgroundColor: 'transparent' } }} />
             </Stack>
           </ToastProvider>

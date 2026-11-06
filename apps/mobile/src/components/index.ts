@@ -7,6 +7,7 @@ export { Chip } from './Chip';
 export { EmptyState } from './EmptyState';
 export { Entrance } from './Entrance';
 export { ListGroup, ListRow } from './ListRow';
+export { MOOD_LABELS, MoodFace, MoodPicker } from './MoodPicker';
 export { PressScale } from './PressScale';
 export { ProgressDashes } from './ProgressDashes';
 export { Header, Screen } from './Screen';
