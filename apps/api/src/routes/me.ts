@@ -53,7 +53,8 @@ export function registerMeRoutes(
       if (!user) throw unauthorized();
       // Turning personalize off drops today's lines that were written from personal history.
       // Clearing is idempotent, so it runs whenever personalize is set to false.
-      if (changes.personalize === false) {
+      // A new name also clears them: today's cached greeting addresses the old one.
+      if (changes.personalize === false || changes.name !== undefined) {
         try {
           await daily.forgetToday(user);
         } catch (error) {

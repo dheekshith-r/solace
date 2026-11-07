@@ -696,6 +696,19 @@ describe('GET /today', () => {
     expect(failure).not.toContain('pool exhausted');
   });
 
+  it('renaming clears today’s cached lines, so the next greeting uses the new name', async () => {
+    const ai = fakeAi();
+    const { app, settle } = appWithTasks(ai);
+    const { user, accessToken } = await signup(app);
+    await today(app, accessToken);
+    await settle();
+    const patch = await app.inject({ method: 'PATCH', url: '/me', headers: bearer(accessToken), payload: { name: 'Meera' } });
+    expect(patch.statusCode).toBe(200);
+    const [cached] = await ctx.db.select({ n: count() }).from(dailyAffirmations).where(eq(dailyAffirmations.userId, user.id));
+    expect(cached?.n).toBe(0);
+    expect((await today(app, accessToken)).greeting).toContain('Meera');
+  });
+
   it('turning personalize off clears today’s cached personal lines and check-in suggestion', async () => {
     let generation = 0;
     const ai = fakeAi({
