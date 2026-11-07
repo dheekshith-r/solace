@@ -37,7 +37,7 @@ const config: ExpoConfig = {
       'expo-splash-screen',
       {
         backgroundColor: SPLASH_NIGHT,
-        // Sola from design/icon/icon-a-night.svg, inside the middle 2/3 that Android 12+ shows.
+        // The app's own Sola (Sola.tsx, onboarding pose, night glow), inside the 160 dp circle Android 12+ shows.
         image: './assets/splash-icon.png',
         imageWidth: 288,
         dark: { backgroundColor: SPLASH_NIGHT, image: './assets/splash-icon.png' },
