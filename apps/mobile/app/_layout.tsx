@@ -25,7 +25,8 @@ export default function RootLayout() {
   }, []);
   if (!loaded) return null;
   return (
-    <GestureHandlerRootView style={styles.root} onLayout={onLayout}>
+    // testID: the phone tests assert this before every step, so they stop the instant Solace isn't in front.
+    <GestureHandlerRootView style={styles.root} onLayout={onLayout} testID="solace-root">
       <PersistQueryClientProvider client={queryClient} persistOptions={persistOptions}>
       <KeyboardProvider>
         <ThemeProvider scheme={scheme}>

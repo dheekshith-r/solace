@@ -1,0 +1,7 @@
+# Run before every step: Solace must be the app on screen. `solace-root` exists only inside Solace,
+# so if anything else is in front (another app, the launcher, a system screen) this fails and the
+# whole flow stops at once. Nothing after a failed step runs.
+appId: com.ddk.solace
+---
+- assertVisible:
+    id: "solace-root"
