@@ -205,26 +205,30 @@ function Today({ initialMinute, firstGust, perf }: {
     }, []),
   );
 
-  // Only animates while Today is focused and motion is allowed.
+  // Follow the real clock unless the hidden demo control has taken over.
+  const followClock = useCallback(() => {
+    const next = minuteOfDay(new Date());
+    const current = wrapMinute(minute.get());
+    const delta = (next - current + 1440) % 1440;
+    if (delta === 0) return;
+    setDisplayMinute(next);
+    minute.set(withTiming(minute.get() + delta, { duration: duration.skyTick, easing }));
+  }, [minute]);
+
+  // Only draws while Today is focused (ticket 08b): the scene stays mounted behind other tabs but
+  // is still. On return the sky catches up to the clock, and motion resumes if it's allowed.
   useFocusEffect(
     useCallback(() => {
       frame.setActive(moving);
-      return () => frame.setActive(false);
-    }, [frame, moving]),
+      if (overridden) return () => frame.setActive(false);
+      followClock();
+      const timer = setInterval(followClock, MINUTE_MS);
+      return () => {
+        frame.setActive(false);
+        clearInterval(timer);
+      };
+    }, [frame, moving, overridden, followClock]),
   );
-
-  // Follow the real clock unless the hidden demo control has taken over.
-  useEffect(() => {
-    if (overridden) return undefined;
-    const timer = setInterval(() => {
-      const next = minuteOfDay(new Date());
-      setDisplayMinute(next);
-      const current = wrapMinute(minute.get());
-      const delta = (next - current + 1440) % 1440;
-      minute.set(withTiming(minute.get() + delta, { duration: duration.skyTick, easing }));
-    }, MINUTE_MS);
-    return () => clearInterval(timer);
-  }, [minute, overridden]);
 
   const clearFade = useCallback(() => setFadingFrom(null), []);
   const changeScheme = useCallback(

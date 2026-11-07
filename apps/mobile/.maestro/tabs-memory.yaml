@@ -1,0 +1,22 @@
+# Ticket 08b: 60 tab switches (Today, Sola, You), then 45 s idle on Today. Taps tab IDs only.
+# Same safety rules as full.yaml: Ddk approves the run and pins Solace first; solace-root is
+# asserted before every tap; no Back, Home or coordinates. Needs a signed-in app (no clearState).
+# Started by measure-tabs.ps1, which reads `dumpsys meminfo` before and after.
+appId: com.ddk.solace
+---
+- launchApp:
+    clearState: false
+- runFlow: assert-solace.yaml
+- extendedWaitUntil:
+    visible: { id: "tab-today" }
+    timeout: 15000
+- repeat:
+    times: 20
+    commands:
+      - runFlow: assert-solace.yaml
+      - tapOn: { id: "tab-sola" }
+      - runFlow: assert-solace.yaml
+      - tapOn: { id: "tab-you" }
+      - runFlow: assert-solace.yaml
+      - tapOn: { id: "tab-today" }
+- runFlow: assert-solace.yaml

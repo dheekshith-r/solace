@@ -3,6 +3,8 @@
 #   pwsh apps/mobile/.maestro/run-phone-test.ps1
 param([string]$Api = 'https://solace-api-sg.onrender.com')
 $ErrorActionPreference = 'Stop'
+$env:JAVA_HOME = 'C:\Users\dheek\.jdks\jdk-17.0.21.0.2+1'
+$maestro = (Get-Command maestro -ErrorAction SilentlyContinue)?.Source ?? "$env:USERPROFILE\.maestro\maestro\bin\maestro.bat"
 
 $email = "smoke-$([guid]::NewGuid().ToString('N').Substring(0, 8))@example.com"
 $password = 'Smoke' + [guid]::NewGuid().ToString('N').Substring(0, 12)
@@ -13,7 +15,7 @@ New-Item -ItemType Directory -Force $out | Out-Null
 $status = 1
 try {
   Push-Location $out   # screenshots land here
-  maestro test (Join-Path $PSScriptRoot 'full.yaml') -e "EMAIL=$email" -e "PASSWORD=$password" --format junit --output (Join-Path $out 'report.xml')
+  & $maestro test (Join-Path $PSScriptRoot 'full.yaml') -e "EMAIL=$email" -e "PASSWORD=$password" --format junit --output (Join-Path $out 'report.xml')
   $status = $LASTEXITCODE
 } finally {
   Pop-Location

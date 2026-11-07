@@ -28,10 +28,21 @@ function AppTabBar({ state, navigateToTab, insets }: TabBarProps) {
   );
 }
 
-/** Today, Sola and You. Back from Sola or You returns to Today; back on Today leaves the app. Tabs cross-fade. */
+/**
+ * Today, Sola and You. Back from Sola or You returns to Today; back on Today leaves the app. Tabs cross-fade.
+ *
+ * Inactive tabs stay attached (ticket 08b). Detaching them took Today's Skia surface out of the
+ * window, so every return built a new full-screen buffer (about 13 MB each, five were retained).
+ * Attached and faded out, Today's canvas keeps its one surface and doesn't draw while hidden.
+ */
 export default function TabsLayout() {
   return (
-    <Tabs backBehavior="initialRoute" screenOptions={{ headerShown: false, animation: 'fade' }} tabBar={(props) => <AppTabBar {...props} />}>
+    <Tabs
+      backBehavior="initialRoute"
+      detachInactiveScreens={false}
+      screenOptions={{ headerShown: false, animation: 'fade' }}
+      tabBar={(props) => <AppTabBar {...props} />}
+    >
       <Tabs.Screen name="today" />
       <Tabs.Screen name="sola" />
       <Tabs.Screen name="you" />
