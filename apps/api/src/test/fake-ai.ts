@@ -10,11 +10,11 @@ const DEFAULT_JSON: Record<AiPurpose, unknown> = {
   classify: { mood: 2, suggested_action: 'breathe', title: 'Exam night nerves' },
   summary: { summary: 'They are anxious about an exam on Friday and slept badly.' },
   daily: {
-    greeting: 'Asha, the exam worry from Tuesday evening sounded heavy. Go gently today.',
+    greeting: 'Asha, the exam worry from Tuesday sounded heavy. Go gently today.',
     affirmation: 'I can prepare one page at a time.',
     suggestion: { text: 'A slow minute of breathing could loosen that pre-exam tension.', action: 'breathe' },
   },
-  suggestion: { text: 'A low evening again, so a slow exhale might help you settle.', action: 'breathe' },
+  suggestion: { text: 'Another low day, so a slow exhale might help you settle.', action: 'breathe' },
   moves: {
     moves: [
       { text: 'Your evenings sound heaviest, so try two minutes of slow breathing after dinner.', action: 'breathe' },

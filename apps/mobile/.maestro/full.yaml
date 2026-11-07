@@ -14,8 +14,9 @@
 #   ("Not now"), and the helpline Call button is only asserted, never tapped.
 appId: com.ddk.solace
 ---
-- launchApp:
-    clearState: true
+# No launchApp: stopping or relaunching Solace ends Android's App pinning and locks the phone
+# (run 2, Nov 7). Solace's data is cleared beforehand by prepare-phone-test.ps1 while unpinned;
+# Ddk then opens Solace on its first screen and pins it. The flow starts from that screen.
 - runFlow: assert-solace.yaml
 
 # --- 04 Onboarding --------------------------------------------------------------------------

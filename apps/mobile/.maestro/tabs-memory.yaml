@@ -4,8 +4,7 @@
 # Started by measure-tabs.ps1, which reads `dumpsys meminfo` before and after.
 appId: com.ddk.solace
 ---
-- launchApp:
-    clearState: false
+# No launchApp: relaunching Solace would end App pinning. Starts from Today, signed in.
 - runFlow: assert-solace.yaml
 - extendedWaitUntil:
     visible: { id: "tab-today" }
