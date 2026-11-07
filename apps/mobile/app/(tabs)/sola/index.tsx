@@ -1,7 +1,7 @@
 // The Sola tab (spec 8.1): Sola's personal line for today, then the conversation history.
 import type { ConversationListItem } from '@solace/shared';
 import { useRouter } from 'expo-router';
-import { CloudOff, MessageCircle, Plus, Trash2 } from 'lucide-react-native';
+import { CloudOff, MessageCircle, Trash2 } from 'lucide-react-native';
 import { Alert, StyleSheet, View } from 'react-native';
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { Button, Card, EmptyState, Entrance, ListGroup, ListRow, PressScale, Screen, SkeletonCard, SkeletonRow, Text, useTheme } from '../../../src/components';
@@ -40,7 +40,7 @@ function DailyLine() {
   return (
     <Card hero>
       <View style={styles.line}>
-        <SolaFigure size={kit.solaInline} glow={scheme === 'dark' ? 'night' : 'day'} mood={4} />
+        <SolaFigure size={kit.solaInline} glow={scheme === 'dark' ? 'night' : 'day'} mood={4} tight />
         <View style={styles.flex}>
           {today.data ? (
             <Text variant="body">{today.data.greeting}</Text>
@@ -61,7 +61,8 @@ export default function SolaTab() {
   const items = conversations.data?.pages.flatMap((p) => p.items) ?? [];
 
   return (
-    <Screen title="Sola" tabs action={{ icon: Plus, label: 'New conversation', onPress: () => router.push('/sola/new') }}>
+    // One way to start a conversation: the big button below (Ddk, Nov 7).
+    <Screen title="Sola" tabs>
       <Entrance index={0}>
         <DailyLine />
       </Entrance>
@@ -106,7 +107,8 @@ export default function SolaTab() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  line: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  // The glow spills past Sola's tight box, so the text keeps a little more room from it.
+  line: { flexDirection: 'row', alignItems: 'center', gap: spacing.xl },
   flush: { padding: 0 },
   delete: { width: kit.rowMinHeight + spacing.xxl, flex: 1, alignItems: 'center', justifyContent: 'center', borderRadius: radius.petal },
 });

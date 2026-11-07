@@ -1,14 +1,16 @@
 // A conversation with Sola (spec 2.1, 8.6): replies stream in, suggestions open activities, and any
 // crisis signal shows the Tele-MANAS card. Route "new" creates the conversation on the first message.
 import type { Href } from 'expo-router';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { setStatusBarStyle } from 'expo-status-bar';
+import { SkyBackdrop, skySchemeNow } from '../../../src/features/sky/SkyBackdrop';
 import { Trash2, Wind, Sparkles, Heart } from 'lucide-react-native';
 import { useCallback, useEffect, useReducer, useRef, useState, type ComponentRef } from 'react';
 import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSharedValue } from 'react-native-reanimated';
-import { Button, Card, ChatBubble, Chip, Composer, Header, HelplineCard, SkeletonCard, Text, TypingBubble, useTheme } from '../../../src/components';
+import { Button, Card, ChatBubble, Chip, Composer, Header, HelplineCard, SkeletonCard, Text, ThemeProvider, TypingBubble, useTheme } from '../../../src/components';
 import { createConversation, deleteConversation, messagesKey, sendMessage, useMessages, type StreamHandlers } from '../../../src/features/chat/data';
 import { threadReducer, type ThreadItem } from '../../../src/features/chat/thread';
 import { SolaFigure } from '../../../src/features/sola/Sola';
@@ -38,10 +40,28 @@ function Suggestion({ action }: { action: string | null | undefined }) {
   );
 }
 
+/**
+ * The conversation sits on the soft sky of the hour, like onboarding, so its light or dark scheme
+ * follows the sky too; that keeps the text readable on it at any time of day.
+ */
 export default function ConversationScreen() {
+  const [scheme] = useState(() => skySchemeNow());
+  useFocusEffect(
+    useCallback(() => {
+      setStatusBarStyle(scheme === 'dark' ? 'light' : 'dark');
+    }, [scheme]),
+  );
+  return (
+    <ThemeProvider scheme={scheme}>
+      <Conversation />
+    </ThemeProvider>
+  );
+}
+
+function Conversation() {
   const params = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { palette, scheme } = useTheme();
+  const { scheme } = useTheme();
   const insets = useSafeAreaInsets();
   const [id, setId] = useState(params.id === 'new' ? '' : params.id);
   const messages = useMessages(id);
@@ -125,7 +145,8 @@ export default function ConversationScreen() {
   const showHelpline = items.some((i) => i.helpline);
 
   return (
-    <View style={[styles.flex, { backgroundColor: palette.background }]} testID={ROOT_ID} collapsable={false}>
+    <View style={styles.flex} testID={ROOT_ID} collapsable={false}>
+      <SkyBackdrop />
       <KeyboardAvoidingView behavior="padding" style={styles.flex}>
         <ScrollView
           ref={scroll}
@@ -180,9 +201,16 @@ export default function ConversationScreen() {
             />
           ) : null}
         </ScrollView>
-        <Composer onSend={(text) => void send(text)} disabled={busy} />
+        <Composer onSend={(text) => void send(text)} disabled={busy} clear />
       </KeyboardAvoidingView>
-      <Header title="Sola" scrollY={scrollY} back action={id ? { icon: Trash2, label: 'Delete conversation', onPress: remove } : undefined} />
+      <Header
+        title="Sola"
+        scrollY={scrollY}
+        back
+        clear
+        identity={{ avatar: <SolaFigure size={kit.solaAvatar} glow={scheme === 'dark' ? 'night' : 'day'} mood={4} tight />, title: 'Sola', subtitle: 'Here, no rush' }}
+        action={id ? { icon: Trash2, label: 'Delete conversation', onPress: remove } : undefined}
+      />
     </View>
   );
 }

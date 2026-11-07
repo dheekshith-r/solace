@@ -88,7 +88,8 @@ export function createDailyService({
         key,
       }),
       affirmation: pick(FALLBACK_AFFIRMATIONS, key),
-      suggestion: fallbackSuggestion(user.personalize ? lastMood : null, key),
+      // Neutral: the last mood may be from another day, and these lines would call it "today".
+      suggestion: fallbackSuggestion(null, key),
     };
   }
 

@@ -90,9 +90,17 @@ const MoodLabel = memo(function MoodLabel({ mood, selected, palette }: { mood: n
   );
 });
 
-/** Holds the selected mood itself, so a tap re-renders only the two buttons that change. */
-export function MoodRow({ level, palette, onSelect }: { level: SharedValue<number>; palette: Palette; onSelect: (mood: number) => void }) {
-  const [mood, setMood] = useState(() => level.get());
+/** No mood chosen yet: nothing is selected until the first tap (Ddk, Nov 7). */
+export const NO_MOOD = 0;
+
+/**
+ * Holds the selected mood itself, so a tap re-renders only the two buttons that change.
+ * `logged` is a mood the user already logged today; it shows until they tap another.
+ */
+export function MoodRow({ level, palette, onSelect, logged = null }: { level: SharedValue<number>; palette: Palette; onSelect: (mood: number) => void; logged?: number | null }) {
+  const [tapped, setMood] = useState<number | null>(() => level.get() || null);
+  // A tap wins; until then, a mood logged today; otherwise nothing.
+  const mood = tapped ?? logged;
   const pick = useCallback(
     (next: number) => {
       level.set(next);

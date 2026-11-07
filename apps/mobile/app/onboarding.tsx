@@ -2,7 +2,8 @@
 import { AndroidImportance, requestPermissionsAsync, setNotificationChannelAsync } from 'expo-notifications';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { setStatusBarStyle } from 'expo-status-bar';
-import { Bell, Sparkles, Wind } from 'lucide-react-native';
+import type { Bell } from 'lucide-react-native';
+import { REMINDER_TITLES } from '../src/features/notifications/titles';
 import { useCallback, useRef, useState, type ComponentRef } from 'react';
 import { BackHandler, Platform, ScrollView, StyleSheet, View, useWindowDimensions, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -21,11 +22,8 @@ const GOALS: { value: Goal; label: string }[] = [
   { value: 'connection', label: 'Connection' },
 ];
 
-const REMINDERS: { kind: ReminderKind; title: string; icon: typeof Bell }[] = [
-  { kind: 'checkin', title: 'Evening mood check-in', icon: Bell },
-  { kind: 'affirmation', title: 'Morning affirmation', icon: Sparkles },
-  { kind: 'breathe', title: 'Midday breathing break', icon: Wind },
-];
+// The same names as the Reminders page; the time under each says when.
+const REMINDERS: readonly { kind: ReminderKind; title: string; icon: typeof Bell }[] = REMINDER_TITLES;
 
 function Page({ width, children }: { width: number; children: React.ReactNode }) {
   return <View style={[styles.page, { width }]}>{children}</View>;

@@ -71,10 +71,21 @@ const SUGGESTIONS_BY_MOOD: Record<number, readonly Suggestion[]> = {
   ],
 };
 
-export const ALL_FALLBACK_SUGGESTIONS: readonly Suggestion[] = Object.values(SUGGESTIONS_BY_MOOD).flat();
+/**
+ * When no mood was just logged (a new user, or the day's line before any check-in). These claim
+ * nothing about how the user feels (Ddk, Nov 7: "Somewhere in the middle today" for a user who
+ * had logged nothing broke the grounding rule).
+ */
+const NEUTRAL_SUGGESTIONS: readonly Suggestion[] = [
+  { text: 'A minute of slow breathing is a gentle way to begin.', action: 'breathe' },
+  { text: 'A short Reflect check-in can help you notice how you’re doing.', action: 'reflect' },
+];
 
+export const ALL_FALLBACK_SUGGESTIONS: readonly Suggestion[] = [...Object.values(SUGGESTIONS_BY_MOOD).flat(), ...NEUTRAL_SUGGESTIONS];
+
+/** `mood` is a mood the user has just logged; pass null otherwise, and nothing about mood is claimed. */
 export function fallbackSuggestion(mood: number | null, key: string): Suggestion {
-  const options = SUGGESTIONS_BY_MOOD[mood ?? 3] ?? SUGGESTIONS_BY_MOOD[3]!;
+  const options = mood === null ? NEUTRAL_SUGGESTIONS : (SUGGESTIONS_BY_MOOD[mood] ?? NEUTRAL_SUGGESTIONS);
   return pick(options, key);
 }
 
@@ -99,7 +110,8 @@ export const FALLBACK_MOVES: Record<AssessmentBand, readonly Move[]> = {
 
 const GOAL_PHRASES: Record<Goal, string> = {
   calm: 'a calmer day',
-  sleep: 'better rest tonight',
+  // No time of day: the line is shown at any hour (Ddk, Nov 7).
+  sleep: 'better rest',
   focus: 'a clearer head',
   confidence: 'a little more trust in yourself',
   connection: 'feeling a bit more connected',

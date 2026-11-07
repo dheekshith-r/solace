@@ -82,6 +82,7 @@ export const kit = {
   composerMax: 140, // The message box grows to about five lines, then scrolls.
   sendDisabled: 0.4,
   solaInline: 56, // Small Sola beside the daily line and in conversations.
+  solaAvatar: 30, // Sola in the conversation header, beside "Here, no rush".
   orb: 260, // The breathing orb at full size.
   star: 4,
   starGlow: 10,

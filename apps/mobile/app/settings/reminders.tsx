@@ -1,18 +1,15 @@
 // Reminders (spec 8.10): what Sola reminds you of, and when. Changes reschedule everything at once.
 import type { Reminders } from '@solace/shared';
-import { Bell, BellOff, Plus, Send, Sparkles, Trash2, Wind } from 'lucide-react-native';
+import { Bell, BellOff, Plus, Send, Trash2 } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Linking, StyleSheet, View } from 'react-native';
 import { Button, Card, EmptyState, Entrance, ListGroup, ListRow, Screen, Text, TextField, TimeStepper, useToast } from '../../src/components';
 import { askForNotifications, notificationsAllowed, saveReminders, sendTestNotification, syncReminders, useReminders } from '../../src/features/notifications/reminders';
+import { REMINDER_TITLES, type ReminderKindName } from '../../src/features/notifications/titles';
 import { spacing } from '../../src/theme/tokens';
 
-type Kind = 'checkin' | 'affirmation' | 'breathe';
-const KINDS: { kind: Kind; title: string; icon: typeof Bell }[] = [
-  { kind: 'checkin', title: 'Mood check-in', icon: Bell },
-  { kind: 'affirmation', title: 'Daily affirmation', icon: Sparkles },
-  { kind: 'breathe', title: 'Breathing break', icon: Wind },
-];
+type Kind = ReminderKindName;
+const KINDS = REMINDER_TITLES;
 
 export default function RemindersScreen() {
   const toast = useToast();

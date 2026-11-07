@@ -71,6 +71,9 @@ appId: com.ddk.solace
     visible: "How are you arriving?"
     timeout: 65000
 - runFlow: assert-solace.yaml
+- assertVisible:
+    id: "mood-okay"
+    selected: false   # nothing chosen until the first tap
 - takeScreenshot: 06-today
 - tapOn: { id: "mood-good" }
 - runFlow: assert-solace.yaml
@@ -84,6 +87,9 @@ appId: com.ddk.solace
 - tapOn: { id: "button-new-conversation" }
 - runFlow: assert-solace.yaml
 - assertVisible: "What's on your mind?"
+- assertVisible: "Here, no rush"
+- assertVisible: { id: "chip-im-feeling-anxious" }
+- assertNotVisible: { id: "tab-sola" }   # the tab bar slides away in a conversation
 - takeScreenshot: 08-chat-empty
 - tapOn: { id: "chip-i-cant-sleep" }
 - runFlow: assert-solace.yaml
@@ -94,6 +100,9 @@ appId: com.ddk.solace
 - takeScreenshot: 08-chat-reply
 - tapOn: { id: "solace-back" }
 - runFlow: assert-solace.yaml
+- extendedWaitUntil:
+    visible: { id: "tab-sola" }   # and comes back on the Sola list
+    timeout: 3000
 - takeScreenshot: 08-sola-history
 
 # --- 12 You, Resources, Get help ------------------------------------------------------------

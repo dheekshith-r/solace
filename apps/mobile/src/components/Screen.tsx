@@ -26,7 +26,25 @@ type Action = { icon: LucideIcon; label: string; onPress: () => void };
  * The large title collapses into the bar as the page scrolls. The big title slides up and fades;
  * the bar's title and hairline fade in. Only transform and opacity animate.
  */
-export function Header({ title, scrollY, back, action }: { title: string; scrollY: SharedValue<number>; back?: boolean; action?: Action }) {
+/** Who the screen is with: shown in the bar at all times instead of a title that fades in (the chat). */
+export type HeaderIdentity = { avatar: ReactNode; title: string; subtitle: string };
+
+export function Header({
+  title,
+  scrollY,
+  back,
+  action,
+  identity,
+  clear = false,
+}: {
+  title: string;
+  scrollY: SharedValue<number>;
+  back?: boolean;
+  action?: Action;
+  identity?: HeaderIdentity;
+  /** Over a backdrop (the chat's sky): the bar never fills in, so the backdrop shows through. */
+  clear?: boolean;
+}) {
   const { palette } = useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -42,9 +60,11 @@ export function Header({ title, scrollY, back, action }: { title: string; scroll
 
   return (
     <View style={[styles.bar, { paddingTop: insets.top, height: insets.top + kit.headerBar }]} pointerEvents="box-none">
-      <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: palette.background }, barFill]}>
-        <View style={[styles.hairline, { backgroundColor: palette.separator }]} />
-      </Animated.View>
+      {clear ? null : (
+        <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: palette.background }, barFill]}>
+          <View style={[styles.hairline, { backgroundColor: palette.separator }]} />
+        </Animated.View>
+      )}
       <View style={styles.barRow} pointerEvents="box-none">
         <View style={styles.side}>
           {back ? (
@@ -60,11 +80,25 @@ export function Header({ title, scrollY, back, action }: { title: string; scroll
             </PressScale>
           ) : null}
         </View>
-        <Animated.View style={[styles.barTitle, barTitle]} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
-          <Text variant="bodyStrong" numberOfLines={1}>
-            {title}
-          </Text>
-        </Animated.View>
+        {identity ? (
+          <View style={[styles.barTitle, styles.identity]} accessible accessibilityRole="header" accessibilityLabel={`${identity.title}. ${identity.subtitle}`}>
+            {identity.avatar}
+            <View>
+              <Text variant="bodyStrong" numberOfLines={1}>
+                {identity.title}
+              </Text>
+              <Text variant="footnote" tone="muted" numberOfLines={1}>
+                {identity.subtitle}
+              </Text>
+            </View>
+          </View>
+        ) : (
+          <Animated.View style={[styles.barTitle, barTitle]} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+            <Text variant="bodyStrong" numberOfLines={1}>
+              {title}
+            </Text>
+          </Animated.View>
+        )}
         <View style={[styles.side, styles.sideEnd]}>
           {action ? (
             <PressScale
@@ -179,6 +213,7 @@ const styles = StyleSheet.create({
   side: { width: kit.rowMinHeight, alignItems: 'flex-start' },
   sideEnd: { alignItems: 'flex-end' },
   barTitle: { flex: 1, alignItems: 'center' },
+  identity: { flexDirection: 'row', justifyContent: 'center', gap: spacing.md },
   iconButton: { width: kit.rowMinHeight - spacing.sm, height: kit.rowMinHeight - spacing.sm, alignItems: 'center', justifyContent: 'center' },
   largeTitle: { paddingBottom: spacing.lg, transformOrigin: 'left' },
   body: { gap: spacing.xxl },

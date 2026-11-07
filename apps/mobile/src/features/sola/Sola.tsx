@@ -29,7 +29,11 @@ const mouthFor = (mood: number) => Skia.Path.MakeFromSVGString(`M86 130 Q100 ${1
  * colors as Today. `waving` tilts Sola side to side a few times, like a hello. It floats gently unless
  * reduce motion or lite mode is on.
  */
-export function SolaFigure({ size, glow = 'day', mood = 4, waving = false }: { size: number; glow?: 'day' | 'night'; mood?: number; waving?: boolean }) {
+/**
+ * `tight`: the layout box is just Sola's body, and the glow spills softly past it, for rows where
+ * Sola sits beside text (the Sola tab card, the chat header). Otherwise the box includes the glow.
+ */
+export function SolaFigure({ size, glow = 'day', mood = 4, waving = false, tight = false }: { size: number; glow?: 'day' | 'night'; mood?: number; waving?: boolean; tight?: boolean }) {
   const reduced = useReducedMotion();
   const still = reduced || isLite;
   const glowRadius = size * sola.glowRatio;
@@ -62,8 +66,13 @@ export function SolaFigure({ size, glow = 'day', mood = 4, waving = false }: { s
   const eyeScale = sola.eyeLow + ((1 - sola.eyeLow) * (mood - 1)) / 4;
 
   return (
-    <View style={{ width: box, height: box }} accessible accessibilityRole="image" accessibilityLabel="Sola, a small glowing friend">
-      <Canvas style={StyleSheet.absoluteFill}>
+    <View
+      style={tight ? { width: size, height: size } : { width: box, height: box }}
+      accessible
+      accessibilityRole="image"
+      accessibilityLabel="Sola, a small glowing friend"
+    >
+      <Canvas style={tight ? { position: 'absolute', width: box, height: box, left: (size - box) / 2, top: (size - box) / 2 } : StyleSheet.absoluteFill}>
         <Circle cx={box / 2} cy={box / 2} r={glowRadius}>
           <RadialGradient c={vec(box / 2, box / 2)} r={glowRadius} colors={[...(glow === 'day' ? sola.glowDay : sola.glowNight)]} />
         </Circle>

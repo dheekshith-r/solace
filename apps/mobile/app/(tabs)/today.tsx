@@ -29,7 +29,7 @@ import { addFrame, configurePerf, describeWindow, emptyFrameWindow, logPerf, typ
 import { nightAmount, skyTextIsWhite } from '../../src/features/sky/skyColors';
 import { todayChromeDarkness } from '../../src/features/today/chrome';
 import { actionLabel, flushPendingMood, queueMood, useToday } from '../../src/features/today/data';
-import { MoodRow } from '../../src/features/today/parts';
+import { MoodRow, NO_MOOD } from '../../src/features/today/parts';
 import { ROOT_ID } from '../../src/components/testId';
 import { duration, easing, spring } from '../../src/theme/motion';
 import { demoMinutes, moodNeutral, skyMotion, skyTimes, sola, wind } from '../../src/theme/sky';
@@ -71,7 +71,8 @@ function formatDate(date: Date): string {
   return date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
 }
 
-function Chrome({ palette, words, level, onSelect, headerTop, clearance, onSheetHeight, hidden }: {
+function Chrome({ palette, words, level, onSelect, headerTop, clearance, onSheetHeight, hidden, logged }: {
+  logged: number | null;
 
   palette: Palette;
   words: { suggestion: string; action: string; href: '/breathe' | '/reflect' };
@@ -91,7 +92,7 @@ function Chrome({ palette, words, level, onSelect, headerTop, clearance, onSheet
       <View style={[styles.sheet, { backgroundColor: palette.surface }]}>
         <View onLayout={onSheetHeight} style={styles.sheetBlock}>
           <Text style={[styles.heading, { color: palette.ink }]}>How are you arriving?</Text>
-          <MoodRow level={level} palette={palette} onSelect={onSelect} />
+          <MoodRow level={level} palette={palette} onSelect={onSelect} logged={logged} />
           <View style={[styles.separator, { backgroundColor: palette.separator }]} />
           <View style={[styles.suggestion, { backgroundColor: palette.tint }]}>
             <Text style={[styles.body, styles.flex, { color: palette.ink }]}>{words.suggestion}</Text>
@@ -127,8 +128,9 @@ function Today({ initialMinute, firstGust, perf }: {
   const [fadingFrom, setFadingFrom] = useState<Palette | null>(null);
 
   const minute = useSharedValue(initialMinute);
+  // Sola's face starts neutral; the mood row starts with nothing selected (Ddk, Nov 7).
   const mood = useSharedValue<number>(moodNeutral);
-  const level = useSharedValue<number>(moodNeutral);
+  const level = useSharedValue<number>(NO_MOOD);
   const chromeFade = useSharedValue(0);
   const frameWindow = useSharedValue<FrameWindow>(emptyFrameWindow(0));
   const clock = useSharedValue(0);
@@ -283,6 +285,12 @@ function Today({ initialMinute, firstGust, perf }: {
 
   // Sample copy until the API answers; then Sola's real suggestion (ticket 06).
   const todayData = useToday().data;
+  // A mood logged earlier today shows as chosen, and Sola's face follows it. Otherwise both stay neutral.
+  const loggedToday =
+    todayData?.lastMood && new Date(todayData.lastMood.createdAt).toDateString() === new Date().toDateString() ? todayData.lastMood.mood : null;
+  useEffect(() => {
+    if (loggedToday !== null && level.get() === NO_MOOD) mood.set(withSpring(loggedToday, spring));
+  }, [loggedToday, level, mood]);
   const fallback = isNightCopy(displayMinute) ? copy.night : copy.day;
   const words = todayData
     ? { suggestion: todayData.suggestion.text, action: actionLabel[todayData.suggestion.action], href: todayData.suggestion.action === 'reflect' ? ('/reflect' as const) : ('/breathe' as const) }
@@ -305,10 +313,10 @@ function Today({ initialMinute, firstGust, perf }: {
 
       <Pressable style={StyleSheet.absoluteFill} onLongPress={cycleSky} delayLongPress={LONG_PRESS_MS} accessible={false} />
 
-      <Chrome palette={textIsWhite ? colors.dark : colors.light} words={words} level={level} onSelect={pickMood} headerTop={headerTop} clearance={clearance} onSheetHeight={onSheetHeight} hidden={false} />
+      <Chrome palette={textIsWhite ? colors.dark : colors.light} words={words} level={level} onSelect={pickMood} headerTop={headerTop} clearance={clearance} onSheetHeight={onSheetHeight} hidden={false} logged={loggedToday} />
       {fadingFrom ? (
         <Animated.View style={[StyleSheet.absoluteFill, fadeStyle]} pointerEvents="none">
-          <Chrome palette={fadingFrom} words={words} level={level} onSelect={pickMood} headerTop={headerTop} clearance={clearance} hidden />
+          <Chrome palette={fadingFrom} words={words} level={level} onSelect={pickMood} headerTop={headerTop} clearance={clearance} hidden logged={loggedToday} />
         </Animated.View>
       ) : null}
     </View>

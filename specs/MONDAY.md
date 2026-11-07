@@ -18,3 +18,5 @@ Pure polish found by reviewers or measurements. Nothing here breaks a flow, the 
 ## Kit (from the review of tickets 01 and 02)
 - TabBar: the press scale has no visible effect (it scales an invisible touch layer). Tapping the current Sola tab could pop its stack back to the list.
 - Today calls expo-haptics directly (demo cycle, MoodButton) and keeps raw layout constants (DATE_LINE_HEIGHT, ESTIMATED_REST_HEIGHT, LONG_PRESS_MS). Today is locked, so move these into haptics.ts and the tokens only when Ddk okays touching it.
+
+- Onboarding: Sola sits about 60 px higher on step 1 than step 2 (step 1 has the extra 'I already have an account' button), so Sola jumps when paging. Reserve the same action-area height on every step. (Phone run 1, Nov 7.)

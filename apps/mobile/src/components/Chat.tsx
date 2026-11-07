@@ -71,7 +71,18 @@ export function HelplineCard({ name = 'Tele-MANAS', number = '14416', hours = 'F
 }
 
 /** The message box. Put it inside a KeyboardAvoidingView so it rides the keyboard; send is disabled until there is text. */
-export function Composer({ onSend, disabled = false, placeholder = 'Tell Sola what is on your mind' }: { onSend: (text: string) => void; disabled?: boolean; placeholder?: string }) {
+export function Composer({
+  onSend,
+  disabled = false,
+  placeholder = 'Message Sola',
+  clear = false,
+}: {
+  onSend: (text: string) => void;
+  disabled?: boolean;
+  placeholder?: string;
+  /** Over a backdrop (the chat's sky): no bar fill or hairline, only the field and send button. */
+  clear?: boolean;
+}) {
   const { palette } = useTheme();
   const insets = useSafeAreaInsets();
   const [text, setText] = useState('');
@@ -82,7 +93,13 @@ export function Composer({ onSend, disabled = false, placeholder = 'Tell Sola wh
     setText('');
   };
   return (
-    <View style={[styles.composer, { backgroundColor: palette.background, paddingBottom: insets.bottom + spacing.sm, borderTopColor: palette.separator }]}>
+    <View
+      style={[
+        styles.composer,
+        { paddingBottom: insets.bottom + spacing.sm },
+        clear ? null : { backgroundColor: palette.background, borderTopColor: palette.separator, borderTopWidth: StyleSheet.hairlineWidth },
+      ]}
+    >
         <TextInput
           value={text}
           onChangeText={setText}
@@ -124,7 +141,6 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingHorizontal: screenPadding,
     paddingTop: spacing.sm,
-    borderTopWidth: StyleSheet.hairlineWidth,
   },
   input: {
     flex: 1,
