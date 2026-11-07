@@ -20,7 +20,7 @@
 - **API, live on Singapore:** `/health`, sign-up, log-in, `/today` (first call about 0.35–0.6 s, one DB query, never waits on Gemini), check-ins, resources, `/health/ai`. 382 API tests pass.
 - **Sola's lines are grounded:** they never invent details the user didn't log, never claim a mood that wasn't logged, and never name a time of day in lines shown all day. Verified live with fresh accounts.
 - **On the phone:** see run 2 above.
-- **Fixed after run 1, built into the APK but not yet re-run on the phone:**
+- **Fixed after run 1, confirmed on the phone by run 2:**
   - new-conversation screen no longer blank;
   - tab bar hidden in conversations;
   - Today: nothing selected until the first tap;
