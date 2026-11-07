@@ -24,3 +24,5 @@ Pure polish found by reviewers or measurements. Nothing here breaks a flow, the 
 - Check-in suggestion quoted the score ('a good mood of four out of five'); add 'never quote numbers' to SUGGESTION_SYSTEM and a digit/number-word check. (Live check, Nov 7.)
 
 - Chat reply added a detail the user never said ('staring at the ceiling' for 'I can't sleep'). Tighten the reply prompt's grounding. (Run 2, Nov 7.)
+
+- Release builds: remove or disable the /kit, /kit-sheet and /kit-sola preview routes (keep them in dev builds only). The auth gate currently leaves /kit* open for screenshot links. (Ddk, Nov 7.)
