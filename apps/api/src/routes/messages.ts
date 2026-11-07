@@ -60,6 +60,10 @@ export const SUMMARY_EVERY = 10;
 const SUMMARY_MESSAGES = 20;
 const SUMMARY_MAX_CHARS = 700;
 
+// Flash-Lite answers live chat: on the free tier 3.8 Flash is often out of quota or slow to start (Ddk, Nov 7).
+export const CHAT_PRIMARY: ModelRole = 'lite';
+export const CHAT_FALLBACK: ModelRole = 'reply';
+
 export type ChatTimeouts = {
   /** Time to the first delta before falling back (the reply model can stall when overloaded). */
   firstDeltaMs: number;
@@ -454,12 +458,12 @@ export function registerMessageRoutes(
         // (or the last 503) moves on to the fallback decision below.
         for (let attempt = 0; ; attempt += 1) {
           try {
-            answered = await streamFrom('reply', { system, turns }, sse, progress);
-            outcome.model = 'reply';
+            answered = await streamFrom(CHAT_PRIMARY, { system, turns }, sse, progress);
+            outcome.model = CHAT_PRIMARY;
             break;
           } catch (error) {
             const failure = toAiError(error);
-            log.warn({ purpose: 'reply', model: 'reply', kind: failure.kind, status: failure.status }, 'ai call failed');
+            log.warn({ purpose: 'reply', model: CHAT_PRIMARY, kind: failure.kind, status: failure.status }, 'ai call failed');
             if (failure.status === 503) outcome.primary503s += 1;
             const backoff = timeouts.primary503BackoffMs[attempt];
             if (failure.status === 503 && backoff !== undefined && !progress.sent && !sse.closed) {
@@ -483,11 +487,11 @@ export function registerMessageRoutes(
           }
           outcome.fellBack = true;
           try {
-            answered = await streamFrom('lite', { system, turns }, sse, progress);
-            outcome.model = 'lite';
+            answered = await streamFrom(CHAT_FALLBACK, { system, turns }, sse, progress);
+            outcome.model = CHAT_FALLBACK;
           } catch (fallbackError) {
             const second = toAiError(fallbackError);
-            log.warn({ purpose: 'reply', model: 'lite', kind: second.kind, status: second.status }, 'ai call failed');
+            log.warn({ purpose: 'reply', model: CHAT_FALLBACK, kind: second.kind, status: second.status }, 'ai call failed');
             recordOutcome();
             if (second.kind === 'blocked' && !sse.closed) return await onBlocked();
             sse.send('error', replyFailed());
