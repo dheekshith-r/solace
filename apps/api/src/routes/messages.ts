@@ -73,8 +73,8 @@ export type ChatTimeouts = {
 };
 
 export const DEFAULT_CHAT_TIMEOUTS: ChatTimeouts = {
-  // Healthy first deltas arrive in ~1.5 s; waiting 6 s before falling back made stalls take ~10 s (Ddk, Nov 7).
-  firstDeltaMs: 3_000,
+  // 3 s was tried on Nov 7 and made 9 of 10 live replies fail: first words often take over 3 s.
+  firstDeltaMs: 6_000,
   idleMs: 15_000,
   classifyMs: 4_000,
   summaryMs: 20_000,
