@@ -135,13 +135,15 @@ export const sceneColor = {
 } as const;
 
 // Fractions of the scene, the visible strip between Sola and the sheet.
+// Fuji and the lake sit a little high so the whole stream shows above the sheet, which overlaps the
+// strip's bottom ~15% (Ddk, Nov 7: the stream's mouth was hidden).
 export const sceneShapes = {
-  fuji: { summitY: 0.17, footY: 0.54 },
-  pool: { topY: 0.54, bottomY: 0.742 },
+  fuji: { summitY: 0.15, footY: 0.47 },
+  pool: { topY: 0.47, bottomY: 0.65 },
   // The stream: one S-curve from the lake, widening as it comes toward the viewer.
   stream: {
-    topY: 0.732,
-    bottomY: 0.93,
+    topY: 0.642,
+    bottomY: 0.84,
     centerX: 0.5,
     bendStart: 0.008,
     bendGrowth: 0.13,

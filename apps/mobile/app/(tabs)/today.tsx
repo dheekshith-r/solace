@@ -30,6 +30,8 @@ import { nightAmount, skyTextIsWhite } from '../../src/features/sky/skyColors';
 import { todayChromeDarkness } from '../../src/features/today/chrome';
 import { actionLabel, flushPendingMood, queueMood, useToday } from '../../src/features/today/data';
 import { MoodRow, NO_MOOD } from '../../src/features/today/parts';
+import { useSession } from '../../src/features/auth/session';
+import { BookOpen, Flame, Sparkles, Wind } from 'lucide-react-native';
 import { ROOT_ID } from '../../src/components/testId';
 import { TabScene } from '../../src/components/TabScene';
 import { duration, easing, spring } from '../../src/theme/motion';
@@ -50,7 +52,7 @@ import {
 const LITE_MODE_BYTES = 4 * 1024 ** 3;
 const MINUTE_MS = 60_000;
 const LONG_PRESS_MS = 700;
-const ESTIMATED_REST_HEIGHT = 290;
+const ESTIMATED_REST_HEIGHT = 370; // Greeting and quick-action rows included.
 const DATE_LINE_HEIGHT = 18;
 const PERF_WINDOW_S = 5;
 
@@ -72,8 +74,16 @@ function formatDate(date: Date): string {
   return date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
 }
 
-function Chrome({ palette, words, level, onSelect, headerTop, clearance, onSheetHeight, hidden, logged }: {
+const QUICK_ACTIONS = [
+  { label: 'Breathe', icon: Wind, href: '/breathe' },
+  { label: 'Reflect', icon: Sparkles, href: '/reflect' },
+  { label: 'Resources', icon: BookOpen, href: '/resources' },
+] as const;
+
+function Chrome({ palette, words, level, onSelect, headerTop, clearance, onSheetHeight, hidden, logged, name, streak }: {
   logged: number | null;
+  name: string | null;
+  streak: number;
 
   palette: Palette;
   words: { suggestion: string; action: string; href: '/breathe' | '/reflect' };
@@ -92,6 +102,16 @@ function Chrome({ palette, words, level, onSelect, headerTop, clearance, onSheet
       </View>
       <View style={[styles.sheet, { backgroundColor: palette.surface }]}>
         <View onLayout={onSheetHeight} style={styles.sheetBlock}>
+          {/* Always rendered (streak 0 until loaded) so the sheet's measured height never changes after the scene bakes. */}
+          <View style={styles.greetingRow}>
+            <Text style={[styles.greeting, styles.flex, { color: palette.muted }]} numberOfLines={1}>
+              {name ? `Hi, ${name.split(' ')[0]}` : 'Hi there'}
+            </Text>
+            <View style={[styles.badge, { backgroundColor: palette.tint }]} accessible accessibilityLabel={`${streak} day streak`} testID="today-streak">
+              <Flame size={today.badgeIcon} color={palette.accent} />
+              <Text style={[styles.badgeText, { color: palette.ink }]}>{streak}</Text>
+            </View>
+          </View>
           <Text style={[styles.heading, { color: palette.ink }]}>How are you arriving?</Text>
           <MoodRow level={level} palette={palette} onSelect={onSelect} logged={logged} />
           <View style={[styles.separator, { backgroundColor: palette.separator }]} />
@@ -100,6 +120,14 @@ function Chrome({ palette, words, level, onSelect, headerTop, clearance, onSheet
             <Pressable style={[styles.pill, { backgroundColor: palette.accent }]} accessibilityRole="button" testID="today-suggestion" onPress={() => router.push(words.href)}>
               <Text style={[styles.pillText, { color: palette.onAccent }]}>{words.action}</Text>
             </Pressable>
+          </View>
+          <View style={styles.quickRow}>
+            {QUICK_ACTIONS.map(({ label, icon: Icon, href }) => (
+              <Pressable key={label} style={[styles.quick, { backgroundColor: palette.tint }]} accessibilityRole="button" accessibilityLabel={label} testID={`quick-${label.toLowerCase()}`} onPress={() => router.push(href)}>
+                <Icon size={today.badgeIcon} color={palette.accent} />
+                <Text style={[styles.pillText, { color: palette.ink }]}>{label}</Text>
+              </Pressable>
+            ))}
           </View>
         </View>
         <View style={{ height: clearance }} />
@@ -286,6 +314,8 @@ function Today({ initialMinute, firstGust, perf }: {
 
   // Sample copy until the API answers; then Sola's real suggestion (ticket 06).
   const todayData = useToday().data;
+  const userName = useSession((s) => s.user?.name ?? null);
+  const streak = todayData?.stats.streak ?? 0;
   // A mood logged earlier today shows as chosen, and Sola's face follows it. Otherwise both stay neutral.
   const loggedToday =
     todayData?.lastMood && new Date(todayData.lastMood.createdAt).toDateString() === new Date().toDateString() ? todayData.lastMood.mood : null;
@@ -314,10 +344,10 @@ function Today({ initialMinute, firstGust, perf }: {
 
       <Pressable style={StyleSheet.absoluteFill} onLongPress={cycleSky} delayLongPress={LONG_PRESS_MS} accessible={false} />
 
-      <Chrome palette={textIsWhite ? colors.dark : colors.light} words={words} level={level} onSelect={pickMood} headerTop={headerTop} clearance={clearance} onSheetHeight={onSheetHeight} hidden={false} logged={loggedToday} />
+      <Chrome palette={textIsWhite ? colors.dark : colors.light} words={words} level={level} onSelect={pickMood} headerTop={headerTop} clearance={clearance} onSheetHeight={onSheetHeight} hidden={false} logged={loggedToday} name={userName} streak={streak} />
       {fadingFrom ? (
         <Animated.View style={[StyleSheet.absoluteFill, fadeStyle]} pointerEvents="none">
-          <Chrome palette={fadingFrom} words={words} level={level} onSelect={pickMood} headerTop={headerTop} clearance={clearance} hidden logged={loggedToday} />
+          <Chrome palette={fadingFrom} words={words} level={level} onSelect={pickMood} headerTop={headerTop} clearance={clearance} hidden logged={loggedToday} name={userName} streak={streak} />
         </Animated.View>
       ) : null}
     </View>
@@ -375,5 +405,11 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
   },
   pill: { borderRadius: radius.chip, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm },
+  greetingRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  greeting: { fontFamily: font.semibold, fontSize: fontSize.footnote },
+  badge: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, borderRadius: radius.chip, paddingHorizontal: spacing.md, paddingVertical: spacing.xs },
+  badgeText: { fontFamily: font.semibold, fontSize: fontSize.footnote },
+  quickRow: { flexDirection: 'row', gap: spacing.sm },
+  quick: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs, borderRadius: radius.chip, paddingVertical: spacing.sm },
   pillText: { fontFamily: font.semibold, fontSize: fontSize.footnote },
 });

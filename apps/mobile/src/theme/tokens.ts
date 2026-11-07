@@ -117,6 +117,7 @@ export const chart = { glowOpacity: 0.18, lineWidth: 3, todayRing: 1.5, trendMin
 export const type = { maxScale: 1.3 } as const;
 
 export const today = {
+  badgeIcon: 14, // Flame in the streak badge and icons in the quick actions.
   moodButton: 54,
   moodFace: 30,
   moodFillFrom: 0.82,
