@@ -20,3 +20,5 @@ Pure polish found by reviewers or measurements. Nothing here breaks a flow, the 
 - Today calls expo-haptics directly (demo cycle, MoodButton) and keeps raw layout constants (DATE_LINE_HEIGHT, ESTIMATED_REST_HEIGHT, LONG_PRESS_MS). Today is locked, so move these into haptics.ts and the tokens only when Ddk okays touching it.
 
 - Onboarding: Sola sits about 60 px higher on step 1 than step 2 (step 1 has the extra 'I already have an account' button), so Sola jumps when paging. Reserve the same action-area height on every step. (Phone run 1, Nov 7.)
+
+- Check-in suggestion quoted the score ('a good mood of four out of five'); add 'never quote numbers' to SUGGESTION_SYSTEM and a digit/number-word check. (Live check, Nov 7.)
