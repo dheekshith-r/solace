@@ -2,7 +2,7 @@ import { PlusJakartaSans_400Regular } from '@expo-google-fonts/plus-jakarta-sans
 import { PlusJakartaSans_600SemiBold } from '@expo-google-fonts/plus-jakarta-sans/600SemiBold';
 import { PlusJakartaSans_700Bold } from '@expo-google-fonts/plus-jakarta-sans/700Bold';
 import { useFonts } from 'expo-font';
-import { DarkTheme, DefaultTheme, ThemeProvider as NavThemeProvider, Stack } from 'expo-router';
+import { DarkTheme, DefaultTheme, ThemeProvider as NavThemeProvider, Stack, usePathname } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import * as SystemUI from 'expo-system-ui';
 import { useEffect, useMemo } from 'react';
@@ -28,6 +28,12 @@ export default function RootLayout() {
   useEffect(() => {
     void SystemUI.setBackgroundColorAsync(background);
   }, [background]);
+  // A link can open a screen directly and skip app/index.tsx; the splash must still fade once any real screen shows.
+  const pathname = usePathname();
+  useEffect(() => {
+    if (!loaded || pathname === '/') return;
+    requestAnimationFrame(() => requestAnimationFrame(() => void SplashScreen.hideAsync()));
+  }, [loaded, pathname]);
   const navTheme = useMemo(() => {
     const base = scheme === 'dark' ? DarkTheme : DefaultTheme;
     return { ...base, colors: { ...base.colors, background, card: background } };
