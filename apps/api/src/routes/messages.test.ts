@@ -17,7 +17,7 @@ import { assessments, conversations, messages, moodCheckins, users } from '../db
 import { createBackgroundTasks } from '../lib/background';
 import { chunks, DEFAULT_REPLY, failing, fakeAi, stalled } from '../test/fake-ai';
 import { bearer, captureLogs, parseSse, signup, useTestDb, type TestApp } from '../test/helpers';
-import { CONTEXT_MESSAGES, DEFAULT_CHAT_TIMEOUTS, toTurns } from './messages';
+import { CHAT_FALLBACK as F, CHAT_PRIMARY as P, CONTEXT_MESSAGES, DEFAULT_CHAT_TIMEOUTS, toTurns } from './messages';
 
 const ctx = useTestDb();
 
@@ -77,7 +77,7 @@ describe('POST /conversations/:id/messages', () => {
     expect(row).toMatchObject({ title: 'Exam night nerves', messageCount: 2 });
 
     // The reply model streams, Flash-Lite classifies; a title is asked for on the first exchange only.
-    expect(ai.calls.stream.map((c) => c.model)).toEqual(['reply']);
+    expect(ai.calls.stream.map((c) => c.model)).toEqual([P]);
     expect(ai.jsonCalls('classify')[0]).toMatchObject({ model: 'lite' });
     expect(ai.jsonCalls('classify')[0]?.prompt).toContain('give a title');
 
@@ -183,7 +183,7 @@ describe('POST /conversations/:id/messages', () => {
   it('Flash fails with 429: the Flash-Lite fallback answers', async () => {
     const ai = fakeAi({
       stream: (request) =>
-        request.model === 'reply' ? failing(new AiError('rate_limited', 429)) : chunks(['Fallback ', 'reply.']),
+        request.model === P ? failing(new AiError('rate_limited', 429)) : chunks(['Fallback ', 'reply.']),
     });
     const app = ctx.app({ ai: ai.client });
     const { accessToken } = await signup(app);
@@ -191,7 +191,7 @@ describe('POST /conversations/:id/messages', () => {
 
     const { events, types } = await send(app, accessToken, conversation.id, { text: 'rough day' });
     expect(types).toEqual(['delta', 'delta', 'meta', 'done']);
-    expect(ai.calls.stream.map((c) => c.model)).toEqual(['reply', 'lite']);
+    expect(ai.calls.stream.map((c) => c.model)).toEqual([P, F]);
     // Same prompt on both models.
     expect(ai.calls.stream[1]?.system).toBe(ai.calls.stream[0]?.system);
     const saved = await messagesOf(conversation.id);
@@ -205,7 +205,7 @@ describe('POST /conversations/:id/messages', () => {
     ['a stalled stream', (signal?: AbortSignal) => stalled(signal)],
   ])('Flash fails with %s: the fallback answers straight away', async (_name, primary) => {
     const ai = fakeAi({
-      stream: (request) => (request.model === 'reply' ? primary(request.signal) : chunks(['Okay.'])),
+      stream: (request) => (request.model === P ? primary(request.signal) : chunks(['Okay.'])),
     });
     const app = ctx.app({ ai: ai.client, chatTimeouts: { firstDeltaMs: 200 } });
     const { accessToken } = await signup(app);
@@ -213,7 +213,7 @@ describe('POST /conversations/:id/messages', () => {
 
     const { types } = await send(app, accessToken, conversation.id, { text: 'hi' });
     expect(types).toEqual(['delta', 'meta', 'done']);
-    expect(ai.calls.stream.map((c) => c.model)).toEqual(['reply', 'lite']);
+    expect(ai.calls.stream.map((c) => c.model)).toEqual([P, F]);
   });
 
   describe('reply model policy: 503 retries on the primary', () => {
@@ -236,10 +236,10 @@ describe('POST /conversations/:id/messages', () => {
       const { types } = await send(app, accessToken, conversation.id, { text: 'SECRET-503 text' });
       expect(Date.now() - started).toBeGreaterThanOrEqual(PRIMARY_503_BACKOFF_MS[0]! - 20);
       expect(types).toEqual(['delta', 'delta', 'meta', 'done']);
-      expect(ai.calls.stream.map((c) => c.model)).toEqual(['reply', 'reply']);
+      expect(ai.calls.stream.map((c) => c.model)).toEqual([P, P]);
       expect((await messagesOf(conversation.id))[1]?.content).toBe('Second try.');
       expect(replyModelLines(lines)).toEqual([
-        expect.objectContaining({ level: 30, event: 'reply_model', model: 'reply', primary503s: 1, fellBack: false }),
+        expect.objectContaining({ level: 30, event: 'reply_model', model: P, primary503s: 1, fellBack: false }),
       ]);
       expect(lines.join('\n')).not.toContain('SECRET');
       expect(lines.join('\n')).not.toContain('Second try');
@@ -249,7 +249,7 @@ describe('POST /conversations/:id/messages', () => {
       const { lines, logger } = captureLogs();
       const ai = fakeAi({
         stream: (request) =>
-          request.model === 'reply' ? failing(new AiError('unavailable', 503)) : chunks(['Lite here.']),
+          request.model === P ? failing(new AiError('unavailable', 503)) : chunks(['Lite here.']),
       });
       const app = ctx.app({ ai: ai.client, logger, chatTimeouts: { primary503BackoffMs: [5, 10] } });
       const { accessToken } = await signup(app);
@@ -257,9 +257,9 @@ describe('POST /conversations/:id/messages', () => {
 
       const { types } = await send(app, accessToken, conversation.id, { text: 'SECRET-503 again' });
       expect(types).toEqual(['delta', 'meta', 'done']);
-      expect(ai.calls.stream.map((c) => c.model)).toEqual(['reply', 'reply', 'reply', 'lite']);
+      expect(ai.calls.stream.map((c) => c.model)).toEqual([P, P, P, F]);
       expect(replyModelLines(lines)).toEqual([
-        expect.objectContaining({ event: 'reply_model', model: 'lite', primary503s: 3, fellBack: true }),
+        expect.objectContaining({ event: 'reply_model', model: F, primary503s: 3, fellBack: true }),
       ]);
       expect(lines.join('\n')).not.toContain('SECRET');
       expect(lines.join('\n')).not.toContain('Lite here');
@@ -276,7 +276,7 @@ describe('POST /conversations/:id/messages', () => {
           call += 1;
           // Reply 1: 503 then success. Reply 2: three 503s, then fallback. Reply 3: clean.
           if (call === 1 || (call >= 3 && call <= 5)) return failing(new AiError('unavailable', 503));
-          return chunks([request.model === 'lite' ? 'lite' : 'ok']);
+          return chunks([request.model === F ? 'lite' : 'ok']);
         },
       });
       const app = ctx.app({ ai: ai.client, chatTimeouts: { primary503BackoffMs: [5, 10] } });
@@ -306,7 +306,7 @@ describe('POST /conversations/:id/messages', () => {
     const { events, types } = await send(app, accessToken, conversation.id, { text: 'are you there?' });
     expect(types).toEqual(['error']);
     expect(dataOf(events, 'error')?.code).toBe('reply_failed');
-    expect(ai.calls.stream.map((c) => c.model)).toEqual(['reply', 'lite']);
+    expect(ai.calls.stream.map((c) => c.model)).toEqual([P, F]);
     const saved = await messagesOf(conversation.id);
     expect(saved).toHaveLength(1);
     expect(saved[0]).toMatchObject({ role: 'user', content: 'are you there?' });
@@ -618,7 +618,7 @@ describe('POST /conversations/:id/messages', () => {
 
   it('never logs message text or replies', async () => {
     const { lines, logger } = captureLogs();
-    const ai = fakeAi({ stream: (r) => (r.model === 'reply' ? failing(new AiError('rate_limited', 429)) : chunks(['SECRET-REPLY'])) });
+    const ai = fakeAi({ stream: (r) => (r.model === P ? failing(new AiError('rate_limited', 429)) : chunks(['SECRET-REPLY'])) });
     const app = ctx.app({ ai: ai.client, logger });
     const { accessToken } = await signup(app);
     const conversation = await newConversation(app, accessToken);
