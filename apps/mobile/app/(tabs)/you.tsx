@@ -1,6 +1,7 @@
 // The You tab (spec 8.1, 8.9): your constellation, mood trend, streak and level, and doors to everything else.
 import { useRouter } from 'expo-router';
-import { Bell, BookOpen, CloudOff, LogOut, Moon, Shield, Sparkles, Wind } from 'lucide-react-native';
+import Constants from 'expo-constants';
+import { Bell, BookOpen, CloudOff, Info, LogOut, Moon, Shield, Sparkles, UserRound, Wind } from 'lucide-react-native';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Button, Card, Constellation, EmptyState, Entrance, ListGroup, ListRow, MoodTrend, Screen, SkeletonCard, Text } from '../../src/components';
@@ -83,6 +84,7 @@ export default function YouTab() {
 
       <Entrance index={4}>
         <ListGroup header="Settings">
+          <ListRow icon={UserRound} title="Name" trailing={{ kind: 'value', value: user?.name ?? '' }} onPress={() => router.push('/settings/profile')} />
           <ListRow icon={Bell} title="Reminders" onPress={() => router.push('/settings/reminders')} />
           <ListRow icon={Shield} title="Privacy and data" onPress={() => router.push('/settings/privacy')} />
           <ListRow icon={Moon} title="Appearance" trailing={{ kind: 'value', value: APPEARANCES.find((a) => a.value === appearance)?.label ?? 'Sky' }} onPress={() => router.push('/settings/appearance')} />
@@ -101,6 +103,11 @@ export default function YouTab() {
         </ListGroup>
       </Entrance>
       {!user ? <Button label="Sign in" onPress={() => router.replace('/log-in')} wide /> : null}
+      <Entrance index={5}>
+        <ListGroup header="About">
+          <ListRow icon={Info} title={`Solace ${Constants.expoConfig?.version ?? ''}`} subtitle="Not a substitute for professional help. In an emergency, call 112." trailing={{ kind: 'none' }} />
+        </ListGroup>
+      </Entrance>
     </Screen>
   );
 }

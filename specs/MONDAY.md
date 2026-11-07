@@ -22,3 +22,5 @@ Pure polish found by reviewers or measurements. Nothing here breaks a flow, the 
 - Onboarding: Sola sits about 60 px higher on step 1 than step 2 (step 1 has the extra 'I already have an account' button), so Sola jumps when paging. Reserve the same action-area height on every step. (Phone run 1, Nov 7.)
 
 - Check-in suggestion quoted the score ('a good mood of four out of five'); add 'never quote numbers' to SUGGESTION_SYSTEM and a digit/number-word check. (Live check, Nov 7.)
+
+- Chat reply added a detail the user never said ('staring at the ceiling' for 'I can't sleep'). Tighten the reply prompt's grounding. (Run 2, Nov 7.)
