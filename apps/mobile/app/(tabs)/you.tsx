@@ -1,13 +1,14 @@
+import { XP_PER_LEVEL } from '@solace/shared';
 // The You tab (spec 8.1, 8.9): your check-in calendar, mood trend, streak and level, and doors to everything else.
 import { useRouter } from 'expo-router';
 import Constants from 'expo-constants';
 import { Bell, BookOpen, CloudOff, Info, LogOut, Moon, Shield, Sparkles, UserRound, Wind } from 'lucide-react-native';
 import { StyleSheet, View } from 'react-native';
-import { Button, Card, EmptyState, Entrance, ListGroup, ListRow, MonthCalendar, MoodTrend, Screen, SkeletonCard, Text } from '../../src/components';
+import { Button, Card, EmptyState, Entrance, ListGroup, ListRow, MonthCalendar, MoodTrend, Screen, SkeletonCard, TabScene, Text, useTheme } from '../../src/components';
 import { APPEARANCES, useAppearance } from '../../src/features/appearance';
 import { logOut, useSession } from '../../src/features/auth/session';
 import { activeDays, CALENDAR_MONTHS_BACK, lastDays, localDay, moodTrend, TREND_DAYS, useCheckins, useMe } from '../../src/features/you/data';
-import { spacing } from '../../src/theme/tokens';
+import { kit, radius, spacing } from '../../src/theme/tokens';
 
 function Stat({ value, label }: { value: string; label: string }) {
   return (
@@ -29,8 +30,10 @@ export default function YouTab() {
   const tz = user?.timezone ?? 'UTC';
   const items = checkins.data?.items ?? [];
   const stats = me.data?.stats;
+  const { palette } = useTheme();
 
   return (
+    <TabScene>
     <Screen title="You" tabs>
       <Entrance index={0}>
         {checkins.isPending ? (
@@ -58,9 +61,14 @@ export default function YouTab() {
             <Stat value={stats ? String(stats.xp) : '–'} label="XP" />
           </View>
           {stats ? (
-            <Text variant="footnote" tone="muted" center>
-              {stats.xpToNext} XP to level {stats.level + 1}
-            </Text>
+            <View style={styles.progress} accessible accessibilityRole="progressbar" accessibilityLabel={`${stats.xpToNext} XP to level ${stats.level + 1}`}>
+              <View style={[styles.track, { backgroundColor: palette.separator }]}>
+                <View style={[styles.bar, { backgroundColor: palette.accent, width: `${Math.round((1 - stats.xpToNext / XP_PER_LEVEL) * 100)}%` }]} />
+              </View>
+              <Text variant="footnote" tone="muted" center>
+                {stats.xpToNext} XP to level {stats.level + 1}
+              </Text>
+            </View>
           ) : null}
         </Card>
       </Entrance>
@@ -106,10 +114,15 @@ export default function YouTab() {
         </ListGroup>
       </Entrance>
     </Screen>
+    </TabScene>
   );
 }
 
 const styles = StyleSheet.create({
-  stats: { flexDirection: 'row', justifyContent: 'space-around' },
-  stat: { alignItems: 'center', gap: spacing.xs },
+  // Equal columns, so the bar and caption below line up with all three.
+  stats: { flexDirection: 'row' },
+  stat: { flex: 1, alignItems: 'center', gap: spacing.xs },
+  progress: { gap: spacing.sm, marginTop: spacing.sm },
+  track: { height: kit.progressHeight, borderRadius: radius.full, overflow: 'hidden' },
+  bar: { height: '100%', borderRadius: radius.full },
 });

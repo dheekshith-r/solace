@@ -31,6 +31,7 @@ import { todayChromeDarkness } from '../../src/features/today/chrome';
 import { actionLabel, flushPendingMood, queueMood, useToday } from '../../src/features/today/data';
 import { MoodRow, NO_MOOD } from '../../src/features/today/parts';
 import { ROOT_ID } from '../../src/components/testId';
+import { TabScene } from '../../src/components/TabScene';
 import { duration, easing, spring } from '../../src/theme/motion';
 import { demoMinutes, moodNeutral, skyMotion, skyTimes, sola, wind } from '../../src/theme/sky';
 import {
@@ -339,12 +340,14 @@ export default function TodayScreen() {
   const gustParam = Number(params.gust ?? 0);
 
   return (
+    <TabScene>
     <Today
       key={`${params.m ?? ''}-${params.v ?? ''}`}
       initialMinute={initialMinute}
       firstGust={gustParam > 0 ? gustParam : wind.minGap}
       perf={params.perf === '1'}
     />
+    </TabScene>
   );
 }
 

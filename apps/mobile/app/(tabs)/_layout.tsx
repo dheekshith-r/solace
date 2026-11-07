@@ -1,6 +1,7 @@
 import { Tabs } from 'expo-router';
 import type { ComponentProps } from 'react';
 import { TabBar, type Tab } from '../../src/components/TabBar';
+import { useTheme } from '../../src/components/ThemeProvider';
 import { todayChromeDarkness } from '../../src/features/today/chrome';
 import { spacing } from '../../src/theme/tokens';
 
@@ -42,11 +43,13 @@ function AppTabBar({ state, navigateToTab, insets }: TabBarProps) {
  * Attached and faded out, Today's canvas keeps its one surface and doesn't draw while hidden.
  */
 export default function TabsLayout() {
+  const { palette } = useTheme();
   return (
     <Tabs
       backBehavior="initialRoute"
       detachInactiveScreens={false}
-      screenOptions={{ headerShown: false, animation: 'fade' }}
+      // No navigator fade: each tab fades itself in with TabScene, opaque and composited as one image.
+      screenOptions={{ headerShown: false, animation: 'none', sceneStyle: { backgroundColor: palette.background } }}
       tabBar={(props) => <AppTabBar {...props} />}
     >
       <Tabs.Screen name="today" />

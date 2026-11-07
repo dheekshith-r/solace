@@ -12,6 +12,7 @@ export const duration = {
   skyTick: 1000,
   hintBob: 700,
   quick: 220, // Small state changes: focus rings, toasts leaving.
+  tabFade: 200, // A tab fading in over the previous one.
   pulse: 900, // Skeleton breathing, each way.
   toast: 2600, // How long a toast stays.
 } as const;

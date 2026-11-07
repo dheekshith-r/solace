@@ -92,6 +92,7 @@ export const kit = {
   calendarDot: 32,
   trendLabel: 14,
   trendHeight: 120,
+  progressHeight: 6,
   orbSmall: 0.55, // Its size after breathing out.
   moodButton: 54,
   moodFace: 30,

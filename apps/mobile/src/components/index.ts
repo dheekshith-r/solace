@@ -20,3 +20,4 @@ export { shiftTime, TimeStepper } from './TimeStepper';
 export { Raised, ThemeProvider, useBackdrop, useFill, useIsRaised, useTheme } from './ThemeProvider';
 export { ToastProvider, useToast } from './Toast';
 export { describeSchedule, formatTime12, ReminderSchedule, type Schedule } from './ReminderSchedule';
+export { TabScene } from './TabScene';

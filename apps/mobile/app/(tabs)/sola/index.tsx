@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { CloudOff, MessageCircle, Trash2 } from 'lucide-react-native';
 import { Alert, StyleSheet, View } from 'react-native';
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
+import Animated, { useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
 import { Button, Card, EmptyState, Entrance, ListGroup, ListRow, PressScale, Screen, SkeletonCard, SkeletonRow, Text, useBackdrop, useTheme } from '../../../src/components';
 import { deleteConversation, useConversations } from '../../../src/features/chat/data';
 import { SolaFigure } from '../../../src/features/sola/Sola';
@@ -13,7 +14,7 @@ import { kit, radius, spacing } from '../../../src/theme/tokens';
 function when(iso: string): string {
   const d = new Date(iso);
   const days = Math.floor((Date.now() - d.getTime()) / 86_400_000);
-  if (days < 1) return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  if (days < 1) return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }).toLowerCase();
   if (days < 7) return d.toLocaleDateString([], { weekday: 'short' });
   return d.toLocaleDateString([], { day: 'numeric', month: 'short' });
 }
@@ -25,12 +26,16 @@ function confirmDelete(item: ConversationListItem) {
   ]);
 }
 
-function DeleteAction({ item }: { item: ConversationListItem }) {
+function DeleteAction({ item, translation }: { item: ConversationListItem; translation: SharedValue<number> }) {
   const { palette } = useTheme();
+  // Drawn only once the row has moved: at rest it can't show through anything, even mid-transition.
+  const style = useAnimatedStyle(() => ({ opacity: translation.get() < 0 ? 1 : 0 }));
   return (
-    <PressScale onPress={() => confirmDelete(item)} accessibilityRole="button" accessibilityLabel="Delete conversation" style={[styles.delete, { backgroundColor: palette.destructive }]}>
-      <Trash2 size={kit.icon} color={palette.surface} />
-    </PressScale>
+    <Animated.View style={[styles.deleteHolder, style]}>
+      <PressScale onPress={() => confirmDelete(item)} accessibilityRole="button" accessibilityLabel="Delete conversation" style={[styles.delete, { backgroundColor: palette.destructive }]}>
+        <Trash2 size={kit.icon} color={palette.surface} />
+      </PressScale>
+    </Animated.View>
   );
 }
 
@@ -38,11 +43,11 @@ function ConversationRow({ item, onOpen }: { item: ConversationListItem; onOpen:
   // Opaque in the card's own color, so the sliding row hides the delete button behind it.
   const fill = useBackdrop();
   return (
-    <ReanimatedSwipeable renderRightActions={() => <DeleteAction item={item} />} overshootRight={false} friction={2} childrenContainerStyle={{ backgroundColor: fill }}>
+    <ReanimatedSwipeable renderRightActions={(_progress, translation) => <DeleteAction item={item} translation={translation} />} overshootRight={false} friction={2} childrenContainerStyle={{ backgroundColor: fill }}>
       <ListRow
         icon={MessageCircle}
         title={item.title ?? 'New conversation'}
-        subtitle={item.preview ? `${when(item.lastMessageAt)} · ${item.preview}` : when(item.lastMessageAt)}
+        subtitle={when(item.lastMessageAt)}
         onPress={onOpen}
       />
     </ReanimatedSwipeable>
@@ -118,5 +123,6 @@ const styles = StyleSheet.create({
   // The glow spills past Sola's tight box, so the text keeps a little more room from it.
   line: { flexDirection: 'row', alignItems: 'center', gap: spacing.xl },
   flush: { padding: 0 },
+  deleteHolder: { flexDirection: 'row' },
   delete: { width: kit.rowMinHeight + spacing.xxl, flex: 1, alignItems: 'center', justifyContent: 'center', borderRadius: radius.petal },
 });

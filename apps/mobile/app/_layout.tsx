@@ -2,9 +2,11 @@ import { PlusJakartaSans_400Regular } from '@expo-google-fonts/plus-jakarta-sans
 import { PlusJakartaSans_600SemiBold } from '@expo-google-fonts/plus-jakarta-sans/600SemiBold';
 import { PlusJakartaSans_700Bold } from '@expo-google-fonts/plus-jakarta-sans/700Bold';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
+import { DarkTheme, DefaultTheme, ThemeProvider as NavThemeProvider, Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useCallback } from 'react';
+import * as SystemUI from 'expo-system-ui';
+import { useCallback, useEffect, useMemo } from 'react';
+import { colors } from '../src/theme/tokens';
 import { StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
@@ -20,6 +22,15 @@ void SplashScreen.preventAutoHideAsync();
 export default function RootLayout() {
   const [loaded] = useFonts({ PlusJakartaSans_400Regular, PlusJakartaSans_600SemiBold, PlusJakartaSans_700Bold });
   const scheme = useResolvedScheme();
+  const background = colors[scheme].background;
+  // The native window shows through during any transition: keep it the theme's background, not white.
+  useEffect(() => {
+    void SystemUI.setBackgroundColorAsync(background);
+  }, [background]);
+  const navTheme = useMemo(() => {
+    const base = scheme === 'dark' ? DarkTheme : DefaultTheme;
+    return { ...base, colors: { ...base.colors, background, card: background } };
+  }, [scheme, background]);
   const onLayout = useCallback(() => {
     void SplashScreen.hideAsync();
   }, []);
@@ -30,9 +41,10 @@ export default function RootLayout() {
       <PersistQueryClientProvider client={queryClient} persistOptions={persistOptions}>
       <KeyboardProvider>
         <ThemeProvider scheme={scheme}>
+          <NavThemeProvider value={navTheme}>
           <ToastProvider>
             <NotificationRouter />
-            <Stack screenOptions={{ headerShown: false }}>
+            <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: background } }}>
               <Stack.Screen name="index" options={{ animation: 'fade' }} />
               <Stack.Screen name="onboarding" options={{ animation: 'fade' }} />
               <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
@@ -40,6 +52,7 @@ export default function RootLayout() {
               <Stack.Screen name="kit-sheet" options={{ presentation: 'formSheet', sheetAllowedDetents: 'fitToContents', contentStyle: { backgroundColor: 'transparent' } }} />
             </Stack>
           </ToastProvider>
+          </NavThemeProvider>
         </ThemeProvider>
       </KeyboardProvider>
       </PersistQueryClientProvider>
