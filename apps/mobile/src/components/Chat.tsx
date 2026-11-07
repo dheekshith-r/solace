@@ -1,6 +1,8 @@
 import { ArrowUp, Phone } from 'lucide-react-native';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Linking, StyleSheet, TextInput, View } from 'react-native';
+import Animated, { cancelAnimation, ReduceMotion, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
+import { easing, typing } from '../theme/motion';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { font, fontSize, kit, lineHeightRatio, radius, screenPadding, spacing, touchTarget } from '../theme/tokens';
 import { Button } from './Button';
@@ -32,15 +34,37 @@ export function ChatBubble({ role, children, footer }: { role: 'user' | 'assista
   );
 }
 
-/** Sola is thinking: three soft dots in a bubble. */
+function TypingDot({ index, color }: { index: number; color: string }) {
+  const t = useSharedValue(0);
+  useEffect(() => {
+    const beat = withSequence(
+      withTiming(1, { duration: typing.half, easing, reduceMotion: ReduceMotion.System }),
+      withTiming(0, { duration: typing.half, easing, reduceMotion: ReduceMotion.System }),
+      // Rest so the three dots finish together and the wave restarts from the first.
+      withTiming(0, { duration: typing.stagger * (TYPING_DOTS - 1) }),
+    );
+    t.set(withDelay(index * typing.stagger, withRepeat(beat, -1)));
+    return () => cancelAnimation(t);
+  }, [index, t]);
+  const style = useAnimatedStyle(() => ({
+    opacity: typing.rest + (1 - typing.rest) * t.get(),
+    transform: [{ translateY: -typing.lift * t.get() }],
+  }));
+  return <Animated.View style={[styles.dot, { backgroundColor: color }, style]} />;
+}
+
+const TYPING_DOTS = 3;
+
+/** Sola is thinking: three dots rising one after another, in the accent. */
 export function TypingBubble() {
   const fill = useFill();
+  const { palette } = useTheme();
   return (
     <Entrance style={[styles.bubbleRow, styles.theirs]}>
-      <View style={[styles.bubble, styles.bubbleTheirs, { backgroundColor: fill }]} accessible accessibilityLabel="Sola is replying" testID="sola-typing">
-        <Text variant="body" tone="muted">
-          •••
-        </Text>
+      <View style={[styles.bubble, styles.bubbleTheirs, styles.dots, { backgroundColor: fill }]} accessible accessibilityLabel="Sola is replying" testID="sola-typing">
+        {Array.from({ length: TYPING_DOTS }, (_, i) => (
+          <TypingDot key={i} index={i} color={palette.accent} />
+        ))}
       </View>
     </Entrance>
   );
@@ -136,6 +160,8 @@ const styles = StyleSheet.create({
   bubble: { paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderRadius: radius.card },
   bubbleMine: { borderBottomRightRadius: radius.petal / 2 },
   bubbleTheirs: { borderBottomLeftRadius: radius.petal / 2 },
+  dots: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, minHeight: touchTarget - spacing.sm },
+  dot: { width: kit.typingDot, height: kit.typingDot, borderRadius: radius.full },
   composer: {
     flexDirection: 'row',
     alignItems: 'flex-end',

@@ -10,7 +10,8 @@ import { Text } from './Text';
 import { useFill, useTheme } from './ThemeProvider';
 
 /** Selectable chip. Selection fully inverts to the accent, fading in rather than snapping. */
-export function Chip({ label, selected = false, onPress }: { label: string; selected?: boolean; onPress: () => void }) {
+/** `a11yLabel` when the visible label is a short form ("M" for Monday). */
+export function Chip({ label, selected = false, onPress, a11yLabel }: { label: string; selected?: boolean; onPress: () => void; a11yLabel?: string }) {
   const { palette } = useTheme();
   const fill = useFill();
   const on = useSharedValue(selected ? 1 : 0);
@@ -28,8 +29,8 @@ export function Chip({ label, selected = false, onPress }: { label: string; sele
       }}
       hitSlop={(touchTarget - kit.chipHeight) / 2}
       accessibilityRole="button"
-      accessibilityLabel={label}
-      testID={testId('chip', label)}
+      accessibilityLabel={a11yLabel ?? label}
+      testID={testId('chip', a11yLabel ?? label)}
       accessibilityState={{ selected }}
       outerStyle={styles.hug}
       style={[styles.chip, { backgroundColor: fill }]}

@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { CloudOff, MessageCircle, Trash2 } from 'lucide-react-native';
 import { Alert, StyleSheet, View } from 'react-native';
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
-import { Button, Card, EmptyState, Entrance, ListGroup, ListRow, PressScale, Screen, SkeletonCard, SkeletonRow, Text, useTheme } from '../../../src/components';
+import { Button, Card, EmptyState, Entrance, ListGroup, ListRow, PressScale, Screen, SkeletonCard, SkeletonRow, Text, useBackdrop, useTheme } from '../../../src/components';
 import { deleteConversation, useConversations } from '../../../src/features/chat/data';
 import { SolaFigure } from '../../../src/features/sola/Sola';
 import { useToday } from '../../../src/features/today/data';
@@ -31,6 +31,21 @@ function DeleteAction({ item }: { item: ConversationListItem }) {
     <PressScale onPress={() => confirmDelete(item)} accessibilityRole="button" accessibilityLabel="Delete conversation" style={[styles.delete, { backgroundColor: palette.destructive }]}>
       <Trash2 size={kit.icon} color={palette.surface} />
     </PressScale>
+  );
+}
+
+function ConversationRow({ item, onOpen }: { item: ConversationListItem; onOpen: () => void }) {
+  // Opaque in the card's own color, so the sliding row hides the delete button behind it.
+  const fill = useBackdrop();
+  return (
+    <ReanimatedSwipeable renderRightActions={() => <DeleteAction item={item} />} overshootRight={false} friction={2} childrenContainerStyle={{ backgroundColor: fill }}>
+      <ListRow
+        icon={MessageCircle}
+        title={item.title ?? 'New conversation'}
+        subtitle={item.preview ? `${when(item.lastMessageAt)} · ${item.preview}` : when(item.lastMessageAt)}
+        onPress={onOpen}
+      />
+    </ReanimatedSwipeable>
   );
 }
 
@@ -87,14 +102,7 @@ export default function SolaTab() {
         ) : (
           <ListGroup header="Conversations">
             {items.map((item) => (
-              <ReanimatedSwipeable key={item.id} renderRightActions={() => <DeleteAction item={item} />} overshootRight={false} friction={2}>
-                <ListRow
-                  icon={MessageCircle}
-                  title={item.title ?? 'New conversation'}
-                  subtitle={item.preview ? `${when(item.lastMessageAt)} · ${item.preview}` : when(item.lastMessageAt)}
-                  onPress={() => router.push({ pathname: '/sola/[id]', params: { id: item.id } })}
-                />
-              </ReanimatedSwipeable>
+              <ConversationRow key={item.id} item={item} onOpen={() => router.push({ pathname: '/sola/[id]', params: { id: item.id } })} />
             ))}
           </ListGroup>
         )}

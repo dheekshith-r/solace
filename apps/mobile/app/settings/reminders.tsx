@@ -3,7 +3,7 @@ import type { Reminders } from '@solace/shared';
 import { Bell, BellOff, Plus, Send, Trash2 } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Linking, StyleSheet, View } from 'react-native';
-import { Button, Card, EmptyState, Entrance, ListGroup, ListRow, Screen, Text, TextField, TimeStepper, useToast } from '../../src/components';
+import { Button, Card, EmptyState, Entrance, ListGroup, ListRow, Screen, Text, ReminderSchedule, describeSchedule, TextField, useToast } from '../../src/components';
 import { askForNotifications, notificationsAllowed, saveReminders, sendTestNotification, syncReminders, useReminders } from '../../src/features/notifications/reminders';
 import { REMINDER_TITLES, type ReminderKindName } from '../../src/features/notifications/titles';
 import { spacing } from '../../src/theme/tokens';
@@ -15,7 +15,6 @@ export default function RemindersScreen() {
   const toast = useToast();
   const reminders = useReminders((s) => s.reminders);
   const [allowed, setAllowed] = useState<boolean | null>(null);
-  const [editing, setEditing] = useState<string | null>(null);
   const [newLabel, setNewLabel] = useState('');
 
   useEffect(() => {
@@ -32,7 +31,6 @@ export default function RemindersScreen() {
     const id = `${Date.now().toString(36)}`;
     update({ ...reminders, custom: [...reminders.custom, { id, label, time: '18:00', on: true }] });
     setNewLabel('');
-    setEditing(`custom-${id}`);
   };
 
   return (
@@ -63,20 +61,9 @@ export default function RemindersScreen() {
           {KINDS.flatMap(({ kind, title, icon }) => {
             const r = reminders[kind];
             const rows = [
-              <ListRow key={kind} icon={icon} title={title} subtitle={r.on ? `Every day at ${r.time}` : 'Off'} trailing={{ kind: 'switch', on: r.on, onChange: (on) => setKind(kind, { on }) }} />,
+              <ListRow key={kind} icon={icon} title={title} subtitle={r.on ? describeSchedule(r.time, r.days) : 'Off'} trailing={{ kind: 'switch', on: r.on, onChange: (on) => setKind(kind, { on }) }} />,
             ];
-            if (r.on) {
-              rows.push(
-                editing === kind ? (
-                  <View key={`${kind}-time`} style={styles.editor}>
-                    <TimeStepper label={title} value={r.time} onChange={(time) => setKind(kind, { time })} />
-                    <Button label="Done" variant="text" align="center" onPress={() => setEditing(null)} />
-                  </View>
-                ) : (
-                  <ListRow key={`${kind}-time`} title="Time" trailing={{ kind: 'value', value: r.time }} onPress={() => setEditing(kind)} />
-                ),
-              );
-            }
+            if (r.on) rows.push(<ReminderSchedule key={`${kind}-when`} label={title} value={r} onChange={(next) => setKind(kind, { time: next.time, days: next.days })} />);
             return rows;
           })}
         </ListGroup>
@@ -90,20 +77,13 @@ export default function RemindersScreen() {
                 key={c.id}
                 icon={Bell}
                 title={c.label}
-                subtitle={c.on ? `Every day at ${c.time}` : 'Off'}
+                subtitle={c.on ? describeSchedule(c.time, c.days) : 'Off'}
                 trailing={{ kind: 'switch', on: c.on, onChange: (on) => update({ ...reminders, custom: reminders.custom.map((x) => (x.id === c.id ? { ...x, on } : x)) }) }}
               />,
-              editing === `custom-${c.id}` ? (
-                <View key={`${c.id}-time`} style={styles.editor}>
-                  <TimeStepper label={c.label} value={c.time} onChange={(time) => update({ ...reminders, custom: reminders.custom.map((x) => (x.id === c.id ? { ...x, time } : x)) })} />
-                  <View style={styles.actions}>
-                    <Button label="Delete" variant="text" icon={Trash2} onPress={() => update({ ...reminders, custom: reminders.custom.filter((x) => x.id !== c.id) })} />
-                    <Button label="Done" variant="text" onPress={() => setEditing(null)} />
-                  </View>
-                </View>
-              ) : (
-                <ListRow key={`${c.id}-time`} title="Time" trailing={{ kind: 'value', value: c.time }} onPress={() => setEditing(`custom-${c.id}`)} />
-              ),
+              <View key={`${c.id}-when`} style={styles.editor}>
+                <ReminderSchedule label={c.label} value={c} onChange={(next) => update({ ...reminders, custom: reminders.custom.map((x) => (x.id === c.id ? { ...x, time: next.time, days: next.days } : x)) })} />
+                <Button label="Delete" variant="text" icon={Trash2} onPress={() => update({ ...reminders, custom: reminders.custom.filter((x) => x.id !== c.id) })} />
+              </View>,
             ]),
             <View key="add" style={styles.editor}>
               <TextField label="New reminder" value={newLabel} onChangeText={setNewLabel} placeholder="Drink some water" maxLength={60} returnKeyType="done" onSubmitEditing={addCustom} />

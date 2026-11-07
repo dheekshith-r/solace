@@ -1,13 +1,12 @@
-// The You tab (spec 8.1, 8.9): your constellation, mood trend, streak and level, and doors to everything else.
+// The You tab (spec 8.1, 8.9): your check-in calendar, mood trend, streak and level, and doors to everything else.
 import { useRouter } from 'expo-router';
 import Constants from 'expo-constants';
 import { Bell, BookOpen, CloudOff, Info, LogOut, Moon, Shield, Sparkles, UserRound, Wind } from 'lucide-react-native';
-import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Button, Card, Constellation, EmptyState, Entrance, ListGroup, ListRow, MoodTrend, Screen, SkeletonCard, Text } from '../../src/components';
+import { Button, Card, EmptyState, Entrance, ListGroup, ListRow, MonthCalendar, MoodTrend, Screen, SkeletonCard, Text } from '../../src/components';
 import { APPEARANCES, useAppearance } from '../../src/features/appearance';
 import { logOut, useSession } from '../../src/features/auth/session';
-import { constellation, moodTrend, useCheckins, useMe } from '../../src/features/you/data';
+import { activeDays, CALENDAR_MONTHS_BACK, lastDays, localDay, moodTrend, TREND_DAYS, useCheckins, useMe } from '../../src/features/you/data';
 import { spacing } from '../../src/theme/tokens';
 
 function Stat({ value, label }: { value: string; label: string }) {
@@ -27,7 +26,6 @@ export default function YouTab() {
   const me = useMe();
   const checkins = useCheckins();
   const appearance = useAppearance((s) => s.appearance);
-  const [leaving, setLeaving] = useState(false);
   const tz = user?.timezone ?? 'UTC';
   const items = checkins.data?.items ?? [];
   const stats = me.data?.stats;
@@ -39,15 +37,15 @@ export default function YouTab() {
           <SkeletonCard lines={3} />
         ) : checkins.isError && !items.length ? (
           <Card>
-            <EmptyState icon={CloudOff} title="Couldn't load your stars" body="Check your connection. Nothing is lost." action={{ label: 'Try again', variant: 'secondary', onPress: () => void checkins.refetch() }} />
+            <EmptyState icon={CloudOff} title="Couldn't load your check-ins" body="Check your connection. Nothing is lost." action={{ label: 'Try again', variant: 'secondary', onPress: () => void checkins.refetch() }} />
           </Card>
         ) : (
           <Card hero>
-            <Text variant="heading">Your constellation</Text>
+            <Text variant="heading">Your check-ins</Text>
             <Text variant="footnote" tone="muted">
-              {items.length ? 'Each day you check in adds a star.' : 'Your first mood check-in on Today lights your first star.'}
+              {items.length ? 'Filled days are days you checked in.' : 'Your first mood check-in on Today fills in today.'}
             </Text>
-            <Constellation days={constellation(items, tz)} />
+            <MonthCalendar today={localDay(new Date(), tz)} active={activeDays(items, tz)} monthsBack={CALENDAR_MONTHS_BACK} />
           </Card>
         )}
       </Entrance>
@@ -60,7 +58,7 @@ export default function YouTab() {
             <Stat value={stats ? String(stats.xp) : '–'} label="XP" />
           </View>
           {stats ? (
-            <Text variant="footnote" tone="muted">
+            <Text variant="footnote" tone="muted" center>
               {stats.xpToNext} XP to level {stats.level + 1}
             </Text>
           ) : null}
@@ -70,7 +68,7 @@ export default function YouTab() {
       <Entrance index={2}>
         <Card>
           <Text variant="heading">Two weeks of mood</Text>
-          <MoodTrend points={moodTrend(items, tz)} />
+          <MoodTrend points={moodTrend(items, tz)} days={lastDays(TREND_DAYS, tz)} />
         </Card>
       </Entrance>
 
@@ -90,14 +88,13 @@ export default function YouTab() {
           <ListRow icon={Moon} title="Appearance" trailing={{ kind: 'value', value: APPEARANCES.find((a) => a.value === appearance)?.label ?? 'Sky' }} onPress={() => router.push('/settings/appearance')} />
           <ListRow
             icon={LogOut}
-            title={leaving ? 'Logging out…' : 'Log out'}
+            title="Log out"
             subtitle={user?.email}
             trailing={{ kind: 'none' }}
-            onPress={async () => {
-              if (leaving) return;
-              setLeaving(true);
-              await logOut();
-              router.replace('/onboarding');
+            onPress={() => {
+              // Leave first, then clear: clearing while You is on screen flashed a signed-out You (Ddk, Nov 7).
+              router.replace('/log-in');
+              void logOut();
             }}
           />
         </ListGroup>

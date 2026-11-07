@@ -3,8 +3,10 @@ import { useQuery } from '@tanstack/react-query';
 import { authed, useSession } from '../auth/session';
 
 export const ME_KEY = ['me'] as const;
-export const CHECKINS_KEY = ['checkins', 35] as const;
-export const CONSTELLATION_DAYS = 35; // Five weeks.
+// About six months, so the calendar can page back five months.
+export const CALENDAR_DAYS = 186;
+export const CALENDAR_MONTHS_BACK = 5;
+export const CHECKINS_KEY = ['checkins', CALENDAR_DAYS] as const;
 export const TREND_DAYS = 14;
 
 export function useMe() {
@@ -14,7 +16,7 @@ export function useMe() {
 
 export function useCheckins() {
   const signedIn = useSession((s) => Boolean(s.user));
-  return useQuery({ queryKey: CHECKINS_KEY, queryFn: () => authed(`/checkins?days=${CONSTELLATION_DAYS}`, { schema: listCheckinsResponseSchema }), enabled: signedIn });
+  return useQuery({ queryKey: CHECKINS_KEY, queryFn: () => authed(`/checkins?days=${CALENDAR_DAYS}`, { schema: listCheckinsResponseSchema }), enabled: signedIn });
 }
 
 /** YYYY-MM-DD for an instant, in a time zone (the user's), so a star lands on the day they lived it. */
@@ -29,10 +31,9 @@ export function lastDays(count: number, timeZone: string, now = new Date()): str
   return Array.from({ length: count }, (_, i) => localDay(new Date(now.getTime() - (count - 1 - i) * 86_400_000), timeZone));
 }
 
-/** One star per active day (decision 7): which of the last five weeks had a check-in. */
-export function constellation(checkins: Checkin[], timeZone: string, now = new Date()): { day: string; lit: boolean }[] {
-  const active = new Set(checkins.map((c) => localDay(c.createdAt, timeZone)));
-  return lastDays(CONSTELLATION_DAYS, timeZone, now).map((day) => ({ day, lit: active.has(day) }));
+/** Local days with at least one check-in, for the calendar. */
+export function activeDays(checkins: Checkin[], timeZone: string): Set<string> {
+  return new Set(checkins.map((c) => localDay(c.createdAt, timeZone)));
 }
 
 /** Average mood per day over the last two weeks; null where there was no check-in. */

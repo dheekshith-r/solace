@@ -35,6 +35,13 @@ export function useFill(): string {
   return useContext(LevelContext) % 2 === 0 ? palette.surface : palette.tint;
 }
 
+/** The color under this content (page, card or nested well), for layers that must hide what's behind them. */
+export function useBackdrop(): string {
+  const { palette } = useTheme();
+  const level = useContext(LevelContext);
+  return level === 0 ? palette.background : level % 2 === 1 ? palette.surface : palette.tint;
+}
+
 /** True inside a card, sheet or grouped list. */
 export function useIsRaised(): boolean {
   return useContext(LevelContext) % 2 === 1;

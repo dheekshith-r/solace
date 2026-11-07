@@ -2,7 +2,7 @@
 export { Button, type ButtonVariant } from './Button';
 export { Card } from './Card';
 export { ChatBubble, Composer, HelplineCard, TypingBubble } from './Chat';
-export { Constellation, MoodTrend } from './Charts';
+export { MonthCalendar, MoodTrend } from './Charts';
 export { Checkbox } from './Checkbox';
 export { Chip } from './Chip';
 export { EmptyState } from './EmptyState';
@@ -17,5 +17,6 @@ export { SkeletonBlock, SkeletonCard, SkeletonRow } from './Skeleton';
 export { Text, type TextTone, type TextVariant } from './Text';
 export { TextField } from './TextField';
 export { shiftTime, TimeStepper } from './TimeStepper';
-export { Raised, ThemeProvider, useFill, useIsRaised, useTheme } from './ThemeProvider';
+export { Raised, ThemeProvider, useBackdrop, useFill, useIsRaised, useTheme } from './ThemeProvider';
 export { ToastProvider, useToast } from './Toast';
+export { describeSchedule, formatTime12, ReminderSchedule, type Schedule } from './ReminderSchedule';

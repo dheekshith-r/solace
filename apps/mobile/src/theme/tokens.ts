@@ -83,11 +83,14 @@ export const kit = {
   sendDisabled: 0.4,
   solaInline: 56, // Small Sola beside the daily line and in conversations.
   solaAvatar: 30, // Sola in the conversation header, beside "Here, no rush".
+  typingDot: 8,
   orb: 260, // The breathing orb at full size.
   star: 4,
   starGlow: 10,
   starQuiet: 2,
-  starRow: 34,
+  calendarCell: 40,
+  calendarDot: 32,
+  trendLabel: 14,
   trendHeight: 120,
   orbSmall: 0.55, // Its size after breathing out.
   moodButton: 54,
@@ -103,7 +106,8 @@ export const separatorInset = spacing.lg + kit.iconWell + spacing.md;
 export const opacity = { disabled: 0.4, skeletonLow: 0.45, skeletonHigh: 0.9 } as const;
 
 // Charts on the You tab: soft lines that fade at the ends (design/NOTES.md).
-export const chart = { joinOpacity: 0.35, joinWidth: 1.5, glowOpacity: 0.18, quietOpacity: 0.4, lineWidth: 3, fadeEdge: 0.15, fadeEnd: 0.35 } as const;
+// trendMinDays: fewer check-in days than this shows the trend's empty state instead of a near-empty chart.
+export const chart = { glowOpacity: 0.18, lineWidth: 3, todayRing: 1.5, trendMinDays: 3 } as const;
 
 // Text in fixed-height chrome (the tab bar) stops growing at 1.3x, so it never clips.
 export const type = { maxScale: 1.3 } as const;

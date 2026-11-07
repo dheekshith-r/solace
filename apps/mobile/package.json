@@ -4,6 +4,7 @@
   "main": "expo-router/entry",
   "dependencies": {
     "@expo-google-fonts/plus-jakarta-sans": "^0.4.2",
+    "@react-native-community/datetimepicker": "9.2.1",
     "@shopify/flash-list": "2.3.2",
     "@shopify/react-native-skia": "2.14.0",
     "@solace/shared": "*",
@@ -60,14 +61,20 @@
   },
   "jest": {
     "preset": "jest-expo",
-    "setupFiles": ["./jest.setup.js"],
+    "setupFiles": [
+      "./jest.setup.js"
+    ],
     "transformIgnorePatterns": [
       "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|react-native-svg)"
     ],
     "moduleNameMapper": {
       "^lucide-react-native$": "<rootDir>/../../node_modules/lucide-react-native/dist/cjs/lucide-react-native.js"
     },
-    "testPathIgnorePatterns": ["/node_modules/", "/android/", "/.expo/"]
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/android/",
+      "/.expo/"
+    ]
   },
   "reanimated": {
     "staticFeatureFlags": {

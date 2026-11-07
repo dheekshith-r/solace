@@ -58,13 +58,20 @@ export async function reschedule(reminders: Reminders = useReminders.getState().
   const affirmation = queryClient.getQueryData<TodayResponse>(TODAY_KEY)?.affirmation;
   const plan = planReminders(reminders, { affirmation, day: new Date().getDate() });
   await Promise.all(
-    plan.map((r) =>
-      scheduleNotificationAsync({
-        identifier: r.identifier,
-        content: { title: r.title, body: r.body, data: { url: r.url } },
-        trigger: { type: SchedulableTriggerInputTypes.DAILY, hour: r.hour, minute: r.minute, channelId: r.channel },
-      }),
-    ),
+    plan.flatMap((r) => {
+      const content = { title: r.title, body: r.body, data: { url: r.url } };
+      if (!r.days) {
+        return [scheduleNotificationAsync({ identifier: r.identifier, content, trigger: { type: SchedulableTriggerInputTypes.DAILY, hour: r.hour, minute: r.minute, channelId: r.channel } })];
+      }
+      // Android repeats per weekday, so specific days are one weekly trigger each.
+      return r.days.map((weekday) =>
+        scheduleNotificationAsync({
+          identifier: `${r.identifier}-d${weekday}`,
+          content,
+          trigger: { type: SchedulableTriggerInputTypes.WEEKLY, weekday, hour: r.hour, minute: r.minute, channelId: r.channel },
+        }),
+      );
+    }),
   );
   return plan.length;
 }

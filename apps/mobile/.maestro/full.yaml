@@ -100,7 +100,8 @@ appId: com.ddk.solace
 # --- You ---
 - tapOn: { id: "tab-you" }
 - runFlow: assert-solace.yaml
-- assertVisible: "Your constellation"
+- assertVisible: "Your check-ins"
+- assertVisible: { id: "calendar-previous" }
 - takeScreenshot: 10-you
 
 # --- Breathe: one Calm session (56 s) ---
@@ -176,13 +177,12 @@ appId: com.ddk.solace
 - scrollUntilVisible:
     element: { id: "row-log-out" }
 - tapOn: { id: "row-log-out" }
+# Straight to log-in, never a signed-out You screen.
 - extendedWaitUntil:
-    visible: "A calm place to land"
+    visible: "Welcome back"
     timeout: 15000
+- assertNotVisible: { id: "button-sign-in" }
 - runFlow: assert-solace.yaml
-- tapOn: { id: "button-i-already-have-an-account" }
-- runFlow: assert-solace.yaml
-- assertVisible: "Welcome back"
 - tapOn: { id: "field-email" }
 - inputText: ${EMAIL}
 - tapOn: { id: "field-password" }

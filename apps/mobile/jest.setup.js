@@ -40,3 +40,5 @@ jest.mock('react-native-mmkv', () => {
     }),
   };
 });
+
+jest.mock('@react-native-community/datetimepicker', () => ({ DateTimePickerAndroid: { open: jest.fn() } }));

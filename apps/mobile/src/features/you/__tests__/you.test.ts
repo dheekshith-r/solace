@@ -1,17 +1,16 @@
 import { resolveScheme } from '../../appearance';
-import { constellation, localDay, moodTrend } from '../data';
+import { activeDays, localDay, moodTrend } from '../data';
 
 const at = (iso: string, mood = 3) => ({ id: iso, mood, note: null, source: 'home' as const, createdAt: iso });
 
 describe('You tab', () => {
   const now = new Date('2026-11-06T12:00:00Z');
 
-  it('puts a star on the local day, in the user time zone', () => {
+  it('marks the calendar on the local day, in the user time zone', () => {
     // 20:00 UTC on Nov 5 is already Nov 6 in Kolkata.
     expect(localDay('2026-11-05T20:00:00Z', 'Asia/Kolkata')).toBe('2026-11-06');
-    const days = constellation([at('2026-11-05T20:00:00Z'), at('2026-11-04T06:00:00Z')], 'Asia/Kolkata', now);
-    expect(days).toHaveLength(35);
-    expect(days.filter((d) => d.lit).map((d) => d.day)).toEqual(['2026-11-04', '2026-11-06']);
+    const days = activeDays([at('2026-11-05T20:00:00Z'), at('2026-11-04T06:00:00Z'), at('2026-11-04T07:00:00Z')], 'Asia/Kolkata');
+    expect([...days].sort()).toEqual(['2026-11-04', '2026-11-06']);
   });
 
   it('averages each day and leaves gaps for days without a check-in', () => {

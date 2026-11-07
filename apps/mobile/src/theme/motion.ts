@@ -18,6 +18,9 @@ export const duration = {
 
 export const entrance = { rise: 18, stagger: 80 } as const;
 
+/** Typing dots: each rises and brightens in turn, like most chat apps. */
+export const typing = { half: 320, stagger: 160, rest: 0.35, lift: 4 } as const;
+
 export const pressScale = 0.95;
 export const pressScaleGentle = 0.98; // Large surfaces (cards, rows) move less than buttons.
 
