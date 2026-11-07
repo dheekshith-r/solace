@@ -1,5 +1,6 @@
 import { ApiError, request, withQuietRetry } from '../../../lib/http';
 import { signUpErrors } from '../AuthForms';
+import { needsSignIn, safeNext } from '../AuthGate';
 
 const secure: Record<string, string> = {};
 jest.mock('expo-secure-store', () => ({
@@ -164,6 +165,23 @@ describe('http', () => {
 
   it('is exported for screens', () => {
     expect(typeof request).toBe('function');
+  });
+});
+
+describe('links while signed out', () => {
+  it('signed-in screens need an account; onboarding, sign-up, log-in and the launch screen do not', () => {
+    expect(needsSignIn('/today', false)).toBe(true);
+    expect(needsSignIn('/breathe', false)).toBe(true);
+    expect(needsSignIn('/today', true)).toBe(false);
+    for (const open of ['/', '/onboarding', '/sign-up', '/log-in']) expect(needsSignIn(open, false)).toBe(false);
+  });
+
+  it('after log-in, only an in-app screen that needs an account is opened', () => {
+    expect(safeNext('/breathe')).toBe('/breathe');
+    expect(safeNext('//evil.example')).toBeNull();
+    expect(safeNext('https://evil.example')).toBeNull();
+    expect(safeNext('/log-in')).toBeNull();
+    expect(safeNext(undefined)).toBeNull();
   });
 });
 

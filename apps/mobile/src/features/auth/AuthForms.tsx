@@ -1,4 +1,5 @@
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { safeNext } from './AuthGate';
 import { useRef, useState, type ComponentRef } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
 import { Button, Card, Checkbox, Entrance, Screen, Text, TextField } from '../../components';
@@ -119,6 +120,7 @@ export function SignUpScreen() {
 
 export function LogInScreen() {
   const router = useRouter();
+  const next = safeNext(useLocalSearchParams<{ next?: string }>().next);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [tried, setTried] = useState(false);
@@ -140,7 +142,7 @@ export function LogInScreen() {
       await authAttempt(() => logIn({ email: email.trim(), password }), () => setBanner(WAKING));
       useOnboarding.getState().finish(true);
       void syncReminders();
-      router.replace('/today');
+      router.replace(next ?? '/today');
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) setWrong("That email and password don't match. Try again.");
       else setBanner(error instanceof ApiError ? error.message : OFFLINE_MESSAGE);

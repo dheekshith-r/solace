@@ -14,6 +14,7 @@ import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client
 import { ThemeProvider, ToastProvider } from '../src/components';
 import { persistOptions, queryClient } from '../src/lib/queryClient';
 import { NotificationRouter } from '../src/features/notifications/NotificationRouter';
+import { AuthGate } from '../src/features/auth/AuthGate';
 import { useResolvedScheme } from '../src/features/appearance';
 
 // The native splash stays up until app/index.tsx has opened the first screen, then fades.
@@ -48,6 +49,7 @@ export default function RootLayout() {
           <NavThemeProvider value={navTheme}>
           <ToastProvider>
             <NotificationRouter />
+            <AuthGate />
             <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: background } }}>
               <Stack.Screen name="index" options={{ animation: 'fade' }} />
               <Stack.Screen name="onboarding" options={{ animation: 'fade' }} />
