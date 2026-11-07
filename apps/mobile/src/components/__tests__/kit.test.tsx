@@ -2,6 +2,8 @@ import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { Text as RNText } from 'react-native';
 import { Button } from '../Button';
 import { TextField } from '../TextField';
+import { Screen } from '../Screen';
+import { BACK_ID, ROOT_ID, testId } from '../testId';
 import { ThemeProvider, useTheme } from '../ThemeProvider';
 import { ToastProvider, useToast } from '../Toast';
 import { colors } from '../../theme/tokens';
@@ -33,6 +35,31 @@ describe('Button', () => {
     await rerender(<Button label="Save" disabled onPress={onPress} />);
     await fireEvent.press(screen.getByRole('button', { name: 'Save' }));
     expect(onPress).not.toHaveBeenCalled();
+  });
+});
+
+describe('test IDs for the phone tests', () => {
+  it('derives role-prefixed IDs that never collide with Android’s own labels', () => {
+    expect(testId('button', 'Done')).toBe('button-done');
+    expect(testId('checkbox', "I'm 18 or older")).toBe('checkbox-im-18-or-older');
+    expect(testId('chip', 'I can’t sleep')).toBe('chip-i-cant-sleep');
+    expect(testId('field', 'Type DELETE to confirm')).toBe('field-type-delete-to-confirm');
+    expect(BACK_ID).toBe('solace-back');
+  });
+
+  it('every Button, field and the back button carry them, and Screen carries solace-root', async () => {
+    await render(
+      <ThemeProvider scheme="light">
+        <Screen title="Reflect" back>
+          <Button label="Done" onPress={jest.fn()} />
+          <TextField label="Email" />
+        </Screen>
+      </ThemeProvider>,
+    );
+    expect(screen.getByTestId('button-done')).toBeTruthy();
+    expect(screen.getByTestId('field-email')).toBeTruthy();
+    expect(screen.getByTestId(BACK_ID)).toBeTruthy();
+    expect(screen.getByTestId(ROOT_ID)).toBeTruthy();
   });
 });
 

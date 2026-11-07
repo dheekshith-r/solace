@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { header } from '../theme/motion';
 import { kit, screenPadding, spacing, tabBarHeight } from '../theme/tokens';
 import { PressScale } from './PressScale';
+import { BACK_ID, ROOT_ID, testId } from './testId';
 import { Text } from './Text';
 import { useTheme } from './ThemeProvider';
 
@@ -51,6 +52,7 @@ export function Header({ title, scrollY, back, action }: { title: string; scroll
               onPress={() => router.back()}
               accessibilityRole="button"
               accessibilityLabel="Back"
+              testID={BACK_ID}
               hitSlop={spacing.sm}
               style={styles.iconButton}
             >
@@ -69,6 +71,7 @@ export function Header({ title, scrollY, back, action }: { title: string; scroll
               onPress={action.onPress}
               accessibilityRole="button"
               accessibilityLabel={action.label}
+              testID={testId('action', action.label)}
               hitSlop={spacing.sm}
               style={styles.iconButton}
             >
@@ -144,7 +147,7 @@ export function Screen({
   const contentStyle = { paddingTop: top, paddingBottom: bottom, paddingHorizontal: screenPadding };
 
   return (
-    <View style={[styles.screen, { backgroundColor: palette.background }]}>
+    <View style={[styles.screen, { backgroundColor: palette.background }]} testID={ROOT_ID} collapsable={false}>
       {!scroll ? (
         <View style={[styles.screen, contentStyle]}>{content}</View>
       ) : keyboard ? (

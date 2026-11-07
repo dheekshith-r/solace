@@ -3,6 +3,7 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { haptics } from '../theme/haptics';
 import { kit, opacity, radius, spacing, type Palette } from '../theme/tokens';
 import { PressScale } from './PressScale';
+import { testId } from './testId';
 import { Text, type TextTone } from './Text';
 import { useFill, useTheme } from './ThemeProvider';
 
@@ -25,6 +26,7 @@ export function Button({
   wide = false,
   align = 'start',
   accessibilityHint,
+  testID,
 }: {
   label: string;
   onPress: () => void;
@@ -36,6 +38,8 @@ export function Button({
   /** Where a non-wide button sits in a column. The touch area always hugs the button. */
   align?: 'start' | 'center';
   accessibilityHint?: string;
+  /** Defaults to `button-<label>`; set it where two buttons on one screen share a label. */
+  testID?: string;
 }) {
   const { palette } = useTheme();
   const fill = useFill();
@@ -51,6 +55,7 @@ export function Button({
       outerStyle={wide ? styles.wide : align === 'center' ? styles.hugCenter : styles.hug}
       accessibilityRole="button"
       accessibilityLabel={label}
+      testID={testID ?? testId('button', label)}
       accessibilityHint={accessibilityHint}
       accessibilityState={{ disabled: inactive, busy: loading }}
       style={[

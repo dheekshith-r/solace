@@ -13,6 +13,7 @@ import { haptics } from '../theme/haptics';
 import { spring } from '../theme/motion';
 import { colors, kit, radius, spacing, tabBarHeight, type as typeScale, type Palette } from '../theme/tokens';
 import { PressScale } from './PressScale';
+import { testId } from './testId';
 import { Text } from './Text';
 import { useTheme } from './ThemeProvider';
 
@@ -185,6 +186,7 @@ export function TabBar({
             }}
             accessibilityRole="tab"
             accessibilityLabel={tab.label}
+            testID={testId('tab', tab.label)}
             accessibilityState={{ selected: i === index }}
           >
             {/* Invisible copy of the label, so each touch area is exactly as wide as its tab. */}

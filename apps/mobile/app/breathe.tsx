@@ -13,6 +13,7 @@ import { Orb } from '../src/features/breathe/Orb';
 import { orbTarget, PATTERNS, timeline, totalSeconds, type PatternKey } from '../src/features/breathe/patterns';
 import { TODAY_KEY } from '../src/features/today/data';
 import { withQuietRetry } from '../src/lib/http';
+import { ROOT_ID } from '../src/components/testId';
 import { queryClient } from '../src/lib/queryClient';
 import { haptics } from '../src/theme/haptics';
 import { kit, screenPadding, spacing, touchTarget } from '../src/theme/tokens';
@@ -128,9 +129,9 @@ export default function Breathe() {
   };
 
   return (
-    <View style={[styles.screen, { backgroundColor: palette.background, paddingTop: insets.top + spacing.md, paddingBottom: insets.bottom + spacing.lg }]}>
+    <View style={[styles.screen, { backgroundColor: palette.background, paddingTop: insets.top + spacing.md, paddingBottom: insets.bottom + spacing.lg }]} testID={ROOT_ID} collapsable={false}>
       <View style={styles.top}>
-        <PressScale onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Close" hitSlop={spacing.sm} style={styles.close}>
+        <PressScale onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Close" testID="solace-close" hitSlop={spacing.sm} style={styles.close}>
           <X size={kit.icon} color={palette.muted} />
         </PressScale>
       </View>

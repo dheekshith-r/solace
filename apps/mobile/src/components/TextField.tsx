@@ -5,6 +5,7 @@ import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-na
 import { duration, easing } from '../theme/motion';
 import { font, fontSize, kit, radius, spacing, touchTarget } from '../theme/tokens';
 import { PressScale } from './PressScale';
+import { testId } from './testId';
 import { Text } from './Text';
 import { useFill, useTheme } from './ThemeProvider';
 
@@ -40,6 +41,7 @@ export function TextField({ ref, label, error, helper, secure = false, onFocus, 
           {...rest}
           secureTextEntry={hidden}
           accessibilityLabel={label}
+          testID={testId('field', label)}
           accessibilityHint={error}
           placeholderTextColor={palette.muted}
           selectionColor={palette.accent}

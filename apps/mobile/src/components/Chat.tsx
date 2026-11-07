@@ -36,7 +36,7 @@ export function TypingBubble() {
   const fill = useFill();
   return (
     <Entrance style={[styles.bubbleRow, styles.theirs]}>
-      <View style={[styles.bubble, styles.bubbleTheirs, { backgroundColor: fill }]} accessible accessibilityLabel="Sola is replying">
+      <View style={[styles.bubble, styles.bubbleTheirs, { backgroundColor: fill }]} accessible accessibilityLabel="Sola is replying" testID="sola-typing">
         <Text variant="body" tone="muted">
           •••
         </Text>
@@ -93,6 +93,7 @@ export function Composer({ onSend, disabled = false, placeholder = 'Tell Sola wh
           multiline
           maxLength={kit.messageMax}
           accessibilityLabel="Message to Sola"
+          testID="field-message"
           style={[styles.input, { color: palette.ink, backgroundColor: palette.surface }]}
         />
         <PressScale
@@ -100,6 +101,7 @@ export function Composer({ onSend, disabled = false, placeholder = 'Tell Sola wh
           disabled={!canSend}
           accessibilityRole="button"
           accessibilityLabel="Send"
+          testID="button-send"
           accessibilityState={{ disabled: !canSend }}
           style={[styles.send, { backgroundColor: palette.accent, opacity: canSend ? 1 : kit.sendDisabled }]}
         >

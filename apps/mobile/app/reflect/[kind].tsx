@@ -14,6 +14,7 @@ import { SolaFigure } from '../../src/features/sola/Sola';
 import { SkyBackdrop, skySchemeNow } from '../../src/features/sky/SkyBackdrop';
 import { haptics } from '../../src/theme/haptics';
 import { kit, screenPadding, spacing, touchTarget } from '../../src/theme/tokens';
+import { ROOT_ID } from '../../src/components/testId';
 
 type Move = { text: string; action: 'breathe' | 'chat' | 'checkin' | 'affirmation' | 'reflect' };
 
@@ -74,10 +75,10 @@ function Checkin({ kind }: { kind: ReflectKind }) {
   const support = done && needsSupport(kind, answers);
 
   return (
-    <View style={[styles.flex, { paddingTop: insets.top + spacing.md }]}>
+    <View style={[styles.flex, { paddingTop: insets.top + spacing.md }]} testID={ROOT_ID} collapsable={false}>
       <View style={styles.top}>
         {step >= 0 && !done ? <ProgressDashes count={set.questions.length} current={step} /> : <View />}
-        <PressScale onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Leave without saving" hitSlop={spacing.sm} style={styles.close}>
+        <PressScale onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Leave without saving" testID="solace-close" hitSlop={spacing.sm} style={styles.close}>
           <X size={kit.icon} color={useTheme().palette.muted} />
         </PressScale>
       </View>

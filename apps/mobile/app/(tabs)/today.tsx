@@ -30,6 +30,7 @@ import { nightAmount, skyTextIsWhite } from '../../src/features/sky/skyColors';
 import { todayChromeDarkness } from '../../src/features/today/chrome';
 import { actionLabel, flushPendingMood, queueMood, useToday } from '../../src/features/today/data';
 import { MoodRow } from '../../src/features/today/parts';
+import { ROOT_ID } from '../../src/components/testId';
 import { duration, easing, spring } from '../../src/theme/motion';
 import { demoMinutes, moodNeutral, skyMotion, skyTimes, sola, wind } from '../../src/theme/sky';
 import {
@@ -94,7 +95,7 @@ function Chrome({ palette, words, level, onSelect, headerTop, clearance, onSheet
           <View style={[styles.separator, { backgroundColor: palette.separator }]} />
           <View style={[styles.suggestion, { backgroundColor: palette.tint }]}>
             <Text style={[styles.body, styles.flex, { color: palette.ink }]}>{words.suggestion}</Text>
-            <Pressable style={[styles.pill, { backgroundColor: palette.accent }]} accessibilityRole="button" onPress={() => router.push(words.href)}>
+            <Pressable style={[styles.pill, { backgroundColor: palette.accent }]} accessibilityRole="button" testID="today-suggestion" onPress={() => router.push(words.href)}>
               <Text style={[styles.pillText, { color: palette.onAccent }]}>{words.action}</Text>
             </Pressable>
           </View>
@@ -284,7 +285,7 @@ function Today({ initialMinute, firstGust, perf }: {
     : { suggestion: fallback.suggestion, action: actionLabel.breathe, href: '/breathe' as const };
 
   return (
-    <View style={styles.flex}>
+    <View style={styles.flex} testID={ROOT_ID} collapsable={false}>
       <SkyCanvas
         size={size}
         bands={bands}

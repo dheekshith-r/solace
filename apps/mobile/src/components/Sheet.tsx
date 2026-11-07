@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { kit, radius, screenPadding, spacing } from '../theme/tokens';
+import { ROOT_ID } from './testId';
 import { Text } from './Text';
 import { Raised, useTheme } from './ThemeProvider';
 
@@ -13,7 +14,7 @@ export function Sheet({ title, children }: { title?: string; children: ReactNode
   const { palette } = useTheme();
   const insets = useSafeAreaInsets();
   return (
-    <View style={[styles.sheet, { backgroundColor: palette.surface, paddingBottom: insets.bottom + spacing.xl }]}>
+    <View style={[styles.sheet, { backgroundColor: palette.surface, paddingBottom: insets.bottom + spacing.xl }]} testID={ROOT_ID} collapsable={false}>
       <View style={[styles.grabber, { backgroundColor: palette.separator }]} accessibilityElementsHidden importantForAccessibility="no" />
       {title ? (
         <Text variant="heading" accessibilityRole="header">

@@ -21,7 +21,7 @@ export default function ReflectHub() {
         const Icon = ICONS[kind];
         return (
           <Entrance key={kind} index={i + 1}>
-            <Card hero={i === 0} onPress={() => router.push({ pathname: '/reflect/[kind]', params: { kind } })} accessibilityLabel={`${CHECKINS[kind].title}. ${CHECKINS[kind].blurb}`}>
+            <Card hero={i === 0} onPress={() => router.push({ pathname: '/reflect/[kind]', params: { kind } })} accessibilityLabel={`${CHECKINS[kind].title}. ${CHECKINS[kind].blurb}`} testID={`card-reflect-${kind}`}>
               <Icon size={kit.icon + kit.focusBorder} color={palette.accent} />
               <Text variant="heading">{CHECKINS[kind].title}</Text>
               <Text variant="callout" tone="muted">

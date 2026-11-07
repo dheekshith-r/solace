@@ -14,12 +14,15 @@ export function Card({
   hero = false,
   onPress,
   accessibilityLabel,
+  testID,
   style,
 }: {
   children: ReactNode;
   hero?: boolean;
   onPress?: () => void;
   accessibilityLabel?: string;
+  /** For the phone tests; pressable cards on the main screens set one, e.g. `card-breathe`. */
+  testID?: string;
   style?: StyleProp<ViewStyle>;
 }) {
   const fill = useFill();
@@ -32,6 +35,7 @@ export function Card({
       scaleTo={pressScaleGentle}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
+      testID={testID}
       style={surface}
     >
       {content}

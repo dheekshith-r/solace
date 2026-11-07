@@ -1,199 +1,206 @@
-# Solace end-to-end phone test, tickets 04 to 12 (spec section 10). Release APK, live API.
+# Solace end-to-end phone test, tickets 04 to 12. Release APK, live API (Singapore).
 #
 # Safety rules (Ddk, Nov 7):
 # - Runs only after Ddk approves the run and pins Solace with Android App pinning.
-# - Scoped to com.ddk.solace. Every step is preceded by assert-solace.yaml; if Solace is not in
-#   front, the flow stops immediately.
-# - No Back or Home presses (no `back`, no `pressKey`), no coordinates: taps use exact text or
-#   accessibility labels only. Navigation uses Solace's own buttons and tabs.
-#
-# Run (from apps/mobile):
-#   maestro test .maestro/full.yaml -e EMAIL=smoke-xxxx@example.com -e PASSWORD=... --format junit
-# The throwaway account is deleted at the end through Privacy and data > Delete my account.
+# - Start it with run-phone-test.ps1, never directly: the script makes the throwaway account's
+#   credentials and deletes the account through the API afterwards, whether the run passed or not.
+# - Scoped to com.ddk.solace. Before every step, assert-solace.yaml checks `solace-root`, which is on
+#   the app root and on every screen, sheet and full-screen modal. If it isn't on screen, the
+#   flow stops at once.
+# - No Back or Home presses (no `back`, no `pressKey`), no coordinates. Every tap is by test ID
+#   (role-prefixed: button-, tab-, row-, chip-, mood-, field-, solace-back), never by text, so
+#   nothing outside Solace can match. Text is only asserted, with exact matches.
+# - Never taps anything that leaves the app: the reminder permission prompt is skipped
+#   ("Not now"), and the helpline Call button is only asserted, never tapped.
 appId: com.ddk.solace
-env:
-  EMAIL: ${EMAIL}
-  PASSWORD: ${PASSWORD}
 ---
 - launchApp:
     clearState: true
 - runFlow: assert-solace.yaml
 
-# --- 04 Splash and onboarding -------------------------------------------------------------
+# --- 04 Onboarding --------------------------------------------------------------------------
 - extendedWaitUntil:
     visible: "A calm place to land"
-    timeout: 8000
-- takeScreenshot: 04-onboarding-step1
+    timeout: 10000
+- takeScreenshot: 04-onboarding-1
 - runFlow: assert-solace.yaml
-- tapOn: "Get started"
+- tapOn: { id: "button-get-started" }
 - runFlow: assert-solace.yaml
 - assertVisible: "Hi, I'm Sola"
-- takeScreenshot: 04-onboarding-step2
-- tapOn: "Nice to meet you"
+- takeScreenshot: 04-onboarding-2
+- tapOn: { id: "button-nice-to-meet-you" }
 - runFlow: assert-solace.yaml
 - assertVisible: "What would help most?"
-- tapOn: "Better sleep"
+- tapOn: { id: "chip-better-sleep" }
 - runFlow: assert-solace.yaml
-- takeScreenshot: 04-onboarding-step3
-- tapOn: "Continue"
+- takeScreenshot: 04-onboarding-3
+- tapOn: { id: "button-continue" }
 - runFlow: assert-solace.yaml
 - assertVisible: "Gentle reminders"
-- takeScreenshot: 04-onboarding-step4
-# Not now: avoids the system permission dialog, which is outside Solace.
-- tapOn: "Not now"
+- takeScreenshot: 04-onboarding-4
+# "Not now" never opens Android's permission prompt, which isn't part of Solace.
+- tapOn: { id: "button-not-now" }
 
 # --- 05 Sign up -----------------------------------------------------------------------------
 - runFlow: assert-solace.yaml
 - assertVisible: "Create your account"
 - takeScreenshot: 05-signup-empty
-- tapOn: "Create account"
+- tapOn: { id: "checkbox-im-18-or-older" }
+- runFlow: assert-solace.yaml
+- tapOn: { id: "button-create-account" }
 - runFlow: assert-solace.yaml
 - assertVisible: "Tell Sola what to call you."
 - takeScreenshot: 05-signup-errors
-- tapOn: "What should Sola call you?"
+- tapOn: { id: "field-name" }
 - inputText: "Smoke"
 - runFlow: assert-solace.yaml
-- tapOn: "you@example.com"
+- tapOn: { id: "field-email" }
 - inputText: ${EMAIL}
 - runFlow: assert-solace.yaml
-- tapOn: "At least 8 characters"
+- tapOn: { id: "field-password" }
 - inputText: ${PASSWORD}
 - runFlow: assert-solace.yaml
 - hideKeyboard
 - runFlow: assert-solace.yaml
-- tapOn: "I'm 18 or older"
-- runFlow: assert-solace.yaml
 - takeScreenshot: 05-signup-filled
-- tapOn: "Create account"
+- tapOn: { id: "button-create-account" }
 - runFlow: assert-solace.yaml
 
-# --- Today (06): lands here after sign-up; a mood tap saves a check-in ---------------------
+# --- 06 Today: a mood tap saves a check-in ---------------------------------------------------
 - extendedWaitUntil:
     visible: "How are you arriving?"
-    timeout: 20000
+    timeout: 65000
 - runFlow: assert-solace.yaml
 - takeScreenshot: 06-today
-- tapOn: "Good"
+- tapOn: { id: "mood-good" }
 - runFlow: assert-solace.yaml
-- takeScreenshot: 06-today-mood-good
+- takeScreenshot: 06-today-good
 
 # --- 08 Sola chat ---------------------------------------------------------------------------
-- tapOn: "Sola"
+- tapOn: { id: "tab-sola" }
 - runFlow: assert-solace.yaml
-- assertVisible: "New conversation"
-- takeScreenshot: 08-sola-tab
-- tapOn: "New conversation"
+- assertVisible: "Tell Sola what's on your mind"
+- takeScreenshot: 08-sola-empty
+- tapOn: { id: "button-new-conversation" }
 - runFlow: assert-solace.yaml
 - assertVisible: "What's on your mind?"
-- takeScreenshot: 08-conversation-empty
-- tapOn: "I can't sleep"
+- takeScreenshot: 08-chat-empty
+- tapOn: { id: "chip-i-cant-sleep" }
 - runFlow: assert-solace.yaml
-# Sola's reply streams in; wait for the message box to be ready again (send re-enabled).
 - extendedWaitUntil:
-    visible:
-      id: "solace-root"
-    timeout: 3000
-- extendedWaitUntil:
-    notVisible: "Sola is replying"
-    timeout: 30000
+    notVisible: { id: "sola-typing" }
+    timeout: 45000
 - runFlow: assert-solace.yaml
-- takeScreenshot: 08-conversation-reply
-- tapOn: "Back"
+- takeScreenshot: 08-chat-reply
+- tapOn: { id: "solace-back" }
 - runFlow: assert-solace.yaml
 - takeScreenshot: 08-sola-history
 
-# --- 12 You tab, Appearance, Privacy, Resources ---------------------------------------------
-- tapOn: "You"
+# --- 12 You, Resources, Get help ------------------------------------------------------------
+- tapOn: { id: "tab-you" }
 - runFlow: assert-solace.yaml
 - assertVisible: "Your constellation"
 - takeScreenshot: 12-you
-- tapOn: "Resources"
+- scrollUntilVisible:
+    element: { id: "row-resources" }
 - runFlow: assert-solace.yaml
-- assertVisible: "Get help now"
+- tapOn: { id: "row-resources" }
+- runFlow: assert-solace.yaml
 - takeScreenshot: 12-resources
-- tapOn: "Get help now"
+- tapOn: { id: "row-get-help-now" }
 - runFlow: assert-solace.yaml
-- assertVisible: "Call Tele-MANAS 14416"
+- assertVisible: { id: "button-call-tele-manas-14416" }   # asserted only: tapping opens the dialer
 - takeScreenshot: 12-get-help
-- tapOn: "Back"
+- tapOn: { id: "solace-back" }
 - runFlow: assert-solace.yaml
-- tapOn: "Back"
+- tapOn: { id: "solace-back" }
 - runFlow: assert-solace.yaml
 
-# --- 09 Breathe (from the You tab's card): one full Calm session, about a minute ------------
-- tapOn: "Breathe"
+# --- 09 Breathe (full-screen modal): one Calm session, 56 seconds ---------------------------
+- scrollUntilVisible:
+    element: { id: "row-breathe" }
+- tapOn: { id: "row-breathe" }
 - runFlow: assert-solace.yaml
 - assertVisible: "How are you, right now?"
-- tapOn: "Low"
+- tapOn: { id: "mood-low" }
 - runFlow: assert-solace.yaml
-- tapOn: "Continue"
+- tapOn: { id: "button-continue" }
 - runFlow: assert-solace.yaml
 - assertVisible: "Pick a rhythm"
 - takeScreenshot: 09-pattern
-- tapOn: "Start"
+- tapOn: { id: "button-start" }
 - runFlow: assert-solace.yaml
 - takeScreenshot: 09-session
 - extendedWaitUntil:
     visible: "How do you feel now?"
-    timeout: 75000
+    timeout: 90000
 - runFlow: assert-solace.yaml
-- tapOn: "Good"
+- tapOn: { id: "mood-good" }
 - runFlow: assert-solace.yaml
-- tapOn: "Save"
+- tapOn: { id: "button-save" }
 - runFlow: assert-solace.yaml
 - extendedWaitUntil:
     visible: "Nicely done"
-    timeout: 20000
+    timeout: 30000
 - takeScreenshot: 09-result
-- tapOn: "Done"
+- tapOn: { id: "button-done" }
 - runFlow: assert-solace.yaml
 
-# --- 10 Reflect: Mood, all "Nearly every day" (support prompt must show) --------------------
-- tapOn: "Reflect"
+# --- 10 Reflect: Mood, "Nearly every day" four times (the support prompt must show) --------
+- scrollUntilVisible:
+    element: { id: "row-reflect" }
+- tapOn: { id: "row-reflect" }
 - runFlow: assert-solace.yaml
 - assertVisible: "Three friendly check-ins, not diagnoses. Four questions each, about a minute. Sola asks one at a time."
 - takeScreenshot: 10-hub
-- tapOn: "Mood. How the last two weeks have felt."
+- tapOn: { id: "card-reflect-mood" }
 - runFlow: assert-solace.yaml
 - assertVisible: "This isn't a test, there are no wrong answers. You can stop anytime."
 - takeScreenshot: 10-opening
-- tapOn: "Begin"
-- runFlow: assert-solace.yaml
+- tapOn: { id: "button-begin" }
 - repeat:
     times: 4
     commands:
       - runFlow: assert-solace.yaml
-      - tapOn: "Nearly every day"
+      - tapOn: { id: "row-nearly-every-day" }
 - runFlow: assert-solace.yaml
 - extendedWaitUntil:
     visible: "Want to talk to someone right now?"
-    timeout: 20000
+    timeout: 30000
 - takeScreenshot: 10-result-support
-- tapOn: "Done"
+- scrollUntilVisible:
+    element: { id: "button-done" }
+- tapOn: { id: "button-done" }
 - runFlow: assert-solace.yaml
-- tapOn: "Back"
+- tapOn: { id: "solace-back" }
 - runFlow: assert-solace.yaml
 
-# --- 11 Reminders: page and a test notification (checked in the shade by Ddk, not tapped) ---
-- tapOn: "Reminders"
+# --- 11 Reminders ---------------------------------------------------------------------------
+- scrollUntilVisible:
+    element: { id: "row-reminders" }
+- tapOn: { id: "row-reminders" }
 - runFlow: assert-solace.yaml
 - assertVisible: "Mood check-in"
 - takeScreenshot: 11-reminders
-- tapOn: "Back"
+- tapOn: { id: "solace-back" }
 - runFlow: assert-solace.yaml
 
-# --- Clean up: delete the throwaway account from inside the app -----------------------------
-- tapOn: "Privacy and data"
+# --- Clean up inside the app: delete the throwaway account ----------------------------------
+- scrollUntilVisible:
+    element: { id: "row-privacy-and-data" }
+- tapOn: { id: "row-privacy-and-data" }
 - runFlow: assert-solace.yaml
+- scrollUntilVisible:
+    element: { id: "field-type-delete-to-confirm" }
 - assertVisible: "Delete your account"
-- tapOn: "Type DELETE to confirm"
+- tapOn: { id: "field-type-delete-to-confirm" }
 - inputText: "DELETE"
 - runFlow: assert-solace.yaml
 - hideKeyboard
 - runFlow: assert-solace.yaml
-- tapOn: "Delete my account"
+- tapOn: { id: "button-delete-my-account" }
 - runFlow: assert-solace.yaml
 - extendedWaitUntil:
     visible: "A calm place to land"
-    timeout: 20000
+    timeout: 30000
 - takeScreenshot: 99-account-deleted

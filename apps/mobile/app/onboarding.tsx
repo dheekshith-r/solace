@@ -11,6 +11,7 @@ import { ONBOARDING_STEPS, useOnboarding, type Goal, type ReminderKind } from '.
 import { SolaFigure } from '../src/features/sola/Sola';
 import { SkyBackdrop, skySchemeNow } from '../src/features/sky/SkyBackdrop';
 import { kit, screenPadding, spacing } from '../src/theme/tokens';
+import { ROOT_ID } from '../src/components/testId';
 
 const GOALS: { value: Goal; label: string }[] = [
   { value: 'calm', label: 'Calm' },
@@ -118,7 +119,7 @@ function Steps({ glow }: { glow: 'day' | 'night' }) {
           : { label: anyReminder ? 'Turn on reminders' : 'Continue', onPress: () => (anyReminder ? void askPermission() : complete(false)) };
 
   return (
-    <View style={[styles.flex, { paddingTop: insets.top + spacing.md, paddingBottom: insets.bottom + spacing.lg }]}>
+    <View style={[styles.flex, { paddingTop: insets.top + spacing.md, paddingBottom: insets.bottom + spacing.lg }]} testID={ROOT_ID} collapsable={false}>
       <View style={styles.top}>
         <ProgressDashes count={ONBOARDING_STEPS} current={step} />
         {step >= 1 ? (

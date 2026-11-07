@@ -4,6 +4,7 @@ import { StyleSheet, Switch, View } from 'react-native';
 import { pressScaleGentle } from '../theme/motion';
 import { kit, radius, separatorInset, spacing } from '../theme/tokens';
 import { PressScale } from './PressScale';
+import { testId } from './testId';
 import { Text } from './Text';
 import { Raised, useFill, useTheme } from './ThemeProvider';
 
@@ -57,6 +58,7 @@ export function ListRow({
           trackColor={{ false: palette.separator, true: palette.accent }}
           thumbColor={palette.surface}
           accessibilityLabel={title}
+          testID={testId('switch', title)}
         />
       ) : null}
       {trailing.kind === 'chevron' || (trailing.kind === 'value' && onPress) ? (
@@ -79,6 +81,7 @@ export function ListRow({
       scaleTo={pressScaleGentle}
       accessibilityRole="button"
       accessibilityLabel={label}
+      testID={testId('row', title)}
     >
       {content}
     </PressScale>

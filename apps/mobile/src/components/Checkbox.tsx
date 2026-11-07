@@ -5,6 +5,7 @@ import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-na
 import { spring } from '../theme/motion';
 import { kit, radius, spacing, touchTarget } from '../theme/tokens';
 import { PressScale } from './PressScale';
+import { testId } from './testId';
 import { useFill, useTheme } from './ThemeProvider';
 
 /** A labelled checkbox. The box fills with the accent and the tick fades in; the whole row is the touch target. */
@@ -22,6 +23,7 @@ export function Checkbox({ checked, onChange, label, accessibilityLabel }: { che
       onPress={() => onChange(!checked)}
       accessibilityRole="checkbox"
       accessibilityLabel={accessibilityLabel}
+      testID={testId('checkbox', accessibilityLabel)}
       accessibilityState={{ checked }}
       outerStyle={styles.outer}
       style={styles.row}

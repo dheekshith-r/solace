@@ -6,6 +6,7 @@ import Svg, { Circle, Path } from 'react-native-svg';
 import { pressScale, spring } from '../../theme/motion';
 import { moodLabels, moodLevels } from '../../theme/sky';
 import { font, fontSize, radius, spacing, today, type Palette } from '../../theme/tokens';
+import { testId } from '../../components/testId';
 
 const MOODS = Array.from({ length: moodLevels }, (_, i) => i + 1);
 
@@ -56,6 +57,7 @@ const MoodButton = memo(function MoodButton({ mood, selected, palette, onSelect 
       }}
       accessibilityRole="button"
       accessibilityLabel={moodLabels[mood - 1]}
+      testID={testId('mood', moodLabels[mood - 1] ?? String(mood))}
       accessibilityState={{ selected }}
     >
       <Animated.View style={[styles.moodButton, { backgroundColor: palette.tint }, style]}>

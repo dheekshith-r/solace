@@ -15,6 +15,7 @@ import { SolaFigure } from '../../../src/features/sola/Sola';
 import { queryClient } from '../../../src/lib/queryClient';
 import { haptics } from '../../../src/theme/haptics';
 import { kit, screenPadding, spacing } from '../../../src/theme/tokens';
+import { ROOT_ID } from '../../../src/components/testId';
 
 const STARTERS = ["I'm feeling anxious", "I can't sleep", 'Today was good', 'I just need to vent'];
 
@@ -123,7 +124,7 @@ export default function ConversationScreen() {
   const showHelpline = items.some((i) => i.helpline);
 
   return (
-    <View style={[styles.flex, { backgroundColor: palette.background }]}>
+    <View style={[styles.flex, { backgroundColor: palette.background }]} testID={ROOT_ID} collapsable={false}>
       <KeyboardAvoidingView behavior="padding" style={styles.flex}>
         <ScrollView
           ref={scroll}

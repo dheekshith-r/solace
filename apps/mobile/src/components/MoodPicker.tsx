@@ -3,6 +3,7 @@ import Svg, { Circle, Path } from 'react-native-svg';
 import { haptics } from '../theme/haptics';
 import { kit, radius, spacing } from '../theme/tokens';
 import { PressScale } from './PressScale';
+import { testId } from './testId';
 import { Text } from './Text';
 import { useFill, useTheme } from './ThemeProvider';
 
@@ -40,6 +41,7 @@ export function MoodPicker({ value, onChange }: { value: number | null; onChange
               }}
               accessibilityRole="radio"
               accessibilityLabel={label}
+              testID={testId('mood', label)}
               accessibilityState={{ selected: on }}
               style={[styles.face, { backgroundColor: on ? palette.accent : fill }]}
             >
