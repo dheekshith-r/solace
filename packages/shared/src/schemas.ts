@@ -127,9 +127,14 @@ export const reminderTimeSchema = z
   .string()
   .regex(/^([01]\d|2[0-3]):[0-5]\d$/, { message: 'Time must be HH:MM (24-hour).' });
 
+/** Weekdays a reminder repeats on, 1 = Sunday … 7 = Saturday (Android's numbering). Absent = every day. */
+export const reminderDaysSchema = z.array(z.number().int().min(1).max(7)).min(1).max(7);
+
 export const reminderSettingSchema = z.strictObject({
   on: z.boolean(),
   time: reminderTimeSchema,
+  // Optional so settings saved before weekdays existed stay valid.
+  days: reminderDaysSchema.optional(),
 });
 export type ReminderSetting = z.infer<typeof reminderSettingSchema>;
 
@@ -138,6 +143,7 @@ export const customReminderSchema = z.strictObject({
   label: z.string().trim().min(1).max(REMINDER_LABEL_MAX),
   time: reminderTimeSchema,
   on: z.boolean(),
+  days: reminderDaysSchema.optional(),
 });
 export type CustomReminder = z.infer<typeof customReminderSchema>;
 
