@@ -11,7 +11,7 @@
 **Added after run 2, not yet run on the phone:**
 - rename yourself (You → Name);
 - About row (version, "Not a substitute for professional help").
-- **Pending deploy (needs Ddk's OK):** renaming should clear today's cached greeting (`apps/api/src/routes/me.ts`). It's committed on `app-build`, not yet on `main`.
+- **Deployed and verified live:** renaming clears today's cached greeting, so Sola uses the new name at once.
 - **Pending Ddk's hand test:** a reminder arriving with the app fully closed and opening the right screen.
 **Branches:** all work on `app-build`; `main` carries only `apps/api` and deploys to Render automatically.
 **Rebuild:** `pwsh build-apk.ps1` (steps and requirements are in the script).
