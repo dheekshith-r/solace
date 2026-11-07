@@ -13,12 +13,18 @@ const TABS: readonly Tab[] = [
 ];
 
 function AppTabBar({ state, navigateToTab, insets }: TabBarProps) {
-  const onToday = state.routes[state.index]?.name === 'today';
+  const focused = state.routes[state.index];
+  const onToday = focused?.name === 'today';
+  // A screen pushed inside a tab (a conversation in Sola) is full-focus: the bar slides away, and
+  // comes back when the tab returns to its first screen.
+  // React Navigation puts a nested stack's state on its route at runtime; the vendored type omits it.
+  const nested = ((focused as { state?: { index?: number } } | undefined)?.state?.index ?? 0) > 0;
   return (
     <TabBar
       tabs={TABS}
       index={state.index}
       bottom={insets.bottom + spacing.md}
+      hidden={nested}
       darkness={onToday ? todayChromeDarkness : undefined}
       onSelect={(index) => {
         const route = state.routes[index];

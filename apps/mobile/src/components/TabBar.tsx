@@ -122,15 +122,27 @@ export function TabBar({
   onSelect,
   bottom,
   darkness,
+  hidden = false,
 }: {
   tabs: readonly Tab[];
   index: number;
   onSelect: (index: number) => void;
   bottom: number;
   darkness?: SharedValue<number>;
+  /** Full-focus screens inside a tab (a conversation) slide the bar away on the shared spring. */
+  hidden?: boolean;
 }) {
   const { palette } = useTheme();
   const position = useSharedValue(index);
+  const away = useSharedValue(hidden ? 1 : 0);
+  useEffect(() => {
+    away.set(withSpring(hidden ? 1 : 0, spring));
+  }, [hidden, away]);
+  // Slides fully below the screen edge, fading as it goes. Only transform and opacity animate.
+  const slide = useAnimatedStyle(() => ({
+    opacity: 1 - away.get(),
+    transform: [{ translateY: away.get() * (tabBarHeight + bottom + spacing.lg) }],
+  }));
   const slots = useSharedValue<Slot[]>(tabs.map(() => ({ x: 0, width: 0 })));
   const [measured, setMeasured] = useState(false);
   const geometry = useDerivedValue(() => pillGeometry(position.get(), slots.get()));
@@ -159,7 +171,12 @@ export function TabBar({
   const plainShadow = colors.light.ink;
 
   return (
-    <View style={[styles.holder, { bottom }]} pointerEvents="box-none">
+    <Animated.View
+      style={[styles.holder, { bottom }, slide]}
+      pointerEvents={hidden ? 'none' : 'box-none'}
+      importantForAccessibility={hidden ? 'no-hide-descendants' : 'auto'}
+      accessibilityElementsHidden={hidden}
+    >
       {darkness ? (
         <View>
           <Animated.View style={lightFace}>
@@ -196,7 +213,7 @@ export function TabBar({
           </PressScale>
         ))}
       </View>
-    </View>
+    </Animated.View>
   );
 }
 

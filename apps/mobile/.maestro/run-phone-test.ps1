@@ -8,14 +8,14 @@ $maestro = (Get-Command maestro -ErrorAction SilentlyContinue)?.Source ?? "$env:
 
 $email = "smoke-$([guid]::NewGuid().ToString('N').Substring(0, 8))@example.com"
 $password = 'Smoke' + [guid]::NewGuid().ToString('N').Substring(0, 12)
-$out = Join-Path $PSScriptRoot "results\$(Get-Date -Format 'yyyyMMdd-HHmmss')"
+$out = Join-Path $PSScriptRoot "out\$(Get-Date -Format 'yyyyMMdd-HHmmss')"   # inside the project, gitignored
 New-Item -ItemType Directory -Force $out | Out-Null
 "Throwaway account: $email"
 
 $status = 1
 try {
   Push-Location $out   # screenshots land here
-  & $maestro test (Join-Path $PSScriptRoot 'full.yaml') -e "EMAIL=$email" -e "PASSWORD=$password" --format junit --output (Join-Path $out 'report.xml')
+  & $maestro test --no-reinstall-driver --test-output-dir $out --debug-output $out --flatten-debug-output (Join-Path $PSScriptRoot 'full.yaml') -e "EMAIL=$email" -e "PASSWORD=$password" --format junit --output (Join-Path $out 'report.xml')
   $status = $LASTEXITCODE
 } finally {
   Pop-Location

@@ -15,7 +15,8 @@ function Mem($label) {
 function Targets { (& $adb shell dumpsys gfxinfo $pkg | Select-String -Pattern '1220x2712|2712x1220').Count }
 
 $rows = @(Mem 'start (on Today)'); $t0 = Targets
-& $maestro test (Join-Path $PSScriptRoot 'tabs-memory.yaml')
+$out = Join-Path $PSScriptRoot "out\tabs-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
+& $maestro test --no-reinstall-driver --test-output-dir $out --debug-output $out --flatten-debug-output (Join-Path $PSScriptRoot 'tabs-memory.yaml')
 $status = $LASTEXITCODE
 $rows += Mem 'after 60 switches'
 Start-Sleep -Seconds 45

@@ -46,4 +46,4 @@ Thumbs.db
 .vscode/
 .idea/
 
-apps/mobile/.maestro/results/
+apps/mobile/.maestro/out/

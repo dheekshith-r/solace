@@ -119,7 +119,8 @@ export default function ConversationScreen() {
       },
     ]);
 
-  const empty = !items.length && !messages.isPending;
+  // A new conversation has no id yet, so its query never runs and stays "pending": it is empty, not loading.
+  const empty = !items.length && (!id || !messages.isPending);
   const loading = Boolean(id) && messages.isPending && !items.length;
   const showHelpline = items.some((i) => i.helpline);
 
