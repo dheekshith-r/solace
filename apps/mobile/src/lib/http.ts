@@ -8,6 +8,13 @@ export const REQUEST_TIMEOUT_MS = 4_000;
 /** Render's free tier can take about a minute to wake, so quiet retries continue that long. */
 export const RETRY_WINDOW_MS = 60_000;
 const RETRY_DELAYS_MS = [1_500, 3_000, 6_000, 10_000];
+/**
+ * Sign-up and log-in wait this long for one answer, so a Render cold start (up to about a minute)
+ * never looks like a failure. All other requests keep the short timeout.
+ */
+export const AUTH_TIMEOUT_MS = 60_000;
+/** After this long without an answer, sign-up and log-in say Sola is waking up. */
+export const WAKING_HINT_MS = 3_000;
 
 export type ApiErrorKind = 'offline' | 'http';
 
@@ -70,15 +77,40 @@ const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
  * Runs `attempt`, and if it fails in a retryable way, tells the caller (so it can say "still trying")
  * and retries quietly with backoff for up to a minute. Non-retryable errors are thrown straight away.
  */
-export async function withQuietRetry<T>(attempt: () => Promise<T>, onRetrying?: (error: ApiError) => void, windowMs = RETRY_WINDOW_MS): Promise<T> {
+export async function withQuietRetry<T>(
+  attempt: () => Promise<T>,
+  onRetrying?: (error: ApiError) => void,
+  windowMs = RETRY_WINDOW_MS,
+  shouldRetry: (error: ApiError) => boolean = (error) => error.retryable,
+): Promise<T> {
   const started = Date.now();
   for (let i = 0; ; i += 1) {
     try {
       return await attempt();
     } catch (error) {
-      if (!(error instanceof ApiError) || !error.retryable || Date.now() - started > windowMs) throw error;
+      if (!(error instanceof ApiError) || !shouldRetry(error) || Date.now() - started > windowMs) throw error;
       onRetrying?.(error);
       await wait(RETRY_DELAYS_MS[Math.min(i, RETRY_DELAYS_MS.length - 1)] ?? 0);
     }
+  }
+}
+
+/**
+ * Render's proxy answered for a server that is still starting, so the request never reached the
+ * API. Only these are safe to resend for sign-up: after a timeout the account may already exist,
+ * and a resend would wrongly report "an account with this email already exists".
+ */
+export const neverReachedServer = (error: ApiError) => error.kind === 'http' && (error.status === 502 || error.status === 503 || error.status === 504);
+
+/**
+ * Sign-up and log-in: one long attempt (AUTH_TIMEOUT_MS), resent only if the server was never
+ * reached. `onWaking` fires once if there's no answer after WAKING_HINT_MS.
+ */
+export async function authAttempt<T>(attempt: () => Promise<T>, onWaking: () => void): Promise<T> {
+  const hint = setTimeout(onWaking, WAKING_HINT_MS);
+  try {
+    return await withQuietRetry(attempt, onWaking, RETRY_WINDOW_MS, neverReachedServer);
+  } finally {
+    clearTimeout(hint);
   }
 }

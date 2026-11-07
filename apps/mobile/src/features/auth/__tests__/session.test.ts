@@ -114,6 +114,54 @@ describe('http', () => {
     expect(attempt).toHaveBeenCalledTimes(1);
   });
 
+  it('sign-up and log-in wait up to 60 s for one answer; other requests keep the short timeout', async () => {
+    const timeout = jest.spyOn(AbortSignal, 'timeout');
+    const { signUp, logIn } = freshSession();
+    const { request: fresh } = freshHttp();
+    const ok = { user, accessToken: 'a', refreshToken: 'r' };
+    fetchMock.mockResolvedValue(json(201, ok));
+    await signUp({ name: 'A', email: 'a@b.co', password: 'longenough', isAdult: true });
+    await logIn({ email: 'a@b.co', password: 'longenough' });
+    fetchMock.mockResolvedValue(json(200, {}));
+    await fresh('/health');
+    expect(timeout.mock.calls.map(([ms]) => ms)).toEqual([60_000, 60_000, 4_000]);
+    timeout.mockRestore();
+  });
+
+  it('auth: says "waking" after 3 s, and never resends after a timeout (the account may already exist)', async () => {
+    jest.useFakeTimers();
+    const { authAttempt, ApiError: FreshError } = freshHttp();
+    const onWaking = jest.fn();
+    const attempt = jest.fn(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 5_000));
+      throw new FreshError('offline', 'no answer');
+    });
+    const done = authAttempt(attempt, onWaking).catch((e: unknown) => e);
+    await jest.advanceTimersByTimeAsync(2_900);
+    expect(onWaking).not.toHaveBeenCalled();
+    await jest.advanceTimersByTimeAsync(200);
+    expect(onWaking).toHaveBeenCalledTimes(1);
+    await jest.advanceTimersByTimeAsync(30_000);
+    expect(await done).toMatchObject({ kind: 'offline' });
+    expect(attempt).toHaveBeenCalledTimes(1);
+    jest.useRealTimers();
+  });
+
+  it('auth: resends only when Render’s proxy says the server was never reached', async () => {
+    jest.useFakeTimers();
+    const { authAttempt, ApiError: FreshError } = freshHttp();
+    let calls = 0;
+    const done = authAttempt(async () => {
+      calls += 1;
+      if (calls === 1) throw new FreshError('http', 'waking', 503);
+      return 'ok';
+    }, jest.fn());
+    await jest.advanceTimersByTimeAsync(5_000);
+    await expect(done).resolves.toBe('ok');
+    expect(calls).toBe(2);
+    jest.useRealTimers();
+  });
+
   it('is exported for screens', () => {
     expect(typeof request).toBe('function');
   });

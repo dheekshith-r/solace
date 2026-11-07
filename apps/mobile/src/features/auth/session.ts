@@ -11,7 +11,7 @@ import { cancelAllScheduledNotificationsAsync } from 'expo-notifications';
 import * as SecureStore from 'expo-secure-store';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import { ApiError, request } from '../../lib/http';
+import { ApiError, AUTH_TIMEOUT_MS, request } from '../../lib/http';
 import { queryClient } from '../../lib/queryClient';
 import { storage, zustandStorage } from '../../lib/storage';
 import { useOnboarding } from '../onboarding/store';
@@ -48,12 +48,13 @@ export function hasStoredSession(): Promise<boolean> {
   return SecureStore.getItemAsync(REFRESH_KEY).then(Boolean);
 }
 
+// Long timeout: the first request after a quiet spell may have to wait for Render to wake.
 export async function signUp(body: SignupRequest): Promise<void> {
-  await begin(await request('/auth/signup', { method: 'POST', body, schema: authResponseSchema }));
+  await begin(await request('/auth/signup', { method: 'POST', body, schema: authResponseSchema, timeoutMs: AUTH_TIMEOUT_MS }));
 }
 
 export async function logIn(body: LoginRequest): Promise<void> {
-  await begin(await request('/auth/login', { method: 'POST', body, schema: authResponseSchema }));
+  await begin(await request('/auth/login', { method: 'POST', body, schema: authResponseSchema, timeoutMs: AUTH_TIMEOUT_MS }));
 }
 
 let inFlight: Promise<string> | null = null;
