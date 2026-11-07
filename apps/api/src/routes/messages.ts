@@ -127,7 +127,7 @@ const alreadyAnswered = () => ({
 
 const replyFailed = () => ({
   code: 'reply_failed',
-  message: 'Sola couldn’t reply just now. Your message is saved, so try again in a moment.',
+  message: 'Sola needs a moment. Try again in a few seconds.',
 });
 
 export function registerMessageRoutes(

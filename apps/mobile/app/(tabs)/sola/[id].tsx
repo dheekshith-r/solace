@@ -184,7 +184,8 @@ function Conversation() {
                 {item.status === 'error' && item.role === 'user' ? (
                   <View style={styles.errorRow} accessibilityLiveRegion="polite">
                     <Text variant="footnote" tone="muted" style={styles.flex}>
-                      {item.error ?? "Sola couldn't reply."} Your message is saved.
+                      {/* One calm line for every failure (rate limit, both models down, offline): never a raw error. */}
+                      Sola needs a moment.
                     </Text>
                     <Button label="Try again" variant="text" onPress={retry} />
                   </View>
