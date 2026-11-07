@@ -1,3 +1,4 @@
+import { createGeminiClient } from './ai/client';
 import { buildApp, loggerOptions, trustProxyHops } from './app';
 import { createDb } from './db/client';
 import { loadEnv } from './env';
@@ -8,6 +9,7 @@ const app = buildApp({
   pingDb: database.ping,
   db: database.db,
   jwtSecret: env.JWT_SECRET,
+  ai: createGeminiClient(env.GEMINI_API_KEY),
   logger: loggerOptions(),
   // A fixed hop count, not `true`: only the addresses added by Render's sidecar, load balancer and Cloudflare are trusted, so a
   // client cannot pick its own IP (and rate-limit bucket) by sending X-Forwarded-For.

@@ -18,6 +18,7 @@ import {
 import {
   ACTIVITY_KINDS,
   ASSESSMENT_BANDS,
+  ASSESSMENT_KINDS,
   CHECKIN_NOTE_MAX,
   CHECKIN_SOURCES,
   GOALS,
@@ -26,10 +27,12 @@ import {
   MOOD_MIN,
   SUGGESTED_ACTIONS,
 } from '@solace/shared/types';
+import type { Move, Suggestion } from '@solace/shared';
 
 export const goalEnum = pgEnum('goal', GOALS);
 export const checkinSourceEnum = pgEnum('checkin_source', CHECKIN_SOURCES);
 export const assessmentBandEnum = pgEnum('assessment_band', ASSESSMENT_BANDS);
+export const assessmentKindEnum = pgEnum('assessment_kind', ASSESSMENT_KINDS);
 export const messageRoleEnum = pgEnum('message_role', MESSAGE_ROLES);
 export const suggestedActionEnum = pgEnum('suggested_action', SUGGESTED_ACTIONS);
 export const activityKindEnum = pgEnum('activity_kind', ACTIVITY_KINDS);
@@ -114,7 +117,11 @@ export const assessments = pgTable('assessments', {
   userId: uuid('user_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
+  // Default only so rows saved before migration 0002 stay valid; the API always sets it.
+  kind: assessmentKindEnum('kind').notNull().default('mood'),
   answers: jsonb('answers').notNull(),
+  /** The three moves shown with the result. */
+  moves: jsonb('moves').$type<Move[]>(),
   score: smallint('score').notNull(),
   band: assessmentBandEnum('band').notNull(),
   createdAt: createdAt(),
@@ -176,7 +183,12 @@ export const dailyAffirmations = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
     date: date('date').notNull(),
+    /** The day's affirmation. */
     text: text('text').notNull(),
+    /** Sola's personal line for the day (the `greeting` of GET /today). */
+    solaLine: text('sola_line'),
+    /** The day's suggestion, used until the first check-in of the day brings a fresher one. */
+    suggestion: jsonb('suggestion').$type<Suggestion>(),
   },
   (t) => [primaryKey({ columns: [t.userId, t.date] })],
 );

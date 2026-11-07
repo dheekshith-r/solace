@@ -1,4 +1,5 @@
 import type { ErrorResponse, HealthResponse } from '@solace/shared';
+import type { AiStats } from '../lib/ai-stats';
 import type { FastifyInstance } from 'fastify';
 
 export function registerHealthRoute(app: FastifyInstance, pingDb: () => Promise<void>) {
@@ -16,5 +17,15 @@ export function registerHealthRoute(app: FastifyInstance, pingDb: () => Promise<
       return { error: { code: 'database_unavailable', message: 'Database is unreachable.' } };
     }
   });
+}
 
+/**
+ * Reply-model counts since the process started: { replies, primary503, fallbacks }.
+ * Public by design: totals only, nothing per user and no content.
+ */
+export function registerAiHealthRoute(app: FastifyInstance, stats: AiStats) {
+  app.get('/health/ai', async (_request, reply) => {
+    reply.header('cache-control', 'no-store');
+    return stats.snapshot();
+  });
 }

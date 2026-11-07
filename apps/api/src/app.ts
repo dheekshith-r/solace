@@ -3,13 +3,22 @@ import rateLimit from '@fastify/rate-limit';
 import sensible from '@fastify/sensible';
 import Fastify, { type FastifyServerOptions } from 'fastify';
 import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
+import { type AiClient, unavailableAi } from './ai/client';
+import { createDailyService } from './ai/daily';
 import { requireAuth } from './auth/plugin';
 import { type Clock, createTokenService } from './auth/tokens';
 import type { Database } from './db/client';
+import { type AiStats, createAiStats } from './lib/ai-stats';
+import { type BackgroundTasks, createBackgroundTasks } from './lib/background';
 import { registerErrorHandling } from './lib/errors';
 import { registerAuthRoutes } from './routes/auth';
-import { registerHealthRoute } from './routes/health';
+import { registerAiHealthRoute, registerHealthRoute } from './routes/health';
+import { registerAssessmentRoutes } from './routes/assessments';
+import { registerConversationRoutes } from './routes/conversations';
 import { registerMeRoutes } from './routes/me';
+import { type ChatTimeouts, DEFAULT_CHAT_TIMEOUTS, registerMessageRoutes } from './routes/messages';
+import { registerResourcesRoute } from './routes/resources';
+import { registerTodayRoutes } from './routes/today';
 
 /**
  * Trust exactly `hops` proxies: the client address is the X-Forwarded-For entry that the
@@ -31,6 +40,8 @@ export const DEFAULT_RATE_LIMITS = {
   auth: { max: 10, timeWindow: 60_000 },
   /** Everything else, per user. */
   user: { max: 120, timeWindow: 60_000 },
+  /** Chat messages (each one is a model call), per user. Protects the Gemini quota. */
+  messages: { max: 20, timeWindow: 60_000 },
 } satisfies Record<string, RateLimit>;
 
 /**
@@ -67,7 +78,14 @@ export type AppDeps = {
   db?: Database;
   jwtSecret?: string;
   clock?: Clock;
-  rateLimits?: { auth?: RateLimit; user?: RateLimit };
+  rateLimits?: { auth?: RateLimit; user?: RateLimit; messages?: RateLimit };
+  /** Model provider. Without one every AI call fails and the handwritten fallbacks are used. */
+  ai?: AiClient;
+  /** Work that runs after a response (summaries). Drained when the app closes. */
+  tasks?: BackgroundTasks;
+  /** Aggregate reply-model counts served by GET /health/ai. */
+  aiStats?: AiStats;
+  chatTimeouts?: Partial<ChatTimeouts>;
   logger?: FastifyServerOptions['logger'];
   /** Set on Render, which sits behind a proxy, so per-IP limits see the client's address. */
   trustProxy?: FastifyServerOptions['trustProxy'];
@@ -79,6 +97,10 @@ export function buildApp({
   jwtSecret,
   clock = () => new Date(),
   rateLimits = {},
+  ai = unavailableAi,
+  tasks = createBackgroundTasks(),
+  aiStats = createAiStats(),
+  chatTimeouts = {},
   logger = false,
   trustProxy = false,
 }: AppDeps) {
@@ -91,11 +113,18 @@ export function buildApp({
   app.register(sensible);
 
   registerHealthRoute(app, pingDb);
+  registerAiHealthRoute(app, aiStats);
+  registerResourcesRoute(app);
+  app.addHook('onClose', async () => {
+    await tasks.drain();
+  });
 
   if (db && jwtSecret) {
     const tokens = createTokenService({ db, jwtSecret, clock });
     const authLimit = rateLimits.auth ?? DEFAULT_RATE_LIMITS.auth;
     const userLimit = rateLimits.user ?? DEFAULT_RATE_LIMITS.user;
+    const messageLimit = rateLimits.messages ?? DEFAULT_RATE_LIMITS.messages;
+    const daily = createDailyService({ db, ai, clock });
 
     app.register(async (scope) => {
       await scope.register(rateLimit, { ...authLimit, keyGenerator: (request) => request.ip });
@@ -110,7 +139,18 @@ export function buildApp({
         hook: 'preHandler',
         keyGenerator: (request) => `user:${request.userId}`,
       });
-      registerMeRoutes(scope, { db, clock });
+      registerMeRoutes(scope, { db, clock, daily });
+      registerTodayRoutes(scope, { db, clock, daily });
+      registerConversationRoutes(scope, { db });
+      registerAssessmentRoutes(scope, { db, ai, clock });
+      registerMessageRoutes(scope, {
+        db,
+        ai,
+        tasks,
+        aiStats,
+        messageLimit,
+        timeouts: { ...DEFAULT_CHAT_TIMEOUTS, ...chatTimeouts },
+      });
     });
   } else if (db || jwtSecret) {
     throw new Error('buildApp needs both db and jwtSecret to serve the API routes.');
