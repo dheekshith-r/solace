@@ -1,6 +1,9 @@
 services:
   - type: web
-    name: solace-api
+    # Singapore: the closest Render region to the Mumbai database and to users in India. A region
+    # can't be changed after creation, so this is a new service; the Oregon `solace-api` is retired.
+    name: solace-api-sg
+    region: singapore
     runtime: node
     plan: free
     # Installs only the API and shared workspaces, so Render never downloads the Expo tree.
