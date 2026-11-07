@@ -21,6 +21,7 @@ export function ChatBubble({ role, children, footer }: { role: 'user' | 'assista
         style={[styles.bubble, mine ? [styles.bubbleMine, { backgroundColor: palette.accent }] : [styles.bubbleTheirs, { backgroundColor: fill }]]}
         accessible
         accessibilityLabel={`${mine ? 'You' : 'Sola'}: ${children}`}
+        testID={mine ? 'bubble-you' : 'bubble-sola'}
       >
         <Text variant="body" tone={mine ? 'onAccent' : 'ink'} selectable>
           {children}

@@ -28,7 +28,7 @@ export function Card({
   const fill = useFill();
   const surface = [styles.card, hero ? styles.hero : null, { backgroundColor: fill }, style];
   const content = <Raised>{children}</Raised>;
-  if (!onPress) return <View style={surface}>{content}</View>;
+  if (!onPress) return <View style={surface} testID={testID}>{content}</View>;
   return (
     <PressScale
       onPress={onPress}

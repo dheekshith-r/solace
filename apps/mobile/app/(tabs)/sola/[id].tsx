@@ -33,7 +33,7 @@ function Suggestion({ action }: { action: string | null | undefined }) {
   const s = action ? SUGGESTION[action] : undefined;
   if (!s) return null;
   return (
-    <Card>
+    <Card testID="suggestion-card">
       <Text variant="callout">{s.text}</Text>
       <Button label={s.label} icon={s.icon} variant="secondary" onPress={() => router.push(s.href)} />
     </Card>
