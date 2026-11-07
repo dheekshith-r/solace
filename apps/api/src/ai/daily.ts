@@ -15,6 +15,8 @@ import { type AiClient, toAiError } from './client';
 import { loadHistory } from './context';
 import { fallbackGreeting, fallbackSuggestion, FALLBACK_AFFIRMATIONS, pick } from './fallbacks';
 import { withDeadline } from './guard';
+import { inventsDetails } from './grounding';
+import type { BackgroundTasks } from '../lib/background';
 import {
   DAILY_SCHEMA,
   DAILY_SYSTEM,
@@ -62,10 +64,13 @@ export function createDailyService({
   db,
   ai,
   clock,
+  tasks,
 }: {
   db: Database;
   ai: AiClient;
   clock: Clock;
+  /** Where background generation runs; drained when the app closes. */
+  tasks?: BackgroundTasks;
 }) {
   // Both maps are bounded: in-flight entries are removed when they settle, and retry entries
   // are pruned once expired (and capped).
@@ -94,13 +99,14 @@ export function createDailyService({
   ): Promise<DailyLines | 'personalize_off' | null> {
     const now = clock();
     const history = await loadHistory(db, user, { moods: DAILY_MOODS });
+    const prompt = dailyPrompt({ profile: user, history, now });
     try {
       const raw = await withDeadline(DAILY_TIMEOUT_MS, (signal) =>
         ai.json({
           model: 'lite',
           purpose: 'daily',
           system: DAILY_SYSTEM,
-          prompt: dailyPrompt({ profile: user, history, now }),
+          prompt,
           schema: DAILY_SCHEMA,
           signal,
         }),
@@ -111,6 +117,11 @@ export function createDailyService({
         return null;
       }
       const lines = parsed.data;
+      // Only what the user actually said or logged: any invented detail drops the whole set.
+      if ([lines.greeting, lines.affirmation, lines.suggestion.text].some((text) => inventsDetails(text, prompt))) {
+        log.warn({ purpose: 'daily', kind: 'invented_detail' }, 'ai call failed');
+        return null;
+      }
       if (user.personalize) {
         // Personalize may have been turned off while the model was writing lines from history:
         // then those lines are dropped, never cached.
@@ -211,6 +222,34 @@ export function createDailyService({
     return pending;
   }
 
+  /**
+   * The day's lines without waiting on the model (Ddk, Nov 7: the first /today must answer in under a
+   * second). A cached line is returned at once; on a miss the handwritten line goes back now and the
+   * personal one is generated in the background, ready for the next fetch.
+   */
+  async function peek(user: DailyUser, lastMood: number | null, log: FastifyBaseLogger): Promise<DailyLines> {
+    const date = localDate(clock(), user.timezone);
+    const [row] = await db
+      .select()
+      .from(dailyAffirmations)
+      .where(and(eq(dailyAffirmations.userId, user.id), eq(dailyAffirmations.date, date)))
+      .limit(1);
+    if (row?.solaLine) {
+      return { greeting: row.solaLine, affirmation: row.text, suggestion: row.suggestion ?? fallbackSuggestion(null, `${user.id}:${date}`) };
+    }
+    warm(user, lastMood, log);
+    return fallback(user, date, lastMood);
+  }
+
+  /** Generates today's lines in the background if they aren't cached yet. Shares any call in flight. */
+  function warm(user: DailyUser, lastMood: number | null, log: FastifyBaseLogger): void {
+    const run = async () => {
+      await get(user, lastMood, log);
+    };
+    if (tasks) tasks.run('daily-lines', log, run);
+    else void run().catch(() => undefined);
+  }
+
   /** One-sentence suggestion right after a check-in. Never throws. */
   async function checkinSuggestion(
     user: DailyUser,
@@ -224,25 +263,20 @@ export function createDailyService({
         moods: SUGGESTION_MOODS,
         excludeCheckinId: checkin.id,
       });
+      const prompt = suggestionPrompt({ profile: user, history: earlier, now, mood: checkin.mood, note: checkin.note });
       const raw = await withDeadline(SUGGESTION_TIMEOUT_MS, (signal) =>
         ai.json({
           model: 'lite',
           purpose: 'suggestion',
           system: SUGGESTION_SYSTEM,
-          prompt: suggestionPrompt({
-            profile: user,
-            history: earlier,
-            now,
-            mood: checkin.mood,
-            note: checkin.note,
-          }),
+          prompt,
           schema: SUGGESTION_SCHEMA,
           signal,
         }),
       );
       const parsed = suggestionOutput.safeParse(raw);
-      if (parsed.success) return parsed.data;
-      log.warn({ purpose: 'suggestion', kind: 'invalid_output' }, 'ai call failed');
+      if (parsed.success && !inventsDetails(parsed.data.text, prompt)) return parsed.data;
+      log.warn({ purpose: 'suggestion', kind: parsed.success ? 'invented_detail' : 'invalid_output' }, 'ai call failed');
     } catch (error) {
       const failure = toAiError(error);
       log.warn({ purpose: 'suggestion', kind: failure.kind, status: failure.status }, 'ai call failed');
@@ -275,7 +309,7 @@ export function createDailyService({
       );
   }
 
-  return { get, checkinSuggestion, forgetToday };
+  return { get, peek, warm, checkinSuggestion, forgetToday };
 }
 
 export type DailyService = ReturnType<typeof createDailyService>;

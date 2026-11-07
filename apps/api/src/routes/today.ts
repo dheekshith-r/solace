@@ -102,6 +102,9 @@ export function registerTodayRoutes(
         .set({ meta: sql`coalesce(${activityLog.meta}, '{}'::jsonb) || ${JSON.stringify({ suggestion })}::jsonb` })
         .where(eq(activityLog.id, activityId));
 
+      // Make sure today's personal lines exist, so the next /today has them ready.
+      daily.warm(user, mood, request.log);
+
       return reply.code(201).send({
         checkin: toCheckin(checkin),
         xpAwarded: xp,
@@ -220,7 +223,8 @@ export function registerTodayRoutes(
       getStats(db, user, now),
     ]);
 
-    const lines = await daily.get(user, last?.mood ?? null, request.log);
+    // Never waits on the model: cached lines, or a handwritten line while the personal one is made.
+    const lines = await daily.peek(user, last?.mood ?? null, request.log);
     // Today's latest check-in brought a fresher suggestion than the morning one.
     const fromCheckin = suggestionSchema.safeParse(
       (todaysCheckin?.meta as { suggestion?: unknown } | null)?.suggestion,

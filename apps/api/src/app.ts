@@ -124,7 +124,7 @@ export function buildApp({
     const authLimit = rateLimits.auth ?? DEFAULT_RATE_LIMITS.auth;
     const userLimit = rateLimits.user ?? DEFAULT_RATE_LIMITS.user;
     const messageLimit = rateLimits.messages ?? DEFAULT_RATE_LIMITS.messages;
-    const daily = createDailyService({ db, ai, clock });
+    const daily = createDailyService({ db, ai, clock, tasks });
 
     app.register(async (scope) => {
       await scope.register(rateLimit, { ...authLimit, keyGenerator: (request) => request.ip });
