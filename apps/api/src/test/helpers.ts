@@ -10,6 +10,7 @@ import { testDatabaseUrl } from './database';
 const RELAXED_LIMITS = {
   auth: { max: 10_000, timeWindow: 60_000 },
   user: { max: 10_000, timeWindow: 60_000 },
+  messages: { max: 10_000, timeWindow: 60_000 },
 };
 
 /**
@@ -74,6 +75,30 @@ export async function signup(app: TestApp, overrides: Partial<SignupRequest> = {
 }
 
 export const bearer = (token: string) => ({ authorization: `Bearer ${token}` });
+
+export type ParsedSse = { event: string; data: unknown }[];
+
+/** Splits an SSE body into its events. Heartbeat comments are counted separately. */
+export function parseSse(body: string) {
+  const events: ParsedSse = [];
+  let heartbeats = 0;
+  const opened = body.startsWith(': open\n\n');
+  for (const block of body.split('\n\n')) {
+    if (!block.trim()) continue;
+    if (block.startsWith(':')) {
+      if (block === ': ping') heartbeats += 1;
+      continue;
+    }
+    const lines = block.split('\n');
+    const event = lines.find((line) => line.startsWith('event: '))?.slice(7) ?? 'message';
+    const data = lines
+      .filter((line) => line.startsWith('data: '))
+      .map((line) => line.slice(6))
+      .join('\n');
+    events.push({ event, data: JSON.parse(data) as unknown });
+  }
+  return { events, heartbeats, opened, types: events.map((e) => e.event) };
+}
 
 /** Collects every log line the app writes. */
 export function captureLogs() {

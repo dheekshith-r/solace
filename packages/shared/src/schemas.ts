@@ -1,5 +1,22 @@
 import { z } from 'zod';
-import { GOALS } from './types';
+import {
+  ASSESSMENT_ANSWER_MAX,
+  ASSESSMENT_BANDS,
+  ASSESSMENT_KINDS,
+  ASSESSMENT_QUESTIONS,
+  type AssessmentBand,
+  type AssessmentKind,
+  CHECKIN_NOTE_MAX,
+  CHECKIN_SOURCES,
+  GOALS,
+  LOGGABLE_ACTIVITY_KINDS,
+  MESSAGE_ROLES,
+  MESSAGE_TEXT_MAX,
+  MOOD_MAX,
+  MOOD_MIN,
+  MOVE_ACTIONS,
+  SUGGESTED_ACTIONS,
+} from './types';
 
 export const healthResponseSchema = z.object({ ok: z.literal(true) });
 export type HealthResponse = z.infer<typeof healthResponseSchema>;
@@ -235,3 +252,313 @@ export type SettingsRequest = z.input<typeof settingsRequestSchema>;
 
 export const settingsResponseSchema = z.object({ reminders: remindersSchema });
 export type SettingsResponse = z.infer<typeof settingsResponseSchema>;
+
+// ---------------------------------------------------------------------------
+// Check-ins, activities and Today (ticket 06)
+// ---------------------------------------------------------------------------
+
+export const moodSchema = z.number().int().min(MOOD_MIN).max(MOOD_MAX);
+
+/** Actions a suggestion card can open. "checkin" is left out: it is offered right after one. */
+export const SUGGESTION_ACTIONS = ['breathe', 'reflect', 'affirmation', 'none'] as const;
+export type SuggestionAction = (typeof SUGGESTION_ACTIONS)[number];
+
+export const suggestionSchema = z.object({
+  /** One sentence in Sola's voice. */
+  text: z.string(),
+  action: z.enum(SUGGESTION_ACTIONS),
+});
+export type Suggestion = z.infer<typeof suggestionSchema>;
+
+export const helplineSchema = z.object({
+  name: z.string(),
+  number: z.string(),
+  hours: z.string(),
+  emergencyNumber: z.string(),
+});
+export type Helpline = z.infer<typeof helplineSchema>;
+
+export const checkinRequestSchema = z.strictObject({
+  mood: moodSchema,
+  note: z
+    .string()
+    .trim()
+    .max(CHECKIN_NOTE_MAX, { message: `Note must be at most ${CHECKIN_NOTE_MAX} characters.` })
+    .optional(),
+  source: z.enum(CHECKIN_SOURCES),
+});
+export type CheckinRequest = z.input<typeof checkinRequestSchema>;
+
+export const checkinSchema = z.object({
+  id: z.string(),
+  mood: z.number().int(),
+  note: z.string().nullable(),
+  source: z.enum(CHECKIN_SOURCES),
+  /** ISO 8601. */
+  createdAt: z.string(),
+});
+export type Checkin = z.infer<typeof checkinSchema>;
+
+export const checkinResponseSchema = z.object({
+  checkin: checkinSchema,
+  xpAwarded: z.number().int(),
+  stats: statsSchema,
+  suggestion: suggestionSchema,
+  /** Present only when the note contained crisis language: show the helpline card. */
+  crisis: z.object({ helpline: helplineSchema }).optional(),
+});
+export type CheckinResponse = z.infer<typeof checkinResponseSchema>;
+
+export const CHECKIN_DAYS_MAX = 366;
+
+export const listCheckinsQuerySchema = z.strictObject({
+  /** Local calendar days to include, counting today. */
+  days: z.coerce.number().int().min(1).max(CHECKIN_DAYS_MAX).default(30),
+});
+export type ListCheckinsQuery = z.input<typeof listCheckinsQuerySchema>;
+
+export const listCheckinsResponseSchema = z.object({
+  /** Newest first. */
+  items: z.array(checkinSchema),
+});
+export type ListCheckinsResponse = z.infer<typeof listCheckinsResponseSchema>;
+
+export const ACTIVITY_META_KEYS_MAX = 12;
+
+const activityMetaValue = z.union([z.string().max(200), z.number().finite(), z.boolean(), z.null()]);
+
+export const activityRequestSchema = z.strictObject({
+  kind: z.enum(LOGGABLE_ACTIVITY_KINDS),
+  /**
+   * Flat details, for example `{ sessionId, pattern, seconds, moodBefore, moodAfter }`.
+   * A `sessionId` makes the call idempotent: the same session is never awarded XP twice.
+   */
+  meta: z
+    .record(z.string().min(1).max(40), activityMetaValue)
+    .refine((meta) => Object.keys(meta).length <= ACTIVITY_META_KEYS_MAX, {
+      message: `meta may have at most ${ACTIVITY_META_KEYS_MAX} keys.`,
+    })
+    .refine((meta) => meta.sessionId === undefined || typeof meta.sessionId === 'string', {
+      message: 'meta.sessionId must be a string.',
+    })
+    .default({}),
+});
+export type ActivityRequest = z.input<typeof activityRequestSchema>;
+
+export const activityResponseSchema = z.object({
+  xpAwarded: z.number().int(),
+  stats: statsSchema,
+});
+export type ActivityResponse = z.infer<typeof activityResponseSchema>;
+
+export const todayResponseSchema = z.object({
+  /** Sola's personal line for the day (shown on the Sola tab). Cached once per local day. */
+  greeting: z.string(),
+  /** The day's affirmation. Cached once per local day. */
+  affirmation: z.string(),
+  lastMood: z.object({ mood: z.number().int(), createdAt: z.string() }).nullable(),
+  suggestion: suggestionSchema,
+  stats: statsSchema,
+});
+export type TodayResponse = z.infer<typeof todayResponseSchema>;
+
+// ---------------------------------------------------------------------------
+// Conversations and messages (ticket 07)
+// ---------------------------------------------------------------------------
+
+export const PAGE_LIMIT_MAX = 50;
+export const CONVERSATIONS_PAGE_DEFAULT = 20;
+export const MESSAGES_PAGE_DEFAULT = 30;
+
+/** Opaque: pass back the nextCursor of the previous page. */
+const cursorSchema = z.string().min(1).max(64);
+
+export const conversationIdParamsSchema = z.object({ id: z.string().max(64) });
+
+export const listConversationsQuerySchema = z.strictObject({
+  cursor: cursorSchema.optional(),
+  limit: z.coerce.number().int().min(1).max(PAGE_LIMIT_MAX).default(CONVERSATIONS_PAGE_DEFAULT),
+});
+export type ListConversationsQuery = z.input<typeof listConversationsQuerySchema>;
+
+export const conversationListItemSchema = z.object({
+  id: z.string(),
+  title: z.string().nullable(),
+  /** Start of the latest message, or null for an empty conversation. */
+  preview: z.string().nullable(),
+  lastMessageAt: z.string(),
+});
+export type ConversationListItem = z.infer<typeof conversationListItemSchema>;
+
+export const listConversationsResponseSchema = z.object({
+  /** Most recently active first. */
+  items: z.array(conversationListItemSchema),
+  nextCursor: z.string().nullable(),
+});
+export type ListConversationsResponse = z.infer<typeof listConversationsResponseSchema>;
+
+export const createConversationRequestSchema = z.strictObject({});
+export type CreateConversationRequest = z.input<typeof createConversationRequestSchema>;
+
+export const conversationSchema = z.object({
+  id: z.string(),
+  title: z.string().nullable(),
+  messageCount: z.number().int(),
+  lastMessageAt: z.string(),
+  createdAt: z.string(),
+});
+export type Conversation = z.infer<typeof conversationSchema>;
+
+export const conversationResponseSchema = z.object({ conversation: conversationSchema });
+export type ConversationResponse = z.infer<typeof conversationResponseSchema>;
+
+export const messageSchema = z.object({
+  id: z.string(),
+  role: z.enum(MESSAGE_ROLES),
+  content: z.string(),
+  mood: z.number().int().nullable(),
+  suggestedAction: z.enum(SUGGESTED_ACTIONS).nullable(),
+  flaggedCrisis: z.boolean(),
+  createdAt: z.string(),
+});
+export type Message = z.infer<typeof messageSchema>;
+
+export const listMessagesQuerySchema = z.strictObject({
+  cursor: cursorSchema.optional(),
+  limit: z.coerce.number().int().min(1).max(PAGE_LIMIT_MAX).default(MESSAGES_PAGE_DEFAULT),
+});
+export type ListMessagesQuery = z.input<typeof listMessagesQuerySchema>;
+
+export const listMessagesResponseSchema = z.object({
+  /** Newest first; nextCursor pages back to older messages. */
+  items: z.array(messageSchema),
+  nextCursor: z.string().nullable(),
+});
+export type ListMessagesResponse = z.infer<typeof listMessagesResponseSchema>;
+
+export const sendMessageRequestSchema = z.strictObject({
+  text: z
+    .string()
+    .trim()
+    .min(1, { message: 'Write something first.' })
+    .max(MESSAGE_TEXT_MAX, { message: `Messages can be at most ${MESSAGE_TEXT_MAX} characters.` }),
+  /**
+   * Retrying after an `error` event: the id of the saved user message that got no reply.
+   * It must be the conversation's latest message. It is not saved again; Sola answers it.
+   */
+  retryOf: z.uuid().optional(),
+});
+export type SendMessageRequest = z.input<typeof sendMessageRequestSchema>;
+
+// SSE events of POST /conversations/:id/messages (spec 2.1). Each arrives as
+// `event: <type>\ndata: <json>\n\n`. Lines starting with ":" are heartbeats (every 15 s).
+// Order: `delta`+ then `meta` then `done`; a crisis reply sends `delta`, `crisis`, `done` (or, when a
+// reply is stopped mid-stream, `crisis` with `replace: true`, `delta`, `done`);
+// a failure sends `error` (the user message is already saved).
+export const sseDeltaSchema = z.object({ text: z.string() });
+export const sseMetaSchema = z.object({
+  mood: z.number().int().nullable(),
+  suggestedAction: z.enum(SUGGESTED_ACTIONS),
+  title: z.string().nullable(),
+});
+export const sseCrisisSchema = z.object({
+  helpline: helplineSchema,
+  /**
+   * True when the model's own safety filter stopped a reply mid-stream: clear the text
+   * streamed so far. The caring reply follows as a `delta`, then `done`.
+   */
+  replace: z.boolean().optional(),
+});
+export const sseDoneSchema = z.object({ messageId: z.string() });
+export const sseErrorSchema = z.object({ code: z.string(), message: z.string() });
+
+export const SSE_EVENT_TYPES = ['delta', 'meta', 'crisis', 'done', 'error'] as const;
+export type SseEventType = (typeof SSE_EVENT_TYPES)[number];
+
+export const sseEventDataSchemas = {
+  delta: sseDeltaSchema,
+  meta: sseMetaSchema,
+  crisis: sseCrisisSchema,
+  done: sseDoneSchema,
+  error: sseErrorSchema,
+} as const;
+
+export type SseEventData = { [K in SseEventType]: z.infer<(typeof sseEventDataSchemas)[K]> };
+export type SseEvent = { [K in SseEventType]: { event: K; data: SseEventData[K] } }[SseEventType];
+
+// ---------------------------------------------------------------------------
+// Reflect (ticket 10)
+// ---------------------------------------------------------------------------
+
+/** Score bands: 0-4 steady, 5-8 stretched, 9-12 strained. */
+export function assessmentBand(score: number): AssessmentBand {
+  if (score <= 4) return 'steady';
+  if (score <= 8) return 'stretched';
+  return 'strained';
+}
+
+/**
+ * Whether to show the support card (Tele-MANAS, talking to someone): a strained result, or a
+ * 3 on the second mood question (Ddk's safety rule).
+ */
+export function needsSupport(kind: AssessmentKind, answers: readonly number[], band: AssessmentBand) {
+  return band === 'strained' || (kind === 'mood' && answers[1] === ASSESSMENT_ANSWER_MAX);
+}
+
+export const assessmentRequestSchema = z.strictObject({
+  kind: z.enum(ASSESSMENT_KINDS),
+  answers: z
+    .array(z.number().int().min(0).max(ASSESSMENT_ANSWER_MAX))
+    .length(ASSESSMENT_QUESTIONS, { message: `Answer all ${ASSESSMENT_QUESTIONS} questions.` }),
+});
+export type AssessmentRequest = z.input<typeof assessmentRequestSchema>;
+
+export const moveSchema = z.object({
+  /** One short, kind sentence. */
+  text: z.string(),
+  action: z.enum(MOVE_ACTIONS),
+});
+export type Move = z.infer<typeof moveSchema>;
+
+export const assessmentSchema = z.object({
+  id: z.string(),
+  kind: z.enum(ASSESSMENT_KINDS),
+  score: z.number().int(),
+  band: z.enum(ASSESSMENT_BANDS),
+  createdAt: z.string(),
+});
+export type Assessment = z.infer<typeof assessmentSchema>;
+
+export const assessmentResponseSchema = z.object({
+  assessment: assessmentSchema,
+  /** Exactly three. */
+  moves: z.array(moveSchema).length(3),
+  /** Show the support card (helpline and "talk to someone"). */
+  support: z.boolean(),
+});
+export type AssessmentResponse = z.infer<typeof assessmentResponseSchema>;
+
+// ---------------------------------------------------------------------------
+// Resources (ticket 12)
+// ---------------------------------------------------------------------------
+
+export const guideSchema = z.object({
+  slug: z.string(),
+  title: z.string(),
+  summary: z.string(),
+  /** Reading time. */
+  minutes: z.number().int().positive(),
+  sections: z.array(z.object({ heading: z.string(), body: z.string() })).min(3).max(5),
+});
+export type Guide = z.infer<typeof guideSchema>;
+
+export const resourcesResponseSchema = z.object({
+  guides: z.array(guideSchema),
+  getHelp: z.object({
+    helpline: helplineSchema,
+    emergencyNumber: z.string(),
+    /** "Solace is not a substitute for professional care." */
+    note: z.string(),
+  }),
+});
+export type ResourcesResponse = z.infer<typeof resourcesResponseSchema>;

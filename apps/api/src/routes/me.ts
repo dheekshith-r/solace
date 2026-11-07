@@ -9,6 +9,7 @@ import {
 import { eq } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
+import type { DailyService } from '../ai/daily';
 import type { Clock } from '../auth/tokens';
 import type { Database } from '../db/client';
 import { userSettings, users } from '../db/schema';
@@ -19,7 +20,7 @@ import { toUser } from '../lib/users';
 /** Registered inside the auth-guarded scope: request.userId is always set. */
 export function registerMeRoutes(
   scope: FastifyInstance,
-  { db, clock }: { db: Database; clock: Clock },
+  { db, clock, daily }: { db: Database; clock: Clock; daily: Pick<DailyService, 'forgetToday'> },
 ) {
   const app = scope.withTypeProvider<ZodTypeProvider>();
 
@@ -50,6 +51,20 @@ export function registerMeRoutes(
         .where(eq(users.id, request.userId))
         .returning();
       if (!user) throw unauthorized();
+      // Turning personalize off drops today's lines that were written from personal history.
+      // Clearing is idempotent, so it runs whenever personalize is set to false.
+      if (changes.personalize === false) {
+        try {
+          await daily.forgetToday(user);
+        } catch (error) {
+          // Personalize is already saved; a failed cleanup must not turn that into a 500.
+          const cause = (error as { cause?: { code?: unknown } }).cause;
+          request.log.warn(
+            { errName: error instanceof Error ? error.name : 'unknown', causeCode: cause?.code },
+            'clearing personal daily lines failed',
+          );
+        }
+      }
       return { user: toUser(user) };
     },
   );
