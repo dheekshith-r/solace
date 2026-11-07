@@ -17,14 +17,14 @@ import {
 import { and, count, desc, eq, gt, sql } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
-import type { DailyService } from '../ai/daily';
+import type { DailyService, DailyUser } from '../ai/daily';
 import { checkSafety, CRISIS_SUGGESTION } from '../ai/safety';
 import type { Clock } from '../auth/tokens';
 import type { Database } from '../db/client';
-import { activityLog, moodCheckins, users } from '../db/schema';
+import { activityLog, dailyAffirmations, moodCheckins, users } from '../db/schema';
 import { logActivity } from '../lib/activity';
 import { unauthorized } from '../lib/errors';
-import { getStats } from '../lib/stats';
+import { computeStreak, getStats, levelForXp, STREAK_DAYS_MAX } from '../lib/stats';
 
 type CheckinRow = typeof moodCheckins.$inferSelect;
 
@@ -197,45 +197,68 @@ export function registerTodayRoutes(
   );
 
   app.get('/today', { schema: { response: { 200: todayResponseSchema } } }, async (request) => {
-    const user = await loadUser(request.userId);
-    const now = clock();
-    const tz = user.timezone;
+    const now = clock().toISOString();
+    // One round trip (Ddk, Nov 7): the user, their local "today", the last mood, today's latest
+    // check-in suggestion, the active days for the streak and today's cached lines, all in one
+    // statement. Every date is computed by Postgres in the user's own time zone.
+    const rows = await db.execute<{
+      name: string;
+      goal: DailyUser['goal'];
+      timezone: string;
+      personalize: boolean;
+      xp: number;
+      today: string;
+      last_mood: number | null;
+      last_at: string | null;
+      checkin_meta: { suggestion?: unknown } | null;
+      days: string[];
+      daily_text: string | null;
+      daily_line: string | null;
+      daily_suggestion: Suggestion | null;
+    }>(sql`
+      with u as (
+        select ${users.id} as id, ${users.name} as name, ${users.goal} as goal, ${users.timezone} as timezone,
+               ${users.personalize} as personalize, ${users.xp} as xp,
+               ((${now}::timestamptz at time zone ${users.timezone})::date) as today
+        from ${users} where ${users.id} = ${request.userId}
+      )
+      select u.name, u.goal, u.timezone, u.personalize, u.xp, u.today::text as today,
+        (select ${moodCheckins.mood} from ${moodCheckins} where ${moodCheckins.userId} = u.id
+          order by ${moodCheckins.createdAt} desc, ${moodCheckins.id} desc limit 1) as last_mood,
+        (select to_char(${moodCheckins.createdAt} at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') from ${moodCheckins}
+          where ${moodCheckins.userId} = u.id order by ${moodCheckins.createdAt} desc, ${moodCheckins.id} desc limit 1) as last_at,
+        (select ${activityLog.meta} from ${activityLog} where ${activityLog.userId} = u.id and ${activityLog.kind} = 'checkin'
+          and (${activityLog.createdAt} at time zone u.timezone)::date = u.today
+          order by ${activityLog.createdAt} desc, ${activityLog.id} desc limit 1) as checkin_meta,
+        coalesce((select array_agg(d.day::text order by d.day desc) from (
+          select distinct (${activityLog.createdAt} at time zone u.timezone)::date as day from ${activityLog}
+          where ${activityLog.userId} = u.id order by day desc limit ${STREAK_DAYS_MAX + 1}) d), '{}') as days,
+        da.text as daily_text, da.sola_line as daily_line, da.suggestion as daily_suggestion
+      from u
+      left join ${dailyAffirmations} da on da.user_id = u.id and da.date = u.today
+    `);
+    const row = rows[0];
+    if (!row) throw unauthorized();
 
-    const [[last], [todaysCheckin], stats] = await Promise.all([
-      db
-        .select({ mood: moodCheckins.mood, createdAt: moodCheckins.createdAt })
-        .from(moodCheckins)
-        .where(eq(moodCheckins.userId, user.id))
-        .orderBy(desc(moodCheckins.createdAt), desc(moodCheckins.id))
-        .limit(1),
-      db
-        .select({ meta: activityLog.meta })
-        .from(activityLog)
-        .where(
-          and(
-            eq(activityLog.userId, user.id),
-            eq(activityLog.kind, 'checkin'),
-            sql`(${activityLog.createdAt} at time zone ${tz})::date = (${now.toISOString()}::timestamptz at time zone ${tz})::date`,
-          ),
-        )
-        .orderBy(desc(activityLog.createdAt), desc(activityLog.id))
-        .limit(1),
-      getStats(db, user, now),
-    ]);
-
+    const user: DailyUser = { id: request.userId, name: row.name, goal: row.goal, timezone: row.timezone, personalize: row.personalize };
+    const lastMood = row.last_mood;
     // Never waits on the model: cached lines, or a handwritten line while the personal one is made.
-    const lines = await daily.peek(user, last?.mood ?? null, request.log);
-    // Today's latest check-in brought a fresher suggestion than the morning one.
-    const fromCheckin = suggestionSchema.safeParse(
-      (todaysCheckin?.meta as { suggestion?: unknown } | null)?.suggestion,
+    const lines = daily.fromRow(
+      user,
+      row.today,
+      row.daily_text === null ? null : { text: row.daily_text, solaLine: row.daily_line, suggestion: row.daily_suggestion },
+      lastMood,
+      request.log,
     );
+    // Today's latest check-in brought a fresher suggestion than the morning one.
+    const fromCheckin = suggestionSchema.safeParse(row.checkin_meta?.suggestion);
 
     return {
       greeting: lines.greeting,
       affirmation: lines.affirmation,
-      lastMood: last ? { mood: last.mood, createdAt: last.createdAt.toISOString() } : null,
+      lastMood: lastMood !== null && row.last_at ? { mood: lastMood, createdAt: row.last_at } : null,
       suggestion: fromCheckin.success ? fromCheckin.data : lines.suggestion,
-      stats,
+      stats: { xp: row.xp, ...levelForXp(row.xp), streak: computeStreak(row.days, row.today) },
     };
   });
 }

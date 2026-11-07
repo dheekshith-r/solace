@@ -4,7 +4,8 @@ import type { Database } from '../db/client';
 import { activityLog } from '../db/schema';
 
 // A streak longer than this is reported as this; it bounds the query.
-const MAX_STREAK_DAYS = 400;
+export const STREAK_DAYS_MAX = 400;
+const MAX_STREAK_DAYS = STREAK_DAYS_MAX;
 
 export function levelForXp(xp: number) {
   const level = Math.floor(xp / XP_PER_LEVEL) + 1;

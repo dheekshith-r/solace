@@ -139,7 +139,8 @@ describe('POST /checkins', () => {
 
   it('a note with crisis language returns the helpline and never reaches Gemini', async () => {
     const ai = fakeAi();
-    const app = ctx.app({ ai: ai.client });
+    const tasks = createBackgroundTasks();
+    const app = ctx.app({ ai: ai.client, tasks });
     const { accessToken } = await signup(app);
 
     const response = await checkin(app, accessToken, { mood: 1, note: 'i want to die', source: 'home' });
@@ -147,11 +148,15 @@ describe('POST /checkins', () => {
     const body = checkinResponseSchema.parse(response.json());
     expect(body.crisis?.helpline.number).toBe('14416');
     expect(body.suggestion.text).toContain('14416');
-    expect(ai.callCount).toBe(0);
+    expect(ai.jsonCalls('suggestion')).toHaveLength(0); // no suggestion call for a crisis note
 
-    // And that note is never put into a later prompt either.
+    // The day's lines are made in the background; the note must not be in that prompt, or any other.
+    await tasks.drain();
     await today(app, accessToken);
+    await tasks.drain();
+    expect(ai.jsonCalls('daily')).toHaveLength(1);
     expect(ai.jsonCalls('daily')[0]?.prompt).not.toContain('want to die');
+    expect(JSON.stringify(ai.jsonCalls('daily'))).not.toContain('want to die');
   });
 
   it('with personalize off, earlier check-ins stay out of the suggestion prompt', async () => {

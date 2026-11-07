@@ -241,6 +241,24 @@ export function createDailyService({
     return fallback(user, date, lastMood);
   }
 
+  /**
+   * Like `peek`, for a caller that already read today's cached row in its own query (GET /today
+   * does it in one round trip): no extra query here.
+   */
+  function fromRow(
+    user: DailyUser,
+    date: string,
+    row: { text: string; solaLine: string | null; suggestion: Suggestion | null } | null,
+    lastMood: number | null,
+    log: FastifyBaseLogger,
+  ): DailyLines {
+    if (row?.solaLine) {
+      return { greeting: row.solaLine, affirmation: row.text, suggestion: row.suggestion ?? fallbackSuggestion(null, `${user.id}:${date}`) };
+    }
+    warm(user, lastMood, log);
+    return fallback(user, date, lastMood);
+  }
+
   /** Generates today's lines in the background if they aren't cached yet. Shares any call in flight. */
   function warm(user: DailyUser, lastMood: number | null, log: FastifyBaseLogger): void {
     const run = async () => {
@@ -309,7 +327,7 @@ export function createDailyService({
       );
   }
 
-  return { get, peek, warm, checkinSuggestion, forgetToday };
+  return { get, peek, fromRow, warm, checkinSuggestion, forgetToday };
 }
 
 export type DailyService = ReturnType<typeof createDailyService>;
