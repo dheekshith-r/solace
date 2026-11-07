@@ -1,13 +1,25 @@
 # Solace handoff (Sat 7 Nov 2026)
 
-**APK:** `Desktop\Solace-v1.apk`, 51.2 MB, release build of app code at commit `64203f3` (nothing in the app has changed since; later commits are API and test files). API: `https://solace-api-sg.onrender.com` (Singapore, next to the Mumbai database).
+**Final APK:** `Desktop\Solace-final.apk`, 51.2 MB, release build at commit `d93f7fe`. API: `https://solace-api-sg.onrender.com` (Singapore, next to the Mumbai database).
+
+**Phone run 2 passed (Nov 7, 6 min 22 s, pinned release build):**
+- sign up → onboarding → Today mood tap;
+- Sola chat with a real Gemini reply and suggestion card → continue → delete;
+- full Breathe session → Reflect check-in → Reminders test notification → You → log out → log in;
+- account deleted at the end.
+
+**Added after run 2, not yet run on the phone:**
+- rename yourself (You → Name);
+- About row (version, "Not a substitute for professional help").
+- **Pending deploy (needs Ddk's OK):** renaming should clear today's cached greeting (`apps/api/src/routes/me.ts`). It's committed on `app-build`, not yet on `main`.
+- **Pending Ddk's hand test:** a reminder arriving with the app fully closed and opening the right screen.
 **Branches:** all work on `app-build`; `main` carries only `apps/api` and deploys to Render automatically.
 **Rebuild:** `pwsh build-apk.ps1` (steps and requirements are in the script).
 
 ## Works (verified)
 - **API, live on Singapore:** `/health`, sign-up, log-in, `/today` (first call about 0.35–0.6 s, one DB query, never waits on Gemini), check-ins, resources, `/health/ai`. 382 API tests pass.
 - **Sola's lines are grounded:** they never invent details the user didn't log, never claim a mood that wasn't logged, and never name a time of day in lines shown all day. Verified live with fresh accounts.
-- **On the phone (Maestro run 1, release APK):** onboarding, sign-up (including the cold-start fix), Today mood tap and the Sola tab worked.
+- **On the phone:** see run 2 above.
 - **Fixed after run 1, built into the APK but not yet re-run on the phone:**
   - new-conversation screen no longer blank;
   - tab bar hidden in conversations;
@@ -17,10 +29,8 @@
 - **Mobile checks:** 92 tests pass, plus tsc and lint.
 
 ## Untested on the phone
-- Run 2 never ran (stopped at step 6 on the pinning issue, now fixed). Not yet seen on the phone:
-  - the fixed conversation screen and the tab bar sliding away;
-  - Breathe, Reflect, Reminders, You, Resources, Privacy and account deletion.
 - **Ticket 08b (Today memory across tab switches):** fixed in code (tabs stay attached, Today pauses while hidden), not measured.
+- Resources and Get help weren't in run 2's flow.
 - Notifications and deep links on a release build.
 - The 503 rate on Gemini over a full day (`/health/ai`; report if above 1 in 10).
 
