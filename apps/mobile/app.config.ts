@@ -1,9 +1,8 @@
 import type { ExpoConfig } from 'expo/config';
 
-// Native splash and notification colors: the HIG tokens (spec 7.2), so the hand-off to the animated splash
-// is seamless. Expo's config loader can't import src/theme, so a unit test keeps these equal to the tokens.
-export const SPLASH_LIGHT = '#F2F2F7'; // colors.light.background
-export const SPLASH_DARK = '#000000'; // colors.dark.background
+// The icon's night navy, behind the icon and the native splash in both modes (Ddk, Nov 7).
+// Expo's config loader can't import src/theme, so a unit test keeps these equal to the tokens.
+export const SPLASH_NIGHT = '#0B1026'; // brand.night
 export const ACCENT = '#1E6EF4'; // colors.light.accent
 
 // Native build paths exceed Windows' 260-character limit, and the default CMake's Ninja cannot
@@ -21,7 +20,7 @@ const config: ExpoConfig = {
   android: {
     package: 'com.ddk.solace',
     adaptiveIcon: {
-      backgroundColor: SPLASH_LIGHT,
+      backgroundColor: SPLASH_NIGHT,
       foregroundImage: './assets/android-icon-foreground.png',
       backgroundImage: './assets/android-icon-background.png',
       monochromeImage: './assets/android-icon-monochrome.png',
@@ -37,15 +36,14 @@ const config: ExpoConfig = {
     [
       'expo-splash-screen',
       {
-        backgroundColor: SPLASH_LIGHT,
-        // Sola, captured from the app's own art (app/kit-sola.tsx), padded so Sola and its whole glow sit in the
-        // middle 2/3 that Android 12+ shows (it clips the outer third).
+        backgroundColor: SPLASH_NIGHT,
+        // Sola from design/icon/icon-a-night.svg, inside the middle 2/3 that Android 12+ shows.
         image: './assets/splash-icon.png',
         imageWidth: 288,
-        dark: { backgroundColor: SPLASH_DARK, image: './assets/splash-icon-dark.png' },
+        dark: { backgroundColor: SPLASH_NIGHT, image: './assets/splash-icon.png' },
       },
     ],
-    ['expo-notifications', { color: ACCENT }],
+    ['expo-notifications', { color: ACCENT, icon: './assets/notification-icon.png' }],
     [
       'expo-build-properties',
       {

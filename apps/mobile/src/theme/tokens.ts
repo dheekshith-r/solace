@@ -104,6 +104,9 @@ export const kit = {
 // Row separators start where the row's title starts: row padding, icon well, gap.
 export const separatorInset = spacing.lg + kit.iconWell + spacing.md;
 
+/** Outside the HIG palette by Ddk's request: the app icon's night navy, used for the icon and native splash. */
+export const brand = { night: '#0B1026' } as const;
+
 export const opacity = { disabled: 0.4, skeletonLow: 0.45, skeletonHigh: 0.9 } as const;
 
 // Charts on the You tab: soft lines that fade at the ends (design/NOTES.md).

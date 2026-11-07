@@ -5,7 +5,7 @@ import { useFonts } from 'expo-font';
 import { DarkTheme, DefaultTheme, ThemeProvider as NavThemeProvider, Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import * as SystemUI from 'expo-system-ui';
-import { useCallback, useEffect, useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { colors } from '../src/theme/tokens';
 import { StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -16,8 +16,9 @@ import { persistOptions, queryClient } from '../src/lib/queryClient';
 import { NotificationRouter } from '../src/features/notifications/NotificationRouter';
 import { useResolvedScheme } from '../src/features/appearance';
 
-// Keep the native splash up until fonts are ready, so the first drawn frame is the real splash.
+// The native splash stays up until app/index.tsx has opened the first screen, then fades.
 void SplashScreen.preventAutoHideAsync();
+SplashScreen.setOptions({ duration: 400, fade: true });
 
 export default function RootLayout() {
   const [loaded] = useFonts({ PlusJakartaSans_400Regular, PlusJakartaSans_600SemiBold, PlusJakartaSans_700Bold });
@@ -31,13 +32,10 @@ export default function RootLayout() {
     const base = scheme === 'dark' ? DarkTheme : DefaultTheme;
     return { ...base, colors: { ...base.colors, background, card: background } };
   }, [scheme, background]);
-  const onLayout = useCallback(() => {
-    void SplashScreen.hideAsync();
-  }, []);
   if (!loaded) return null;
   return (
     // testID: the phone tests assert this before every step, so they stop the instant Solace isn't in front.
-    <GestureHandlerRootView style={styles.root} onLayout={onLayout} testID="solace-root">
+    <GestureHandlerRootView style={styles.root} testID="solace-root">
       <PersistQueryClientProvider client={queryClient} persistOptions={persistOptions}>
       <KeyboardProvider>
         <ThemeProvider scheme={scheme}>

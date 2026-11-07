@@ -6,7 +6,7 @@ import { Screen } from '../Screen';
 import { BACK_ID, ROOT_ID, testId } from '../testId';
 import { ThemeProvider, useTheme } from '../ThemeProvider';
 import { ToastProvider, useToast } from '../Toast';
-import { colors } from '../../theme/tokens';
+import { brand, colors } from '../../theme/tokens';
 
 // Screen's native dependencies, replaced for unit tests.
 jest.mock('expo-router', () => ({ useRouter: () => ({ back: jest.fn() }), useFocusEffect: jest.fn() }));
@@ -169,9 +169,8 @@ describe('Screen header', () => {
 });
 describe('native splash colors', () => {
   it('match the HIG tokens, so the native splash hands off seamlessly', () => {
-    const config = jest.requireActual('../../../app.config') as { SPLASH_LIGHT: string; SPLASH_DARK: string; ACCENT: string };
-    expect(config.SPLASH_LIGHT).toBe(colors.light.background);
-    expect(config.SPLASH_DARK).toBe(colors.dark.background);
+    const config = jest.requireActual('../../../app.config') as { SPLASH_NIGHT: string; ACCENT: string };
+    expect(config.SPLASH_NIGHT).toBe(brand.night);
     expect(config.ACCENT).toBe(colors.light.accent);
   });
 });
