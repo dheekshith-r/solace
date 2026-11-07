@@ -83,7 +83,7 @@ describe('POST /checkins', () => {
       (await checkin(app, accessToken, { mood: 2, note: 'tired after the viva', source: 'home' })).json(),
     );
     expect(body.suggestion).toEqual({
-      text: 'A low evening again, so a slow exhale might help you settle.',
+      text: 'Another low day, so a slow exhale might help you settle.',
       action: 'breathe',
     });
     const [call] = ai.jsonCalls('suggestion');
@@ -400,7 +400,7 @@ describe('GET /today', () => {
 
     const second = await today(app, accessToken);
     expect(second).toEqual({
-      greeting: 'Asha, the exam worry from Tuesday evening sounded heavy. Go gently today.',
+      greeting: 'Asha, the exam worry from Tuesday sounded heavy. Go gently today.',
       affirmation: 'I can prepare one page at a time.',
       lastMood: { mood: 1, createdAt: '2026-11-05T16:00:00.000Z' },
       suggestion: { text: 'A slow minute of breathing could loosen that pre-exam tension.', action: 'breathe' },
@@ -533,6 +533,42 @@ describe('GET /today', () => {
     const saved = checkinResponseSchema.parse((await checkin(app, accessToken, { mood: 2, source: 'home' })).json());
     expect(ai.jsonCalls('suggestion')).toHaveLength(1); // the model did answer...
     expect(saved.suggestion.text.toLowerCase()).not.toMatch(/exam|tuesday/); // ...but the invented sentence never reaches the user
+    expect(ALL_FALLBACK_SUGGESTIONS).toContainEqual(saved.suggestion);
+  });
+
+  it('a "Good morning" line is rejected, never cached for the day, and the handwritten line is served', async () => {
+    const ai = fakeAi({
+      json: {
+        daily: () => ({
+          greeting: 'Good morning, Asha, as you work towards a calmer day.',
+          affirmation: 'I can take today one step at a time.',
+          suggestion: { text: 'A few slow breaths could help you settle into the morning.', action: 'breathe' },
+        }),
+      },
+    });
+    const { app, settle } = appWithTasks(ai);
+    const { user, accessToken } = await signup(app);
+
+    await today(app, accessToken);
+    await settle();
+    expect(ai.jsonCalls('daily')).toHaveLength(1);
+    expect(ai.jsonCalls('daily')[0]?.system).toContain('never name a time of day');
+    const [cached] = await ctx.db.select({ n: count() }).from(dailyAffirmations).where(eq(dailyAffirmations.userId, user.id));
+    expect(cached?.n).toBe(0);
+
+    const body = await today(app, accessToken);
+    expect(JSON.stringify(body).toLowerCase()).not.toMatch(/morning|evening|night/);
+    expect(body.greeting).toContain('Asha');
+    expect(FALLBACK_AFFIRMATIONS).toContain(body.affirmation);
+  });
+
+  it('a check-in suggestion naming a time of day is replaced (it stays on Today all day)', async () => {
+    const ai = fakeAi({ json: { suggestion: () => ({ text: 'A calm evening walk could help.', action: 'none' }) } });
+    const { app } = appWithTasks(ai);
+    const { accessToken } = await signup(app);
+    const saved = checkinResponseSchema.parse((await checkin(app, accessToken, { mood: 3, source: 'home' })).json());
+    expect(ai.jsonCalls('suggestion')).toHaveLength(1);
+    expect(saved.suggestion.text).not.toMatch(/evening/i);
     expect(ALL_FALLBACK_SUGGESTIONS).toContainEqual(saved.suggestion);
   });
 

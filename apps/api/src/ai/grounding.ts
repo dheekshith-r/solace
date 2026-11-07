@@ -56,6 +56,16 @@ function mentioned(text: string): Set<number> {
   return found;
 }
 
+// Lines cached for the whole day (the daily line, affirmation and suggestion, and a check-in's
+// suggestion) are shown at any hour, so "Good morning" would still be on screen at night
+// (Ddk, Nov 7). They may name days ("Tuesday", "today"), never a time of day.
+const TIME_OF_DAY = /\b(mornings?|afternoons?|evenings?|nights?|tonight|overnight|midday|noon|midnight|dawn|dusk|sunrise|sunset|bedtime)\b/i;
+
+/** True when a line that is shown all day names a time of day. */
+export function mentionsTimeOfDay(text: string): boolean {
+  return TIME_OF_DAY.test(text.replace(/[’']/g, ''));
+}
+
 /**
  * True when `output` states something about the user's past or current situation that `source`
  * (everything the model was given) never mentioned. Mood words, notes, times and the goal are all

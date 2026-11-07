@@ -15,7 +15,7 @@ import { type AiClient, toAiError } from './client';
 import { loadHistory } from './context';
 import { fallbackGreeting, fallbackSuggestion, FALLBACK_AFFIRMATIONS, pick } from './fallbacks';
 import { withDeadline } from './guard';
-import { inventsDetails } from './grounding';
+import { inventsDetails, mentionsTimeOfDay } from './grounding';
 import type { BackgroundTasks } from '../lib/background';
 import {
   DAILY_SCHEMA,
@@ -121,6 +121,11 @@ export function createDailyService({
       // Only what the user actually said or logged: any invented detail drops the whole set.
       if ([lines.greeting, lines.affirmation, lines.suggestion.text].some((text) => inventsDetails(text, prompt))) {
         log.warn({ purpose: 'daily', kind: 'invented_detail' }, 'ai call failed');
+        return null;
+      }
+      // Cached for the whole day, so no "Good morning" that would still show at night.
+      if ([lines.greeting, lines.affirmation, lines.suggestion.text].some(mentionsTimeOfDay)) {
+        log.warn({ purpose: 'daily', kind: 'time_of_day' }, 'ai call failed');
         return null;
       }
       if (user.personalize) {
@@ -294,8 +299,16 @@ export function createDailyService({
         }),
       );
       const parsed = suggestionOutput.safeParse(raw);
-      if (parsed.success && !inventsDetails(parsed.data.text, prompt)) return parsed.data;
-      log.warn({ purpose: 'suggestion', kind: parsed.success ? 'invented_detail' : 'invalid_output' }, 'ai call failed');
+      // Shown on Today for the rest of the day, so the same two rules as the daily lines.
+      const kind = !parsed.success
+        ? 'invalid_output'
+        : inventsDetails(parsed.data.text, prompt)
+          ? 'invented_detail'
+          : mentionsTimeOfDay(parsed.data.text)
+            ? 'time_of_day'
+            : null;
+      if (parsed.success && kind === null) return parsed.data;
+      log.warn({ purpose: 'suggestion', kind }, 'ai call failed');
     } catch (error) {
       const failure = toAiError(error);
       log.warn({ purpose: 'suggestion', kind: failure.kind, status: failure.status }, 'ai call failed');

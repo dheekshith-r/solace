@@ -1,5 +1,30 @@
 import { describe, expect, it } from 'vitest';
-import { inventsDetails } from './grounding';
+import { inventsDetails, mentionsTimeOfDay } from './grounding';
+
+describe('lines shown all day never name a time of day (Ddk, Nov 7)', () => {
+  it('rejects greetings and phrases tied to the hour', () => {
+    for (const line of [
+      'Good morning, Smoke, as you work towards sleeping better.',
+      'Try a few slow breaths to settle into the morning.',
+      'A calm evening could help.',
+      'Rest well tonight.',
+      'Your evenings have felt heavy.',
+      'Asha, the exam worry from Tuesday evening sounded heavy.',
+    ]) {
+      expect(mentionsTimeOfDay(line)).toBe(true);
+    }
+  });
+
+  it('allows days and "today"', () => {
+    for (const line of [
+      'Asha, the exam worry from Tuesday sounded heavy. Go gently today.',
+      'Hi Smoke. I’m here for better rest, one small step at a time.',
+      'A minute of slow breathing is a gentle way to begin.',
+    ]) {
+      expect(mentionsTimeOfDay(line)).toBe(false);
+    }
+  });
+});
 
 describe('grounding: only what the user said or logged (Ddk, Nov 7)', () => {
   const morningNoNote = 'Name: "Asha"\nNow: Sat, 7 Nov, morning\nThey just logged: 2/5 (low)';
