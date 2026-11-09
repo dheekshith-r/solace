@@ -95,6 +95,37 @@ describe('conversation thread', () => {
     expect(reconciled.map((i) => i.key)).toEqual(done.map((i) => i.key));
   });
 
+  it('stream dies after the crisis reply was saved: the server copy wins, card kept, no duplicate', () => {
+    const live = threadReducer([], { type: 'send', key: 'l3', text: "I don't want to be alive" });
+    const partial = threadReducer(live, { type: 'delta', text: "I'm really glad you told me." });
+    // onError refetches before it dispatches error: the user item is still sending, with no id.
+    const saved = [server('u3', 'user', "I don't want to be alive", true), server('a3', 'assistant', "I'm really glad you told me.")];
+    const loaded = threadReducer(partial, { type: 'load', messages: saved });
+    expect(loaded.map((i) => [i.role, i.id])).toEqual([
+      ['user', 'u3'],
+      ['assistant', 'a3'],
+    ]);
+    expect(loaded[1]?.helpline).toEqual(HELPLINE);
+  });
+
+  it('a safety block that clears the text keeps the card even if the stream then fails', () => {
+    const live = threadReducer([], { type: 'send', key: 'l4', text: 'something heavy' });
+    const blocked = threadReducer(threadReducer(live, { type: 'delta', text: 'Partial' }), { type: 'crisis', helpline: HELPLINE, replace: true });
+    const failed = threadReducer(blocked, { type: 'error', message: 'x' });
+    expect(failed.some((i) => i.helpline)).toBe(true);
+    // And from the server alone: a flagged message with no saved reply carries the card itself.
+    const reopened = threadReducer([], { type: 'load', messages: [server('u4', 'user', 'something heavy', true)] });
+    expect(reopened[0]?.helpline).toEqual(HELPLINE);
+  });
+
+  it('sending the same text twice never hides the earlier bubble, even if an old refetch lands', () => {
+    const first = threadReducer(threadReducer(threadReducer([], { type: 'send', key: 'l5', text: 'ok' }), { type: 'delta', text: 'Sure.' }), { type: 'done', messageId: 'a5' });
+    const again = threadReducer(first, { type: 'send', key: 'l6', text: 'ok' });
+    // The refetch from the first done arrives now: it holds only the first exchange.
+    const late = threadReducer(again, { type: 'load', messages: [server('u5', 'user', 'ok'), server('a5', 'assistant', 'Sure.')] });
+    expect(late.filter((i) => i.role === 'user').map((i) => i.status)).toEqual(['done', 'sending']);
+  });
+
   it('keeps the user message on error and retries without losing it', () => {
     const failed = threadReducer(sent, { type: 'error', message: "Couldn't reach Solace.", userMessageId: 'u1' });
     expect(failed).toHaveLength(1);

@@ -174,14 +174,14 @@ function Conversation() {
             </View>
           ) : null}
           {items.map((item) =>
-            item.role === 'assistant' && item.status === 'streaming' && !item.text ? (
+            item.role === 'assistant' && item.status === 'streaming' && !item.text && !item.helpline ? (
               <TypingBubble key={item.key} />
             ) : (
               <View key={item.key} style={styles.item}>
                 {item.text ? <ChatBubble role={item.role}>{item.text}</ChatBubble> : null}
                 {item.role === 'assistant' && item.status === 'done' && !item.helpline ? <Suggestion action={item.suggestedAction} /> : null}
                 {/* On the reply it belongs to, for good: rebuilt from the server's crisis flag after any refetch. */}
-                {item.role === 'assistant' && item.helpline ? (
+                {item.helpline ? (
                   <HelplineCard
                     onTalkToSola={() => {
                       haptics.light();

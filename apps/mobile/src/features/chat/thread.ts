@@ -30,31 +30,39 @@ export function threadReducer(items: ThreadItem[], action: ThreadAction): Thread
   switch (action.type) {
     case 'load': {
       // Keep any live exchange; replace the saved part.
-      const live = items.filter((i) => i.status !== 'done');
-      let messages = action.messages;
-      // The server saves the user message before streaming, so a fetch mid-stream returns a copy of it.
-      for (const l of live) {
-        if (l.role !== 'user') continue;
-        const at = l.id ? messages.findIndex((m) => m.id === l.id) : messages.findLastIndex((m) => m.role === 'user' && m.content === l.text);
-        if (at >= 0 && at >= messages.length - 2) messages = messages.filter((_, i) => i !== at);
-      }
+      const all = action.messages;
       const shown = items.filter((i) => i.status === 'done');
+      // The card goes on the reply to a flagged message, or on the flagged message itself if no reply was saved.
+      // Decided on the server's full list, before anything is set aside below.
+      const crisisAt = (i: number) => {
+        const m = all[i];
+        if (!m) return false;
+        if (m.role === 'assistant') return m.flaggedCrisis || Boolean(all[i - 1]?.flaggedCrisis);
+        return m.flaggedCrisis && all[i + 1]?.role !== 'assistant';
+      };
+      let live = items.filter((i) => i.status !== 'done');
+      const skip = new Set<number>();
+      // The server saves the user message before streaming, so a fetch mid-stream can return the live exchange.
+      // Only messages beyond what is already on screen can be that copy, so a repeated "ok" never hides an older one.
+      const liveUser = live.find((l) => l.role === 'user');
+      if (liveUser) {
+        let at = liveUser.id ? all.findIndex((m) => m.id === liveUser.id) : -1;
+        if (at < 0) at = all.findLastIndex((m, i) => i >= shown.length && m.role === 'user' && m.content === liveUser.text);
+        if (at >= 0) {
+          // The server already has the reply too (the stream died after saving): its copy wins, with its crisis flag.
+          if (all[at + 1]?.role === 'assistant') live = [];
+          else skip.add(at);
+        }
+      }
       const used = new Set<string>();
-      const saved: ThreadItem[] = messages.map((m, i) => {
+      const saved: ThreadItem[] = [];
+      all.forEach((m, i) => {
+        if (skip.has(i)) return;
         // Reuse the key already on screen (by id, else a just-finished local bubble) so nothing remounts.
         const match = shown.find((s) => !used.has(s.key) && (s.id === m.id || (!s.id && s.role === m.role && s.text === m.content)));
         if (match) used.add(match.key);
-        // The server keeps the crisis flag on the user's message; the card belongs on the reply to it.
-        const crisis = m.flaggedCrisis || (m.role === 'assistant' && Boolean(messages[i - 1]?.flaggedCrisis));
-        return {
-          key: match?.key ?? m.id,
-          id: m.id,
-          role: m.role,
-          text: m.content,
-          status: 'done',
-          suggestedAction: m.suggestedAction,
-          ...(m.role === 'assistant' && (crisis || match?.helpline) ? { helpline: match?.helpline ?? HELPLINE } : null),
-        };
+        const helpline = crisisAt(i) || match?.helpline ? (match?.helpline ?? HELPLINE) : undefined;
+        saved.push({ key: match?.key ?? m.id, id: m.id, role: m.role, text: m.content, status: 'done', suggestedAction: m.suggestedAction, ...(helpline ? { helpline } : null) });
       });
       return live.length ? [...saved, ...live] : saved;
     }
@@ -77,8 +85,9 @@ export function threadReducer(items: ThreadItem[], action: ThreadAction): Thread
       );
     case 'error':
       // The user message is kept (it is saved on the server); the empty reply is dropped.
+      // A reply that carries the crisis card is never dropped, even with no text yet.
       return items
-        .filter((i) => !(i.key === REPLY_KEY && !i.text))
+        .filter((i) => !(i.key === REPLY_KEY && !i.text && !i.helpline))
         .map((i) => (i.status === 'sending' ? { ...i, id: action.userMessageId ?? i.id, status: 'error', error: action.message } : i.key === REPLY_KEY ? { ...i, status: 'error' } : i));
     case 'retry':
       return [
