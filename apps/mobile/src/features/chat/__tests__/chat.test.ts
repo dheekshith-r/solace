@@ -126,6 +126,16 @@ describe('conversation thread', () => {
     expect(late.filter((i) => i.role === 'user').map((i) => i.status)).toEqual(['done', 'sending']);
   });
 
+  it('long chats (the 50-message window): a mid-stream copy is still matched, no duplicate', () => {
+    // 50 messages on screen, the window full; the new message pushes the oldest one out.
+    const history = Array.from({ length: 50 }, (_, i) => server(`m${i}`, i % 2 ? 'assistant' : 'user', `msg ${i}`));
+    const shown = threadReducer([], { type: 'load', messages: history });
+    const live = threadReducer(shown, { type: 'send', key: 'l7', text: 'still here' });
+    const window = [...history.slice(1), server('u7', 'user', 'still here')];
+    const loaded = threadReducer(live, { type: 'load', messages: window });
+    expect(loaded.filter((i) => i.text === 'still here')).toHaveLength(1);
+  });
+
   it('keeps the user message on error and retries without losing it', () => {
     const failed = threadReducer(sent, { type: 'error', message: "Couldn't reach Solace.", userMessageId: 'u1' });
     expect(failed).toHaveLength(1);

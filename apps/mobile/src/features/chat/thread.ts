@@ -46,8 +46,11 @@ export function threadReducer(items: ThreadItem[], action: ThreadAction): Thread
       // Only messages beyond what is already on screen can be that copy, so a repeated "ok" never hides an older one.
       const liveUser = live.find((l) => l.role === 'user');
       if (liveUser) {
+        // Aligned by the last on-screen id, not by count: the server returns a sliding window of the newest 50.
+        const lastShown = Math.max(-1, ...shown.map((s) => (s.id ? all.findIndex((m) => m.id === s.id) : -1)));
+        const from = lastShown >= 0 ? lastShown + 1 : shown.some((s) => s.id) ? all.length : shown.length;
         let at = liveUser.id ? all.findIndex((m) => m.id === liveUser.id) : -1;
-        if (at < 0) at = all.findLastIndex((m, i) => i >= shown.length && m.role === 'user' && m.content === liveUser.text);
+        if (at < 0) at = all.findLastIndex((m, i) => i >= from && m.role === 'user' && m.content === liveUser.text);
         if (at >= 0) {
           // The server already has the reply too (the stream died after saving): its copy wins, with its crisis flag.
           if (all[at + 1]?.role === 'assistant') live = [];
