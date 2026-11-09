@@ -1,4 +1,4 @@
-import type { Helpline, Message } from '@solace/shared';
+import { HELPLINE, type Helpline, type Message } from '@solace/shared';
 import type { SuggestedAction } from '@solace/shared/types';
 
 export type ThreadItem = {
@@ -31,14 +31,31 @@ export function threadReducer(items: ThreadItem[], action: ThreadAction): Thread
     case 'load': {
       // Keep any live exchange; replace the saved part.
       const live = items.filter((i) => i.status !== 'done');
-      const saved: ThreadItem[] = action.messages.map((m) => ({
-        key: m.id,
-        id: m.id,
-        role: m.role,
-        text: m.content,
-        status: 'done',
-        suggestedAction: m.suggestedAction,
-      }));
+      let messages = action.messages;
+      // The server saves the user message before streaming, so a fetch mid-stream returns a copy of it.
+      for (const l of live) {
+        if (l.role !== 'user') continue;
+        const at = l.id ? messages.findIndex((m) => m.id === l.id) : messages.findLastIndex((m) => m.role === 'user' && m.content === l.text);
+        if (at >= 0 && at >= messages.length - 2) messages = messages.filter((_, i) => i !== at);
+      }
+      const shown = items.filter((i) => i.status === 'done');
+      const used = new Set<string>();
+      const saved: ThreadItem[] = messages.map((m, i) => {
+        // Reuse the key already on screen (by id, else a just-finished local bubble) so nothing remounts.
+        const match = shown.find((s) => !used.has(s.key) && (s.id === m.id || (!s.id && s.role === m.role && s.text === m.content)));
+        if (match) used.add(match.key);
+        // The server keeps the crisis flag on the user's message; the card belongs on the reply to it.
+        const crisis = m.flaggedCrisis || (m.role === 'assistant' && Boolean(messages[i - 1]?.flaggedCrisis));
+        return {
+          key: match?.key ?? m.id,
+          id: m.id,
+          role: m.role,
+          text: m.content,
+          status: 'done',
+          suggestedAction: m.suggestedAction,
+          ...(m.role === 'assistant' && (crisis || match?.helpline) ? { helpline: match?.helpline ?? HELPLINE } : null),
+        };
+      });
       return live.length ? [...saved, ...live] : saved;
     }
     case 'send':

@@ -54,8 +54,10 @@ export function Header({
       { translateY: interpolate(scrollY.get(), [kit.headerCollapse * header.barTitleFrom, kit.headerCollapse], [spacing.xs, 0], Extrapolation.CLAMP) },
     ],
   }));
+  // With an identity the bar's content is always there, so it turns solid as soon as anything scrolls under it.
+  const fillBy = identity ? spacing.lg : kit.headerCollapse;
   const barFill = useAnimatedStyle(() => ({
-    opacity: interpolate(scrollY.get(), [0, kit.headerCollapse], [0, 1], Extrapolation.CLAMP),
+    opacity: interpolate(scrollY.get(), [0, fillBy], [0, 1], Extrapolation.CLAMP),
   }));
 
   return (

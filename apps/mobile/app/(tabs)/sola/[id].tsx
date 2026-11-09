@@ -142,7 +142,6 @@ function Conversation() {
   // A new conversation has no id yet, so its query never runs and stays "pending": it is empty, not loading.
   const empty = !items.length && (!id || !messages.isPending);
   const loading = Boolean(id) && messages.isPending && !items.length;
-  const showHelpline = items.some((i) => i.helpline);
 
   return (
     <View style={styles.flex} testID={ROOT_ID} collapsable={false}>
@@ -181,6 +180,15 @@ function Conversation() {
               <View key={item.key} style={styles.item}>
                 {item.text ? <ChatBubble role={item.role}>{item.text}</ChatBubble> : null}
                 {item.role === 'assistant' && item.status === 'done' && !item.helpline ? <Suggestion action={item.suggestedAction} /> : null}
+                {/* On the reply it belongs to, for good: rebuilt from the server's crisis flag after any refetch. */}
+                {item.role === 'assistant' && item.helpline ? (
+                  <HelplineCard
+                    onTalkToSola={() => {
+                      haptics.light();
+                      scroll.current?.scrollToEnd({ animated: true });
+                    }}
+                  />
+                ) : null}
                 {item.status === 'error' && item.role === 'user' ? (
                   <View style={styles.errorRow} accessibilityLiveRegion="polite">
                     <Text variant="footnote" tone="muted" style={styles.flex}>
@@ -193,14 +201,6 @@ function Conversation() {
               </View>
             ),
           )}
-          {showHelpline ? (
-            <HelplineCard
-              onTalkToSola={() => {
-                haptics.light();
-                scroll.current?.scrollToEnd({ animated: true });
-              }}
-            />
-          ) : null}
         </ScrollView>
         <Composer onSend={(text) => void send(text)} disabled={busy} clear />
       </KeyboardAvoidingView>
@@ -208,7 +208,6 @@ function Conversation() {
         title="Sola"
         scrollY={scrollY}
         back
-        clear
         identity={{ avatar: <SolaFigure size={kit.solaAvatar} glow={scheme === 'dark' ? 'night' : 'day'} mood={4} tight />, title: 'Sola', subtitle: 'Here, no rush' }}
         action={id ? { icon: Trash2, label: 'Delete conversation', onPress: remove } : undefined}
       />
