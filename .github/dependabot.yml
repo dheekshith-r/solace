@@ -1,0 +1,16 @@
+# Weekly update checks for the npm workspaces (api, mobile, shared). Nothing merges by itself.
+# Expo and React Native move together with the Expo SDK: upgrade them with `npx expo install --fix`, not one by one.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      npm:
+        patterns: ["*"]
+        update-types: [patch]
+    ignore:
+      - dependency-name: "expo*"
+      - dependency-name: "react-native*"
+      - dependency-name: "react"

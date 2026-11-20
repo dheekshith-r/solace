@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Solace banner</title>
+<!-- Fonts: copy the three Plus Jakarta Sans .ttf files from node_modules/@expo-google-fonts/plus-jakarta-sans next to this file. Render: render-card.js banner.html banner.png --w 1600 --h 800 --scale 1 -->
+<style>
+@font-face { font-family: "PJS"; src: url("pjs-400regular.ttf"); font-weight: 400; }
+@font-face { font-family: "PJS"; src: url("pjs-600semibold.ttf"); font-weight: 600; }
+@font-face { font-family: "PJS"; src: url("pjs-700bold.ttf"); font-weight: 700; }
+html, body { margin: 0; }
+body { width: 1600px; height: 800px; overflow: hidden; position: relative; color: #F2F4FA; font-family: "PJS", sans-serif;
+  background: linear-gradient(180deg, #0D0F1F 0%, #0D0F1F 45%, #001D33 75%, #002E52 100%); }
+.stars { position: absolute; inset: 0; }
+.sola { position: absolute; left: 60px; top: 56px; width: 64px; height: 64px; border-radius: 50%;
+  background: radial-gradient(circle at 45% 40%, #FFC58A, #F5934A 70%); box-shadow: 0 0 40px 18px rgba(245,147,74,.28); }
+.sola::before, .sola::after { content: ""; position: absolute; top: 26px; width: 7px; height: 8px; border-radius: 50%; background: #2B1A12; }
+.sola::before { left: 20px; } .sola::after { right: 20px; }
+.sola i { position: absolute; left: 24px; top: 36px; width: 16px; height: 8px; border-bottom: 3px solid #2B1A12; border-radius: 0 0 16px 16px; }
+.name { position: absolute; left: 146px; top: 62px; font-size: 44px; font-weight: 700; letter-spacing: -0.01em; }
+.tag { position: absolute; left: 148px; top: 114px; font-size: 16px; font-weight: 600; color: #A6D3FF; letter-spacing: .02em; }
+h1 { position: absolute; left: 60px; top: 190px; margin: 0; width: 720px; font-size: 72px; line-height: 1.02; font-weight: 700; letter-spacing: -0.025em; }
+.sub { position: absolute; left: 60px; top: 300px; width: 640px; margin: 0; font-size: 24px; line-height: 1.45; color: #B9C3D6; font-weight: 400; }
+.feats { position: absolute; left: 60px; top: 420px; width: 690px; margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.feats li { background: rgba(255,255,255,.06); border-radius: 18px; padding: 16px 20px; font-size: 20px; font-weight: 600; }
+.feats li small { display: block; margin-top: 4px; font-size: 15px; font-weight: 400; color: #9FB0C8; }
+.stack { position: absolute; left: 60px; bottom: 46px; font-size: 16px; color: #9FB0C8; }
+.stack b { color: #F2F4FA; font-weight: 600; }
+.phone { position: absolute; border-radius: 34px; overflow: hidden; border: 6px solid #1B1E2E; box-shadow: 0 30px 60px rgba(0,0,0,.45); background: #000; }
+.phone img { display: block; width: 100%; }
+.p1 { left: 800px; top: 150px; width: 232px; transform: rotate(-4deg); }
+.p2 { left: 1040px; top: 60px; width: 290px; z-index: 2; }
+.p3 { left: 1330px; top: 150px; width: 232px; transform: rotate(4deg); }
+.cap { position: absolute; top: 742px; font-size: 15px; color: #9FB0C8; width: 290px; text-align: center; }
+</style>
+</head>
+<body>
+  <svg class="stars" width="1600" height="800" aria-hidden="true">
+    <g fill="#fff">
+      <circle cx="420" cy="60" r="1.4" opacity=".7"/><circle cx="610" cy="140" r="1" opacity=".5"/><circle cx="760" cy="40" r="1.2" opacity=".6"/>
+      <circle cx="980" cy="30" r="1" opacity=".5"/><circle cx="1480" cy="40" r="1.4" opacity=".7"/><circle cx="1560" cy="110" r="1" opacity=".5"/>
+      <circle cx="520" cy="250" r="1" opacity=".4"/><circle cx="810" cy="110" r="1.6" opacity=".6"/><circle cx="1400" cy="90" r="1" opacity=".5"/>
+    </g>
+  </svg>
+  <div class="sola"><i></i></div>
+  <div class="name">Solace</div>
+  <div class="tag">WELLNESS COMPANION · ANDROID</div>
+  <h1>A calm place to land.</h1>
+  <p class="sub">Check in with how you feel, talk things through with Sola, and find one small step that helps.</p>
+  <ul class="feats">
+    <li>Today, under a living sky<small>The scene follows the real clock: sun, moon, sakura</small></li>
+    <li>Sola listens first<small>An AI companion, grounded in what you logged</small></li>
+    <li>Breathe in about a minute<small>Calm, Box or Sleep rhythms</small></li>
+    <li>Gentle reminders and guides<small>Reflect check-ins, Tele-MANAS 14416</small></li>
+  </ul>
+  <div class="stack"><b>Expo 58 · React Native 0.88</b> · Fastify API · Google Gemini · Supabase Postgres · Argon2id sign-in</div>
+
+  <div class="phone p1"><img src="../images/sola.jpeg" alt=""></div>
+  <div class="phone p2"><img src="../images/today.jpeg" alt=""></div>
+  <div class="phone p3"><img src="../images/breathe.jpeg" alt=""></div>
+</body>
+</html>
