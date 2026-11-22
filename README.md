@@ -81,6 +81,10 @@ To build the Android APK, use `build-apk.ps1` on the `app-build` branch. It need
 
 Read [SECURITY.md](./SECURITY.md). Report problems in private, never in a public issue.
 
+## Contributing
+
+Ideas and bug reports are welcome: read [CONTRIBUTING.md](./CONTRIBUTING.md).
+
 ## License
 
-All rights reserved. This repository is private.
+[MIT](./LICENSE).
