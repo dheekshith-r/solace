@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self'; style-src 'self'; script-src 'self'; font-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>Solace: a calm place to land, for Android</title>
+<meta name="description" content="Solace is a free Android app for hard nights. Check in with how you feel, talk it through with Sola, and breathe for a minute. Help comes first in a crisis.">
+<link rel="canonical" href="https://dheekshith-r.github.io/solace/">
+<meta name="theme-color" content="#0B1026">
+<link rel="icon" href="assets/sola.svg" type="image/svg+xml">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Solace">
+<meta property="og:title" content="Solace: for the hard nights, and the mornings after">
+<meta property="og:description" content="A free Android app. Check in with how you feel, talk it through with Sola, and breathe for a minute.">
+<meta property="og:url" content="https://dheekshith-r.github.io/solace/">
+<meta property="og:image" content="https://dheekshith-r.github.io/solace/assets/img/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Solace: a night sky over a snowy peak, the Solace Today screen rising from the hills, and Sola, a glowing orange character.">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preload" href="assets/fonts/plus-jakarta-sans-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/plus-jakarta-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/site.css">
+<script src="assets/boot.js"></script>
+<script src="assets/site.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="nav">
+  <a class="mark" href="#top" aria-label="Solace, back to top"><img src="assets/sola.svg" alt="" width="30" height="30">Solace</a>
+  <a class="nav-link" href="https://github.com/dheekshith-r/solace">GitHub</a>
+  <a class="nav-btn" href="https://github.com/dheekshith-r/solace/releases/latest">Download</a>
+</header>
+
+<main id="main" tabindex="-1">
+  <!-- 1. Hero: 11:48 pm -->
+  <section class="hero night" id="top" aria-labelledby="hero-title">
+    <svg class="sky-art" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMax slice" aria-hidden="true" focusable="false">
+      <defs>
+        <radialGradient id="moonglow" r="50%"><stop offset="0" stop-color="#F4F1E6" stop-opacity=".22"/><stop offset="1" stop-color="#F4F1E6" stop-opacity="0"/></radialGradient>
+        <linearGradient id="snow" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#EEF1FA"/><stop offset="1" stop-color="#A9B4D8"/></linearGradient>
+        <linearGradient id="far" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#34457F"/><stop offset="1" stop-color="#22305F"/></linearGradient>
+      </defs>
+      <g class="stars" data-stars="110" data-seed="7" data-h="560"></g>
+      <g class="moon"><circle cx="1160" cy="150" r="120" fill="url(#moonglow)"/><circle cx="1160" cy="150" r="34" fill="#F4F1E6"/><circle cx="1150" cy="142" r="6" fill="#E3DFD0"/><circle cx="1172" cy="160" r="4" fill="#E3DFD0"/></g>
+      <path d="M0 690 L210 640 L420 668 L700 600 L820 548 L860 534 L900 548 L1020 600 L1160 640 L1300 628 L1440 652 V900 H0Z" fill="url(#far)"/>
+      <path d="M780 566 L820 548 L860 534 L900 548 L940 566 L918 572 L898 560 L878 574 L856 562 L836 576 L812 566 L796 576Z" fill="url(#snow)"/>
+      <path d="M0 760 C180 720 330 770 520 742 C700 716 860 770 1040 748 C1210 728 1330 752 1440 740 V900 H0Z" fill="#17204A"/>
+      <path d="M0 830 C240 800 420 846 640 826 C860 806 1060 846 1260 826 C1350 818 1400 822 1440 826 V900 H0Z" fill="#0C122E"/>
+    </svg>
+    <div class="hero-copy">
+      <h1 id="hero-title">For the hard nights, and the mornings after.</h1>
+      <p class="lede">Check in with how you feel, talk it through with Sola, and breathe for a minute. A free app for Android.</p>
+      <p class="cta-row">
+        <a class="btn" href="https://github.com/dheekshith-r/solace/releases/latest">Download for Android <span class="btn-meta">52 MB</span></a>
+      </p>
+      <p class="fine">A friendly guide, not a therapist. In a crisis in India, call <a href="tel:14416">Tele-MANAS 14416</a>.</p>
+    </div>
+    <div class="hero-rise">
+      <img class="sola-float" src="assets/sola.svg" alt="" width="200" height="200">
+      <div class="phone">
+        <picture><source srcset="assets/img/today.avif" type="image/avif"><img src="assets/img/today.jpg" width="480" height="1069" alt="The Solace Today screen: a painted night sky over a snowy peak, Sola's face, and five mood buttons under 'How are you arriving?'" fetchpriority="high"></picture>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. Sola: 11:52 pm -->
+  <section class="band night b2" aria-labelledby="s2">
+    <div class="pair">
+      <div class="words">
+        <h2 id="s2"><span class="time">11:52 pm.</span> Say it however it comes out.</h2>
+        <p>Sola is an AI companion that listens first. Its replies appear word by word as they are written, and Sola is built to stick to what you actually shared.</p>
+        <p class="chips-cap">Ways to start, in the app:</p>
+        <ul class="chips" aria-label="Ways to start a chat in the app">
+          <li>I'm feeling anxious</li><li>I can't sleep</li><li>Today was good</li><li>I just need to vent</li>
+        </ul>
+      </div>
+      <div class="phone tilt-r reveal">
+        <picture><source srcset="assets/img/sola.avif" type="image/avif"><img src="assets/img/sola.jpg" width="480" height="1069" alt="The Sola chat screen: 'What's on your mind?' with four starter chips."></picture>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. Breathe: 12:10 am -->
+  <section class="band night b3" aria-labelledby="s3">
+    <div class="pair flip">
+      <div class="words">
+        <h2 id="s3"><span class="time">12:10 am.</span> Breathe for one minute.</h2>
+        <p>Four slow rounds: about a minute with Calm, a little longer with Box or Sleep. Try one here, the same way the app does it.</p>
+        <div class="breathe" data-breathe>
+          <div class="patterns" role="radiogroup" aria-label="Breathing pattern">
+            <button type="button" role="radio" aria-checked="true" data-pattern="calm">Calm <span>4 · 4 · 6</span></button>
+            <button type="button" role="radio" aria-checked="false" data-pattern="box">Box <span>4 · 4 · 4 · 4</span></button>
+            <button type="button" role="radio" aria-checked="false" data-pattern="sleep">Sleep <span>4 · 7 · 8</span></button>
+          </div>
+          <div class="orb-stage" aria-hidden="true"><div class="orb"></div></div>
+          <p class="orb-label"><strong data-label aria-live="polite">Ready when you are</strong> <span data-count aria-hidden="true"></span><span class="round" data-round aria-hidden="true"></span></p>
+          <button type="button" class="btn ghost" data-toggle>Start</button>
+        </div>
+      </div>
+      <div class="phone tilt-l reveal">
+        <picture><source srcset="assets/img/breathe.avif" type="image/avif"><img src="assets/img/breathe.jpg" width="480" height="1069" alt="The Breathe screen: a glowing circle, 'Breathe in, 4, Round 1 of 4', and a Pause button."></picture>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. Help first: 1:30 am -->
+  <section class="band night b4" aria-labelledby="s4">
+    <div class="single">
+      <h2 id="s4"><span class="time">1:30 am.</span> If it gets too heavy, help comes first.</h2>
+      <p>Every message you type is checked for crisis words and phrases before any AI call. If one matches, the AI is not called: Solace answers with a fixed, caring message and shows the helpline. No check catches everything, so the helpline also stays in Resources, and it shows even with no network.</p>
+      <div class="helpline">
+        <a href="tel:14416"><strong>Tele-MANAS 14416</strong><span>Free, 24 hours, India</span></a>
+        <a href="tel:112"><strong>112</strong><span>Emergency</span></a>
+      </div>
+      <p class="outside">Outside India, find a local helpline at <a href="https://findahelpline.com/">findahelpline.com</a>.</p>
+    </div>
+  </section>
+
+  <!-- 5. Mood check-in: 5:40 am -->
+  <section class="band dawn b5" aria-labelledby="s5">
+    <div class="single mood" data-mood>
+      <h2 id="s5"><span class="time">5:40 am.</span> How are you arriving?</h2>
+      <p>In the app, one tap saves how you feel today, and a mood tapped offline is sent later. Try it here (nothing is saved): Sola's face follows yours.</p>
+      <svg class="mood-sola" viewBox="0 0 200 200" aria-hidden="true" focusable="false">
+        <defs>
+          <radialGradient id="mglow" cx="50%" cy="54%" r="50%"><stop offset="0" stop-color="#FF9A3C" stop-opacity=".5"/><stop offset=".45" stop-color="#FF8A2A" stop-opacity=".2"/><stop offset="1" stop-color="#FF8A2A" stop-opacity="0"/></radialGradient>
+          <radialGradient id="mskin" cx="40%" cy="34%" r="70%"><stop offset="0" stop-color="#FFD9A8"/><stop offset=".45" stop-color="#FFAE5C"/><stop offset="1" stop-color="#E9822E"/></radialGradient>
+          <radialGradient id="mcheek" r="50%"><stop offset="0" stop-color="#FF6F7A" stop-opacity=".7"/><stop offset="1" stop-color="#FF6F7A" stop-opacity="0"/></radialGradient>
+        </defs>
+        <circle class="mglow" cx="100" cy="108" r="98" fill="url(#mglow)"/>
+        <path d="M100 58c3-9 8-15 15-17-1 8-6 14-13 18z" fill="#F08A2E"/>
+        <path d="M98 60c0-5-1-9-4-12" stroke="#D9731F" stroke-width="3" stroke-linecap="round" fill="none"/>
+        <ellipse cx="100" cy="110" rx="47" ry="44" fill="url(#mskin)"/>
+        <ellipse cx="72" cy="118" rx="11" ry="7" fill="url(#mcheek)"/>
+        <ellipse cx="128" cy="118" rx="11" ry="7" fill="url(#mcheek)"/>
+        <ellipse cx="84" cy="106" rx="4.6" ry="5.6" fill="#2A1A12"/>
+        <ellipse cx="116" cy="106" rx="4.6" ry="5.6" fill="#2A1A12"/>
+        <circle cx="85.6" cy="104" r="1.5" fill="#fff"/><circle cx="117.6" cy="104" r="1.5" fill="#fff"/>
+        <path class="mouth" d="M93 122 Q100 122 107 122" stroke="#2A1A12" stroke-width="2.6" stroke-linecap="round" fill="none"/>
+      </svg>
+      <div class="moods" role="radiogroup" aria-label="Your mood right now">
+        <button type="button" role="radio" aria-checked="false" data-m="1" aria-label="Very low"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="11" cy="13" r="1.8"/><circle cx="21" cy="13" r="1.8"/><path d="M10 23q6-6 12 0"/><path d="M8.5 9.5l4 1.6M23.5 9.5l-4 1.6"/></svg></button>
+        <button type="button" role="radio" aria-checked="false" data-m="2" aria-label="Low"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="11" cy="13" r="1.8"/><circle cx="21" cy="13" r="1.8"/><path d="M10.5 22q5.5-4 11 0"/></svg></button>
+        <button type="button" role="radio" aria-checked="true" data-m="3" aria-label="Okay"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="11" cy="13" r="1.8"/><circle cx="21" cy="13" r="1.8"/><path d="M11 21h10"/></svg></button>
+        <button type="button" role="radio" aria-checked="false" data-m="4" aria-label="Good"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="11" cy="13" r="1.8"/><circle cx="21" cy="13" r="1.8"/><path d="M10.5 20q5.5 4 11 0"/></svg></button>
+        <button type="button" role="radio" aria-checked="false" data-m="5" aria-label="Great"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="11" cy="13" r="1.8"/><circle cx="21" cy="13" r="1.8"/><path d="M9.5 19q6.5 7 13 0"/></svg></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Horizon: the sun comes up -->
+  <div class="horizon" aria-hidden="true">
+    <svg viewBox="0 0 1440 360" preserveAspectRatio="xMidYMax slice" focusable="false">
+      <defs>
+        <radialGradient id="sunglow" cx="50%" cy="100%" r="60%"><stop offset="0" stop-color="#FFB25E" stop-opacity=".9"/><stop offset=".5" stop-color="#FF9F6B" stop-opacity=".35"/><stop offset="1" stop-color="#FF9F6B" stop-opacity="0"/></radialGradient>
+      </defs>
+      <rect width="1440" height="360" fill="url(#sunglow)"/>
+      <circle class="sun" cx="720" cy="300" r="58" fill="#FFC98A"/>
+      <path d="M0 250 L220 214 L400 236 L600 190 L720 170 L840 190 L1040 232 L1240 210 L1440 230 V360 H0Z" fill="#7C6FA6"/>
+      <path d="M0 300 C200 270 380 314 600 292 C820 270 1000 316 1220 294 C1330 284 1400 290 1440 292 V360 H0Z" fill="#B88FA6"/>
+      <path d="M0 336 C260 318 460 350 720 336 C980 322 1200 350 1440 334 V360 H0Z" fill="#F2C7B0"/>
+    </svg>
+  </div>
+
+  <!-- 6. Reflect: 7:00 am -->
+  <section class="band day b6" aria-labelledby="s6">
+    <div class="single split">
+      <div><h2 id="s6"><span class="time">7:00 am.</span> Three short check-ins, three honest answers.</h2>
+      <p>Reflect has three check-ins: Mood, Anxiety relief and Self-talk, with four questions each. The answer names how you are doing and suggests three small moves. It is a check-in, not a diagnosis.</p></div>
+      <ul class="petals" aria-label="The three answers Reflect can give">
+        <li class="p-steady">Steady ground</li>
+        <li class="p-stretched">A bit stretched</li>
+        <li class="p-heavy">Carrying a lot</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 7. Your data: 8:15 am -->
+  <section class="band day b7" aria-labelledby="s7">
+    <div class="single split">
+      <div><h2 id="s7"><span class="time">8:15 am.</span> What you share stays yours to delete.</h2></div>
+      <ul class="ledger">
+        <li><strong>Your chat messages go to Google Gemini</strong> so Sola can reply. The key stays on the server, never in the app.</li>
+        <li><strong>Delete all chats</strong> whenever you want.</li>
+        <li><strong>Turn off "Personalize with my history"</strong> in the app's privacy settings.</li>
+        <li><strong>Delete your account</strong> and every row that belongs to it.</li>
+        <li><strong>18+ only.</strong> Sign-up asks you to confirm your age.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 8. The award: 9:00 am -->
+  <section class="band day b8" aria-labelledby="s8">
+    <div class="single award">
+      <h2 id="s8"><span class="time">9:00 am.</span> Recognised at the Solace AI Hackathon.</h2>
+      <p>Humanity Founders gave Solace's maker a Certificate of Distinction in 2026.</p>
+      <figure>
+        <picture><source srcset="assets/img/certificate.avif" type="image/avif"><img src="assets/img/certificate.jpg" width="1200" height="851" alt="Certificate of Distinction presented to Dheekshith R in recognition of excellent performance in the Solace AI Hackathon, organized by Humanity Founders. Signed by Mr. Nikunj Bansal, Managing Director. Number HUMANITYFOUNDERS/2026/00514."></picture>
+        <figcaption>Certificate of Distinction, Solace AI Hackathon, Humanity Founders, 2026.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- 9. Get it: 9:30 am -->
+  <section class="band day b9 closing" aria-labelledby="s9">
+    <img class="sola-big" src="assets/sola.svg" alt="" width="200" height="200">
+    <h2 id="s9">Get Solace.</h2>
+    <p>Free for Android, from GitHub Releases. The first time, Android asks you to allow installs from this source. The release notes list the file's SHA-256 checksum.</p>
+    <p class="cta-row">
+      <a class="btn" href="https://github.com/dheekshith-r/solace/releases/latest">Download for Android <span class="btn-meta">52 MB</span></a>
+      <a class="btn ghost" href="https://github.com/dheekshith-r/solace">See the code on GitHub</a>
+    </p>
+    <p class="built">Built with Expo and React Native, a Fastify API, Postgres and Google Gemini. Open source under the MIT licence.</p>
+  </section>
+</main>
+
+<footer class="foot">
+  <p>Solace is a friendly guide, not a therapist, and not a substitute for professional help. In India: Tele-MANAS <a href="tel:14416">14416</a>, emergency <a href="tel:112">112</a>. Elsewhere: <a href="https://findahelpline.com/">findahelpline.com</a>.</p>
+  <p><a href="https://github.com/dheekshith-r/solace">GitHub</a> · <a href="https://github.com/dheekshith-r/solace/blob/main/LICENSE">MIT licence</a></p>
+</footer>
+</body>
+</html>
