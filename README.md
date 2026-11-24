@@ -6,6 +6,8 @@
 
 Solace is a friendly guide, not a therapist, and it is not a substitute for professional help.
 
+**Website:** [dheekshith-r.github.io/solace](https://dheekshith-r.github.io/solace/) · **Download:** [Solace 1.0.0 for Android (APK, 52 MB)](https://github.com/dheekshith-r/solace/releases/latest)
+
 ## The app
 
 <table>
